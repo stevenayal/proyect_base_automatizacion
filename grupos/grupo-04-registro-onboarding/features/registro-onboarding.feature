@@ -9,3 +9,9 @@ Feature: Registro de Usuario / Onboarding
   # TODO: Scenario: happy path
   # TODO: Scenario: caso negativo
   # TODO: Scenario: edge case
+  Scenario: Alta rechazada para un cliente con documento ya registrado
+  Given existe un cliente registrado con el mismo número de documento
+  And el usuario se encuentra en el formulario de alta de clientes
+  When intenta registrar un nuevo cliente utilizando ese número de documento
+  Then el sistema debe rechazar el alta
+  And debe informar que el documento ya se encuentra registrado
