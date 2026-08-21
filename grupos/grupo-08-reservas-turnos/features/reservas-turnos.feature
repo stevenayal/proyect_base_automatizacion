@@ -60,3 +60,8 @@ Scenario: Intentar reservar sin completar todos los datos requeridos
 
 
   # TODO: Scenario: edge case
+
+  Scenario: Cancelación de turno exitosa
+    Given el usuario tiene un turno reservado
+    When el usuario solicita cancelar el turno
+    Then el sistema debe liberar el horario para otros usuarios
