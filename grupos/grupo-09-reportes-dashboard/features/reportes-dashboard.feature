@@ -9,3 +9,21 @@ Feature: Reportes y Dashboard
   # TODO: Scenario: happy path
   # TODO: Scenario: caso negativo
   # TODO: Scenario: edge case
+
+# Scenario 1: happy path
+Scenario: Generar reporte financiero correctamente
+  Given el usuario se encuentra en el módulo de reportes
+  When solicita generar un reporte financiero
+  Then el sistema debe generar y mostrar el reporte correctamente
+
+# Scenario 2: caso negativo
+  Scenario: Intentar generar reporte sin datos disponibles en el rango de fechas
+    Given el usuario se encuentra en el modulo de reportes
+    When aplica un filtro de fechas donde no existen transacciones registradas
+    Then el sistema debe mostrar el mensaje "No se encontraron datos para el periodo seleccionado"
+
+# Scenario 3: Roles
+Scenario: Visualizar indicadores según el rol del usuario
+  Given que el usuario tiene el rol "<rol>"
+  When accede al panel de reportes financieros
+  Then debe visualizar únicamente los indicadores "<indicadores_visibles>"
