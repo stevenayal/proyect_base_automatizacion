@@ -21,3 +21,4 @@ Scenario: Generar reporte financiero correctamente
     Given el usuario se encuentra en el modulo de reportes
     When aplica un filtro de fechas donde no existen transacciones registradas
     Then el sistema debe mostrar el mensaje "No se encontraron datos para el periodo seleccionado"
+    
