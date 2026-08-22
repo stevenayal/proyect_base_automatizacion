@@ -19,4 +19,16 @@ Feature: Transferencias entre Cuentas
     Then la transferencia debe ser rechazada
     And debe visualizar un mensaje indicando saldo insuficiente
   
+# TODO: Scenario: caso negativo
+Scenario: Rechazar una transferencia hacia una cuenta bloqueada
+Given la cuenta destino pertenece al mismo banco
+And la cuenta destino se encuentra bloqueada
+And la cuenta origen dispone de un saldo de 10000000 Gs
+When el cliente realiza una transferencia de 5000000 Gs desde la cuenta origen hacia la cuenta destino
+Then la transferencia debe ser rechazada
+And se debe informar que la cuenta destino se encuentra bloqueada
+And el saldo de la cuenta origen no debe ser modificado
+And el saldo de la cuenta destino no debe ser modificado
+And no se debe generar un comprobante de transferencia
+
    # TODO: Scenario: edge case
