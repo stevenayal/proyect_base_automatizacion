@@ -9,3 +9,11 @@ Feature: Administración de Roles y Permisos
   # TODO: Scenario: happy path
   # TODO: Scenario: caso negativo
   # TODO: Scenario: edge case
+
+
+# Scenario (Caso Negativo - Cajero intenta transferir alto monto):
+ # Scenario: Denegar autorización de transferencia extraordinaria a un Cajero
+  #  Given que el usuario autenticado en el backoffice tiene el rol "Cajero"
+   # When intenta aprobar un desembolso de "USD 50.000"
+    # Then el sistema bloquea la transacción
+     # And muestra el mensaje "Requiere autorización de un Gerente de Sucursal"
