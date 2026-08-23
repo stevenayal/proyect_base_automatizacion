@@ -19,7 +19,7 @@ Feature: Transferencias entre Cuentas
     Then la transferencia debe ser rechazada
     And debe visualizar un mensaje indicando saldo insuficiente
 
-# TODO: Scenario: caso negativo
+# TODO: Scenario caso negativo
 Scenario: Rechazar una transferencia hacia una cuenta bloqueada
 Given la cuenta destino pertenece al mismo banco
 And la cuenta destino se encuentra bloqueada
