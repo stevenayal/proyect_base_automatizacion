@@ -9,48 +9,20 @@ Feature: Reportes y Dashboard
   # TODO: Scenario: happy path
   # TODO: Scenario: caso negativo
   # TODO: Scenario: edge case
-<<<<<<< grupo-09-reportes-dashboard
-<<<<<<< grupo-09-reportes-dashboard
-  # Todo: Scenario: Comparativa
+Caso Positivo -Claudio Cabrera
+Escenario: Visualizar reporte financiero del mes 
+Dado que el usuario ha iniciado sesión
+Cuando consulta el reporte financiero del mes actual
+Entonces se cargan las métricas y gráficos del panel de control.
 
-# Scenario 1: happy path
-=======
+Caso Negativo -Claudio Cabrera
+Escenario: Consultar reporte en un período sin datos 
+Dado que el usuario ha iniciado sesión
+Cuando filtra el reporte para un año sin transacciones
+Entonces se muestra un mensaje de "Sin datos disponibles".
 
-# Scenario 1: Happy path
->>>>>>> main
-=======
-  # Todo: Scenario: Comparativa
-
-# Scenario 1: happy path
->>>>>>> grupo-09-reportes-dashboard
-Scenario: Generar reporte financiero correctamente
-  Given el usuario se encuentra en el módulo de reportes
-  When solicita generar un reporte financiero
-  Then el sistema debe generar y mostrar el reporte correctamente
-<<<<<<< grupo-09-reportes-dashboard
-<<<<<<< grupo-09-reportes-dashboard
-=======
->>>>>>> grupo-09-reportes-dashboard
-
-# Scenario 2: caso negativo
-  Scenario: Intentar generar reporte sin datos disponibles en el rango de fechas
-    Given el usuario se encuentra en el modulo de reportes
-    When aplica un filtro de fechas donde no existen transacciones registradas
-    Then el sistema debe mostrar el mensaje "No se encontraron datos para el periodo seleccionado"
-
-# Scenario 3: Roles
-Scenario: Visualizar indicadores según el rol del usuario
-  Given que el usuario tiene el rol "<rol>"
-  When accede al panel de reportes financieros
-  Then debe visualizar únicamente los indicadores "<indicadores_visibles>"
-  
-#Scenario 4: Comparativa
-Scenario: Comparacion de reportes entre dos periodos distintos
-  Given el usuario se encuentra en el modulo de reportes
-  When selecciona dos periodos y solicita compararlos
-  Then el sistema debe mostrar un reporte comparativo con las diferencias porcentuales
-<<<<<<< grupo-09-reportes-dashboard
-=======
->>>>>>> main
-=======
->>>>>>> grupo-09-reportes-dashboard
+Caso Limite - Claudio Cabrera
+Escenario: Filtrar el rango máximo de años permitido 
+Dado que el usuario ha iniciado sesión
+Cuando selecciona un rango de fechas de 10 años
+Entonces el reporte se genera agrupando los datos sin dar error de tiempo de espera.
