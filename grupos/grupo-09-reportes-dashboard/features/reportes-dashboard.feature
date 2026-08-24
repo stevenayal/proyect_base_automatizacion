@@ -9,7 +9,13 @@ Feature: Reportes y Dashboard
   # TODO: Scenario: happy path
   # TODO: Scenario: caso negativo
   # TODO: Scenario: edge case
-Caso Positivo -Claudio Cabrera
+# Scenario 1: Happy path
+Scenario: Generar reporte financiero correctamente
+  Given el usuario se encuentra en el módulo de reportes
+  When solicita generar un reporte financiero
+  Then el sistema debe generar y mostrar el reporte correctamente
+
+  Caso Positivo -Claudio Cabrera
 Escenario: Visualizar reporte financiero del mes 
 Dado que el usuario ha iniciado sesión
 Cuando consulta el reporte financiero del mes actual
@@ -26,3 +32,4 @@ Escenario: Filtrar el rango máximo de años permitido
 Dado que el usuario ha iniciado sesión
 Cuando selecciona un rango de fechas de 10 años
 Entonces el reporte se genera agrupando los datos sin dar error de tiempo de espera.
+
