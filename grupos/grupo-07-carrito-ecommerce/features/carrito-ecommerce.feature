@@ -1,4 +1,3 @@
-# language: es
 # Grupo 07 — Carrito de Compras / E-commerce (módulo ordenes)
 #
 # Análisis funcional BDD alineado al contrato real de la API del sandbox
