@@ -50,4 +50,4 @@ Caso Limite - Claudio Cabrera
 Escenario: Filtrar el rango máximo de años permitido 
 Dado que el usuario ha iniciado sesión
 Cuando selecciona un rango de fechas de 10 años
-Entonces el reporte se genera agrupando los datos sin dar error de tiempo de espera.
+Entonces el reporte se genera agrupando los datos sin dar error de tiempo de espera. 
