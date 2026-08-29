@@ -34,3 +34,10 @@ Escenario: Filtrar el rango máximo de años permitido
 Dado que el usuario ha iniciado sesión
 Cuando selecciona un rango de fechas de 10 años
 Entonces el reporte se genera agrupando los datos sin dar error de tiempo de espera.
+
+# Scenario 3: Roles 
+# Leila Ruiz
+Scenario: Visualizar indicadores según el rol del usuario
+  Given que el usuario tiene el rol "<rol>"
+  When accede al panel de reportes financieros
+  Then debe visualizar únicamente los indicadores "<indicadores_visibles>"
