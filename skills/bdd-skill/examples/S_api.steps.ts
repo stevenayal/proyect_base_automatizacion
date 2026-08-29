@@ -52,13 +52,6 @@ When('hago PATCH a {string} con body:', async function (this: SandboxWorld, endp
   this.lastResponse = await res.json();
 });
 
-When('hago PUT a {string} con body:', async function (this: SandboxWorld, endpoint: string, body: string) {
-  const data = JSON.parse(this.resolve(body));
-  const res = await this.apiContext.put(this.resolve(endpoint), { data });
-  this.lastStatus = res.status();
-  this.lastResponse = await res.json();
-});
-
 When('hago DELETE a {string}', async function (this: SandboxWorld, endpoint: string) {
   const res = await this.apiContext.delete(this.resolve(endpoint));
   this.lastStatus = res.status();
