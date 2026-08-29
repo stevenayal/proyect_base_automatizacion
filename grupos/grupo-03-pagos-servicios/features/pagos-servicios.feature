@@ -12,9 +12,10 @@ Feature: Pagos de Servicios
   # TODO: Scenario: happy path
   
     Scenario: Pago exitoso de factura de ANDE
-      Given el usuario ingresa al modulo de pago de ANDE
-      When el usuario ingresa un numero de NIS valido y confirma el pago
-      Then el sistema muestra el comprobante de pago exitoso
+      Given el usuario posee factura ANDE pendiente de pago
+      When el usuario realiza el pago total de la factura
+      Then el pago es confirmado exitosamente
+      And la factura cambia a estado pagada
 
     Scenario: Pago exitoso de una factura ESSAP
       Given el usuario tiene una factura de ESSAP pendiente de pago

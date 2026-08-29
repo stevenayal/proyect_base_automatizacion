@@ -30,3 +30,31 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 - [ ] Evidencias en `evidence/`
 - [ ] CI/CD verde
 - [ ] PR a `main` usando la plantilla del repo
+
+
+# Trazabilidad BDD → API
+
+Scenario: Pago exitoso de factura de ANDE
+Given un usuario en el sistema
+When POST /api/v1/sql/update
+Then status 200 y actualizado almenos un registro 
+
+Postman: POST https://aiquaa-sandbox-api.vercel.app/api/v1/sql/update
+Body: {
+  "sql": "UPDATE facturas SET estado = $1 WHERE usuario_id = $2 AND proveedor = $3",
+  "params": [
+    "pagada",
+    "{{UsuarioID}}",
+    "ANDE"
+  ]
+}
+Test: / Validar que la API responda 200 OK
+pm.test("Pago confirmado correctamente", function () {
+    pm.response.to.have.status(200);
+});
+
+//Validar que se actualize almenos una factura
+pm.test("Al menos una factura cambia a pagada", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.rowCount).to.be.above(0);
+});
