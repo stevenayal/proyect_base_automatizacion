@@ -1,0 +1,162 @@
+{
+  "info": {
+    "_postman_id": "efc5f40f-3e57-4f39-b58e-78909a782329",
+    "name": "Grupo 01 - Autenticación y Acceso Mariset C. Lorente",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "41799557"
+  },
+  "item": [
+    {
+      "name": "01- Login rechazado con credenciales inválidas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"El login con credenciales inválidas es rechazado\", function () {\n    pm.response.to.have.status(400);\n});\n\npm.test(\"La respuesta es JSON\", function () {\n    pm.response.to.be.json;\n});\n\npm.test(\"La respuesta contiene información del error de autenticación\", function () {\n    const jsonData = pm.response.json();\n    pm.expect(jsonData).to.be.an(\"object\");\n});\n\npm.test(\"Tiempo de respuesta menor a 3000 ms\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(3000);\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabaseAnonKey}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{supabaseAnonKey}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{invalidPassword}}\",\n  \"gotrue_meta_security\": {}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://cbkctkpyxwbufvbwxogp.supabase.co/auth/v1/token?grant_type=password",
+          "protocol": "https",
+          "host": [
+            "cbkctkpyxwbufvbwxogp",
+            "supabase",
+            "co"
+          ],
+          "path": [
+            "auth",
+            "v1",
+            "token"
+          ],
+          "query": [
+            {
+              "key": "grant_type",
+              "value": "password"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02 - Login con correo válido ingresado con espacios",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"El login con correo con espacios es rechazado\", function () {\n    pm.response.to.have.status(400);\n});\n\npm.test(\"La respuesta es JSON\", function () {\n    pm.response.to.be.json;\n});\n\npm.test(\"La API devuelve credenciales inválidas\", function () {\n    const jsonData = pm.response.json();\n\n    pm.expect(jsonData).to.have.property(\"error_code\");\n    pm.expect(jsonData.error_code).to.eql(\"invalid_credentials\");\n\n    pm.expect(jsonData).to.have.property(\"msg\");\n    pm.expect(jsonData.msg).to.eql(\"Invalid login credentials\");\n});\n\npm.test(\"Tiempo de respuesta menor a 3000 ms\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(3000);\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabaseAnonKey}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{supabaseAnonKey}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \" {{testEmail}} \",\n  \"password\": \"{{testPassword}}\",\n  \"gotrue_meta_security\": {}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://cbkctkpyxwbufvbwxogp.supabase.co/auth/v1/token?grant_type=password",
+          "protocol": "https",
+          "host": [
+            "cbkctkpyxwbufvbwxogp",
+            "supabase",
+            "co"
+          ],
+          "path": [
+            "auth",
+            "v1",
+            "token"
+          ],
+          "query": [
+            {
+              "key": "grant_type",
+              "value": "password"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": ""
+    },
+    {
+      "key": "candidateId",
+      "value": ""
+    },
+    {
+      "key": "sessionId",
+      "value": ""
+    },
+    {
+      "key": "supabaseAnonKey",
+      "value": ""
+    },
+    {
+      "key": "testEmail",
+      "value": ""
+    },
+    {
+      "key": "testPassword",
+      "value": ""
+    },
+    {
+      "key": "invalidPassword",
+      "value": ""
+    }
+  ]
+}
