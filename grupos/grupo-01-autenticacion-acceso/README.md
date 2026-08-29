@@ -87,9 +87,17 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 | **Login exitoso con credenciales válidas** | Happy Path | `{{baseUrl}}/api/v1/labs/admin/seed/{{candidateId}}` | `POST` | `documento`, `password` | Status 200, confirma estado activo y genera `sessionId`. |
 | **Solicitud de recuperación con correo no registrado** | Caso Negativo | `{{baseUrl}}/api/v1/auth/forgot-password` | `POST` | `email` no registrado | Status 404, valida mensaje `"Correo no encontrado"`. |
 | **Cierre de sesión con token expirado** | Edge Case | `{{baseUrl}}/api/v1/auth/logout` | `POST` | Header `Authorization` expirado | Status 401, valida mensaje de sesión expirada. |
+<!-- Aporte: Mariset C. Lorente -->
+| **Login rechazado con credenciales inválidas** | Caso Negativo | `POST Supabase /auth/v1/token?grant_type=password` | `POST` | `email` válido + `password` incorrecta | Status 400, `error_code: invalid_credentials`, respuesta JSON y tiempo < 3000 ms. |
+| **Login con correo válido ingresado con espacios** | Caso Negativo | `POST Supabase /auth/v1/token?grant_type=password` | `POST` | `email` válido con espacios + `password` válida | Status 400, `error_code: invalid_credentials`, respuesta JSON y tiempo < 3000 ms. |
 
 ## Variables de Entorno Utilizadas
 
 * **`baseUrl`**: URL base del servidor de AIQUAA.
 * **`candidateId`**: Identificador asignado para la ejecución del grupo.
 * **`sessionId`**: Token capturado dinámicamente para autenticación.
+<!-- Variables utilizadas por los escenarios de Mariset C. Lorente -->
+* **supabaseAnonKey**: Clave utilizada para consumir el servicio de autenticación de Supabase. Su valor no se almacena en el repositorio.
+* **testEmail**: Correo válido utilizado durante las pruebas.
+* **testPassword**: Contraseña válida utilizada durante las pruebas. Su valor no se almacena en el repositorio.
+* **invalidPassword**: Contraseña inválida utilizada para validar el rechazo de credenciales.
