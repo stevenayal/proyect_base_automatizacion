@@ -34,6 +34,7 @@ Scenario: Comparacion de reportes entre dos periodos distintos
   Given el usuario se encuentra en el modulo de reportes
   When selecciona dos periodos y solicita compararlos
   Then el sistema debe mostrar un reporte comparativo con las diferencias porcentuales
+
 Caso Positivo -Claudio Cabrera
 Escenario: Visualizar reporte financiero del mes 
 Dado que el usuario ha iniciado sesión
