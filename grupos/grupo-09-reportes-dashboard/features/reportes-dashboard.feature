@@ -35,6 +35,7 @@ Dado que el usuario ha iniciado sesión
 Cuando selecciona un rango de fechas de 10 años
 Entonces el reporte se genera agrupando los datos sin dar error de tiempo de espera.
 
+
  # Escenarios de Leila Ruiz — Control de acceso por rol
 
   # Caso Positivo
