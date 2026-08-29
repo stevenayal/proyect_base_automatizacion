@@ -1,0 +1,789 @@
+{
+  "info": {
+    "_postman_id": "c1a2b3d4-e5f6-7890-abcd-111122223334",
+    "name": "Grupo 01 - Autenticacion y Acceso (Semana 03)",
+    "description": "Coleccion del Grupo 01 (Autenticacion y Acceso) - Semana 03. Aplica el patron SQL REST dinamico: prepara/valida datos en la BD (qa_training) antes y despues de cada operacion de autenticacion y acceso. Assertions reales sobre status 200/201/400/401/404, esquema JSON, tiempo de respuesta y tokens/identificadores devueltos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Helper reutilizable para consultar la BD via /api/v1/sql/select (solo lectura).",
+          "if (typeof utils === \"undefined\") {",
+          "  utils = {",
+          "    bodySqlRest: function (sql, params) {",
+          "      return {",
+          "        url: pm.variables.get(\"baseUrl\") + \"/api/v1/sql/select\",",
+          "        method: \"POST\",",
+          "        header: {",
+          "          \"Content-Type\": \"application/json\",",
+          "          \"x-api-key\": pm.variables.get(\"apiKey\")",
+          "        },",
+          "        body: {",
+          "          mode: \"raw\",",
+          "          raw: JSON.stringify({ sql: sql, params: params || [] })",
+          "        }",
+          "      };",
+          "    }",
+          "  };",
+          "}",
+          "// Reset de variables por defecto antes de cada request.",
+          "pm.collectionVariables.set(\"usuarioId\", 1);",
+          "pm.collectionVariables.set(\"email\", \"ana.torres@example.com\");"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://aiquaa-sandbox-api.vercel.app",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "sbx_demo_f581ca21e68a347288c94d71",
+      "type": "string"
+    },
+    {
+      "key": "usuarioId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "ana.torres@example.com",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Preparacion y Validacion de Datos (SQL)",
+      "item": [
+        {
+          "name": "SQL - Validar usuario activo (precondicion)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 200 - Consulta SQL ejecutada\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Esquema: la respuesta trae data como arreglo\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.have.property(\"data\");",
+                  "  pm.expect(json.data).to.be.an(\"array\");",
+                  "});",
+                  "pm.test(\"Validacion BD: el usuario de prueba existe y esta activo\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.data.length).to.be.above(0);",
+                  "  pm.expect(json.data[0].activo).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sql/select",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sql",
+                "select"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sql\": \"SELECT id, nombre, email, activo FROM usuarios WHERE id = $1\",\n  \"params\": [{{usuarioId}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "SQL - Sesiones previas del usuario (historial)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 200 - Historial de sesiones\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Esquema: arreglo de sesiones previas\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.data).to.be.an(\"array\");",
+                  "});",
+                  "pm.test(\"Tiempo de respuesta < 3000 ms\", function () {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sql/select",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sql",
+                "select"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sql\": \"SELECT tipo_evento, exitoso, created_at FROM sesiones WHERE usuario_id = $1 ORDER BY id DESC LIMIT 5\",\n  \"params\": [{{usuarioId}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 - Login",
+      "item": [
+        {
+          "name": "01 - Login exitoso (Happy Path)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Pre-request: captura la cantidad de sesiones de login previas (precondicion BD).",
+                  "var uid = pm.collectionVariables.get(\"usuarioId\") || 1;",
+                  "pm.collectionVariables.set(\"sesAntesLogin\", 0);",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM sesiones WHERE usuario_id = $1 AND tipo_evento = 'login'\",",
+                  "  [uid]",
+                  "), function (err, res) {",
+                  "  if (!err) {",
+                  "    pm.collectionVariables.set(\"sesAntesLogin\", parseInt(res.json().data[0].total, 10));",
+                  "  }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 200 - Login exitoso\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Tiempo de respuesta < 3000 ms\", function () {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Esquema JSON: data con id, email y activo\", function () {",
+                  "  pm.expect(json).to.have.property(\"data\");",
+                  "  pm.expect(json.data).to.have.property(\"id\");",
+                  "  pm.expect(json.data).to.have.property(\"email\");",
+                  "  pm.expect(json.data).to.have.property(\"activo\");",
+                  "  pm.expect(json.data.activo).to.eql(true);",
+                  "});",
+                  "// Captura del token/identificador de sesion devuelto por la API.",
+                  "pm.collectionVariables.set(\"authToken\", json.data.id);",
+                  "pm.collectionVariables.set(\"usuarioId\", json.data.id);",
+                  "console.log(\"authToken (usuarioId) capturado:\", json.data.id);",
+                  "// Validacion en BD: se registro la sesion de login.",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM sesiones WHERE usuario_id = $1 AND tipo_evento = 'login'\",",
+                  "  [json.data.id]",
+                  "), function (err, res) {",
+                  "  if (err) { console.error(err); return; }",
+                  "  var despues = parseInt(res.json().data[0].total, 10);",
+                  "  pm.test(\"BD: se inserto una sesion de login para el usuario\", function () {",
+                  "    pm.expect(despues).to.be.above(pm.collectionVariables.get(\"sesAntesLogin\"));",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Logout",
+      "item": [
+        {
+          "name": "02 - Logout exitoso (Happy Path)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var uid = pm.collectionVariables.get(\"usuarioId\") || 1;",
+                  "pm.collectionVariables.set(\"sesAntesLogout\", 0);",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM sesiones WHERE usuario_id = $1 AND tipo_evento = 'logout'\",",
+                  "  [uid]",
+                  "), function (err, res) {",
+                  "  if (!err) {",
+                  "    pm.collectionVariables.set(\"sesAntesLogout\", parseInt(res.json().data[0].total, 10));",
+                  "  }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 200 - Logout exitoso\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Tiempo de respuesta < 3000 ms\", function () {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Esquema JSON: data con id y usuario_id\", function () {",
+                  "  pm.expect(json).to.have.property(\"data\");",
+                  "  pm.expect(json.data).to.have.property(\"id\");",
+                  "  pm.expect(json.data).to.have.property(\"usuario_id\");",
+                  "});",
+                  "// Captura del token de sesion devuelto.",
+                  "pm.collectionVariables.set(\"sesionId\", json.data.id);",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM sesiones WHERE usuario_id = $1 AND tipo_evento = 'logout'\",",
+                  "  [json.data.usuario_id]",
+                  "), function (err, res) {",
+                  "  if (err) { console.error(err); return; }",
+                  "  var despues = parseInt(res.json().data[0].total, 10);",
+                  "  pm.test(\"BD: se inserto una sesion de logout para el usuario\", function () {",
+                  "    pm.expect(despues).to.be.above(pm.collectionVariables.get(\"sesAntesLogout\"));",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": {{usuarioId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Casos Negativos y de Acceso",
+      "item": [
+        {
+          "name": "03a - Login con correo no registrado (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 400 - Credenciales invalidas\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Esquema JSON: error con codigo VALIDATION_ERROR\", function () {",
+                  "  pm.expect(json).to.have.property(\"error\");",
+                  "  pm.expect(json.error).to.have.property(\"code\");",
+                  "  pm.expect(json.error.code).to.eql(\"VALIDATION_ERROR\");",
+                  "});",
+                  "pm.test(\"Tiempo de respuesta < 3000 ms\", function () {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"no_registrado@ejemplo.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03b - Login con usuario inactivo (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 400 - Usuario inactivo rechazado\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Esquema JSON: error con codigo VALIDATION_ERROR\", function () {",
+                  "  pm.expect(json.error.code).to.eql(\"VALIDATION_ERROR\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"diego.fernandez@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03c - Recuperacion con correo inexistente (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 404 - Correo no encontrado\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Esquema JSON: error con codigo NOT_FOUND\", function () {",
+                  "  pm.expect(json.error.code).to.eql(\"NOT_FOUND\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"no_registrado@ejemplo.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03d - Login sin API key (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 401 - API key ausente\", function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Tiempo de respuesta < 3000 ms\", function () {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ana.torres@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - Sesiones (POST /api/v1/sesiones) - E2E con SQL",
+      "item": [
+        {
+          "name": "04a - Crear sesion (Happy Path, E2E SQL)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var uid = pm.collectionVariables.get(\"usuarioId\") || 1;",
+                  "pm.collectionVariables.set(\"sesAntesE2E\", 0);",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT u.id, COUNT(s.id) AS total FROM usuarios u LEFT JOIN sesiones s ON s.usuario_id = u.id WHERE u.id = $1 GROUP BY u.id\",",
+                  "  [uid]",
+                  "), function (err, res) {",
+                  "  pm.test(\"Precondicion BD: el usuario destino existe\", function () {",
+                  "    pm.expect(res.json().data.length).to.be.above(0);",
+                  "  });",
+                  "  if (!err) {",
+                  "    pm.collectionVariables.set(\"sesAntesE2E\", parseInt(res.json().data[0].total, 10));",
+                  "  }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 201 - Sesion creada\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"Tiempo de respuesta < 3000 ms\", function () {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Esquema JSON: data con id, usuario_id, tipo_evento, exitoso\", function () {",
+                  "  pm.expect(json.data).to.have.property(\"id\");",
+                  "  pm.expect(json.data).to.have.property(\"usuario_id\");",
+                  "  pm.expect(json.data).to.have.property(\"tipo_evento\");",
+                  "  pm.expect(json.data).to.have.property(\"exitoso\");",
+                  "  pm.expect(json.data.exitoso).to.eql(true);",
+                  "});",
+                  "// Captura del token de sesion devuelto.",
+                  "pm.collectionVariables.set(\"sesionId\", json.data.id);",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM sesiones WHERE usuario_id = $1\",",
+                  "  [json.data.usuario_id]",
+                  "), function (err, res) {",
+                  "  if (err) { console.error(err); return; }",
+                  "  var despues = parseInt(res.json().data[0].total, 10);",
+                  "  pm.test(\"BD: se inserto la sesion (COUNT aumento)\", function () {",
+                  "    pm.expect(despues).to.be.above(pm.collectionVariables.get(\"sesAntesE2E\"));",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sesiones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sesiones"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": {{usuarioId}},\n  \"tipoEvento\": \"login\",\n  \"exitoso\": \"true\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04b - Crear sesion con usuario inexistente (400, BD sin cambios)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"sesAntesFK\", 0);",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM sesiones WHERE usuario_id = $1\",",
+                  "  [99999]",
+                  "), function (err, res) {",
+                  "  if (!err) {",
+                  "    pm.collectionVariables.set(\"sesAntesFK\", parseInt(res.json().data[0].total, 10));",
+                  "  }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code es 400 - FK invalida rechazada\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Esquema JSON: error con codigo VALIDATION_ERROR\", function () {",
+                  "  pm.expect(json.error.code).to.eql(\"VALIDATION_ERROR\");",
+                  "});",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM sesiones WHERE usuario_id = $1\",",
+                  "  [99999]",
+                  "), function (err, res) {",
+                  "  if (err) { console.error(err); return; }",
+                  "  var despues = parseInt(res.json().data[0].total, 10);",
+                  "  pm.test(\"BD: la base NO cambio (COUNT sin modificacion)\", function () {",
+                  "    pm.expect(despues).to.eql(pm.collectionVariables.get(\"sesAntesFK\"));",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sesiones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sesiones"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": 99999,\n  \"tipoEvento\": \"login\",\n  \"exitoso\": \"true\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

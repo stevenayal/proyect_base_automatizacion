@@ -75,7 +75,7 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 #- [ ] BDD — `features/` (mínimo 3 escenarios: happy path, negativo, edge case)
 - [x] API — colección Postman/Newman (si aplica al módulo)
 - [ ] UI — `tests/e2e/` con Playwright
-- [ ] Evidencias en `evidence/`
+- [x] Evidencias en `evidence/semana-03/` (Newman)
 - [ ] CI/CD verde
 - [ ] PR a `main` usando la plantilla del repo
 
@@ -117,3 +117,72 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 3. Ejecutar la colección completa en el orden definido, porque el request 02 genera el `accessToken` utilizado por el request 03.
 
 La colección utiliza el servicio Supabase de autenticación consumido por AIQUAA. Las rutas `/api/v1/labs/*` de la plantilla académica no están publicadas actualmente bajo `https://aiquaa.com`; al 29 de agosto de 2026 responden con una página HTML 404. Por ese motivo, la colección separa las verificaciones API de sesión de las redirecciones y accesos específicos que deben validarse mediante pruebas UI.
+
+---
+
+## Semana 03 — API con Postman/Newman + validación SQL
+
+Entregables de la semana 03 para el módulo Autenticación y Acceso.
+
+- **Colección actualizada:** [`postman/C_GRUPO_01_AUTENTICACION_ACCESO.json`](../../postman/C_GRUPO_01_AUTENTICACION_ACCESO.json)
+- **Entorno:** [`postman/E_GRUPO_01_AUTENTICACION.json`](../../postman/E_GRUPO_01_AUTENTICACION.json)
+- **Evidencia:** [`grupos/grupo-01-autenticacion-acceso/evidence/semana-03/`](evidence/semana-03/)
+
+### Qué se agregó
+
+1. **Consultas SQL (preparación/validación de datos):** mediante el patrón SQL REST dinámico,
+   se consulta `qa_training` vía `POST /api/v1/sql/select` (helper `utils.bodySqlRest`) para
+   preparar y verificar los datos de autenticación y acceso **antes y después** de cada
+   operación (pre-request y post-response).
+2. **Assertions reales:** status `200` / `201` / `400` / `401` / `404`, validación de
+   **esquema JSON** (`data.*` y `error.code`), **tiempo de respuesta** `< 3000 ms` y
+   **captura de tokens/identificadores** devueltos (`authToken` = `usuarioId`, `sesionId`).
+3. **Manejo de variables y evidencia:** variables de colección + archivo de entorno + variables
+   dinámicas de corrida, y reportes generados con **Newman** en `evidence/semana-03/`.
+
+### Requisitos
+
+- Node.js (v18+) y Newman (se ejecuta vía `npx`, no requiere instalación previa):
+  ```bash
+  npx newman --version
+  ```
+
+### Ejecución
+
+```bash
+# Desde la raíz del repositorio
+npx -y newman run postman/C_GRUPO_01_AUTENTICACION_ACCESO.json \
+  -e postman/E_GRUPO_01_AUTENTICACION.json \
+  -r cli,json,junit \
+  --reporter-json-export grupos/grupo-01-autenticacion-acceso/evidence/semana-03/newman-report.json \
+  --reporter-junit-export grupos/grupo-01-autenticacion-acceso/evidence/semana-03/newman-junit.xml
+```
+
+### Resultado de la ejecución (Semana 03)
+
+- **Requests:** 18 · **Assertions:** 31 · **Fallidas:** 0 → ✅ **PASS**
+- Detalle completo en [`evidence/semana-03/RESUMEN-EJECUCION.md`](evidence/semana-03/RESUMEN-EJECUCION.md).
+- Archivos de evidencia: `newman-report.json`, `newman-junit.xml`, `RESUMEN-EJECUCION.md`.
+
+### Cobertura de escenarios
+
+| # | Escenario | Status | Validación |
+| :--- | :--- | :---: | :--- |
+| 1 | SQL — usuario activo (precondición) | 200 | `SELECT usuarios` (preparación BD) |
+| 2 | SQL — sesiones previas (historial) | 200 | `SELECT sesiones` (validación BD) |
+| 3 | Login exitoso (Happy Path) | 200 | POST `/auth/login` + BD login insertado |
+| 4 | Logout exitoso (Happy Path) | 200 | POST `/auth/logout` + BD logout insertado |
+| 5 | Login correo no registrado | 400 | `VALIDATION_ERROR` + esquema |
+| 6 | Login usuario inactivo | 400 | `VALIDATION_ERROR` + esquema |
+| 7 | Recuperación correo inexistente | 404 | `NOT_FOUND` + esquema |
+| 8 | Login sin API key | 401 | Unauthorized + tiempo |
+| 9 | Crear sesión (E2E SQL) | 201 | POST `/sesiones` + BD `COUNT` aumenta |
+| 10 | Crear sesión usuario inexistente | 400 | FK rechazada + BD sin cambios (`COUNT`) |
+
+### Notas
+
+- El API bajo prueba es `aiquaa-sandbox-api` (Vercel) y requiere `x-api-key` (incluida en el
+  entorno). Respeta el **rate limit de 30 req/min**: no ejecutar la colección en paralelo ni en
+  bucle, ya que los `pm.sendRequest` de validación también consumen cuota.
+- Las rutas `/api/v1/labs/*` de la plantilla académica no están publicadas; esta colección apunta
+  al endpoint real de autenticación/acceso del sandbox.
