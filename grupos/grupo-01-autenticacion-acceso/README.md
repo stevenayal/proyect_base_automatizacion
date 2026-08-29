@@ -90,6 +90,11 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 <!-- Aporte: Mariset C. Lorente -->
 | **Login rechazado con credenciales inválidas** | Caso Negativo | `POST Supabase /auth/v1/token?grant_type=password` | `POST` | `email` válido + `password` incorrecta | Status 400, `error_code: invalid_credentials`, respuesta JSON y tiempo < 3000 ms. |
 | **Login con correo válido ingresado con espacios** | Caso Negativo | `POST Supabase /auth/v1/token?grant_type=password` | `POST` | `email` válido con espacios + `password` válida | Status 400, `error_code: invalid_credentials`, respuesta JSON y tiempo < 3000 ms. |
+<!-- Aporte: Oscar Benítez -->
+| **Redirección al login al intentar acceder a un laboratorio protegido** | Caso Negativo | `{{supabaseUrl}}/auth/v1/user` | `GET` | Header `apikey`, sin token de sesión | Status 401, respuesta JSON con información del error y tiempo < 3000 ms. La API valida el rechazo; la redirección se valida en UI. |
+| **Login exitoso con credenciales válidas** | Happy Path | `{{supabaseUrl}}/auth/v1/token?grant_type=password` | `POST` | `testEmail` + `testPassword` | Status 200, usuario esperado, token Bearer y captura dinámica de `accessToken`. |
+| **Acceso al recurso solicitado después de iniciar sesión** | Happy Path | `{{supabaseUrl}}/auth/v1/user` | `GET` | `apikey` + `Bearer {{accessToken}}` | Status 200, identificador y correo del usuario autenticado. El acceso al laboratorio específico se valida en UI. |
+| **Login rechazado con credenciales inválidas** | Caso Negativo | `{{supabaseUrl}}/auth/v1/token?grant_type=password` | `POST` | `testEmail` + `invalidPassword` | Status 400, `error_code: invalid_credentials`, respuesta JSON y tiempo < 3000 ms. |
 
 ## Variables de Entorno Utilizadas
 
@@ -101,3 +106,14 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 * **testEmail**: Correo válido utilizado durante las pruebas.
 * **testPassword**: Contraseña válida utilizada durante las pruebas. Su valor no se almacena en el repositorio.
 * **invalidPassword**: Contraseña inválida utilizada para validar el rechazo de credenciales.
+<!-- Variables utilizadas por los escenarios de Oscar Benítez -->
+* **`supabaseUrl`**: URL del servicio de autenticación utilizado por AIQUAA.
+* **`accessToken`**: Token capturado dinámicamente después del login exitoso; no debe completarse manualmente.
+
+## Ejecución de la colección de Oscar Benítez
+
+1. Importar `postman/Grupo 01 - Autenticacion y Acceso Oscar Benitez.postman_collection.json` en Postman.
+2. Completar localmente `supabaseAnonKey`, `testEmail` y `testPassword` con datos de prueba válidos. No guardar ni exportar esos valores al repositorio.
+3. Ejecutar la colección completa en el orden definido, porque el request 02 genera el `accessToken` utilizado por el request 03.
+
+La colección utiliza el servicio Supabase de autenticación consumido por AIQUAA. Las rutas `/api/v1/labs/*` de la plantilla académica no están publicadas actualmente bajo `https://aiquaa.com`; al 29 de agosto de 2026 responden con una página HTML 404. Por ese motivo, la colección separa las verificaciones API de sesión de las redirecciones y accesos específicos que deben validarse mediante pruebas UI.
