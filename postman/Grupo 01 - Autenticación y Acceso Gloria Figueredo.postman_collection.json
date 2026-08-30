@@ -1,0 +1,90 @@
+{
+  "info": {
+    "_postman_id": "a3b8f334-246c-447b-90a8-8b26114da01c",
+    "name": "Grupo 01 - Autenticación y Acceso Gloria Figueredo",
+    "description": "Mapeo de escenarios BDD a APIs de AIQUAA",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "57632332",
+    "_collection_link": "https://go.postman.co/collection/57632332-a3b8f334-246c-447b-90a8-8b26114da01c?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "01 - Login con campos obligatorios vacíos (edge case)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status 400 por email obligatorio vacío\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"La respuesta contiene error de validación\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error.code).to.eql(\"VALIDATION_ERROR\");",
+              "});",
+              "",
+              "pm.test(\"El mensaje indica solicitud inválida\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error.message).to.eql(\"Invalid request.\");",
+              "});",
+              "",
+              "pm.test(\"El detalle menciona el campo email\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error.details).to.include(\"email\");",
+              "});",
+              "",
+              "pm.test(\"Tiempo de respuesta menor a 3000 ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "packages": {},
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey }}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
