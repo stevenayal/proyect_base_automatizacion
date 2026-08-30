@@ -1,10 +1,9 @@
 {
   "info": {
-    "_postman_id": "d7b673b4-1c39-4166-86cd-c2a37843379b",
+    "_postman_id": "9525b1fe-9b82-4829-a259-6913a833a2bd",
     "name": "Grupo 04 - Onboarding KYC Básico",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "43837863",
-    "_collection_link": "https://go.postman.co/collection/43837863-d7b673b4-1c39-4166-86cd-c2a37843379b?source=collection_link"
+    "_exporter_id": "42134457"
   },
   "item": [
     {
@@ -108,6 +107,185 @@
         "body": {
           "mode": "raw",
           "raw": "{\n  \"nombre\": \"Usuario Negativo\",\n  \"email\": \"usuario.negativo.290826@example.com\",\n  \"documentoTipo\": \"CI\",\n  \"documentoNumero\": \"\",\n  \"fechaNacimiento\": \"1995-06-12\",\n  \"direccion\": \"Asunción, Paraguay\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "usuarios"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02 - Registro rechazado por correo ya registrado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code es 409', function () {\r",
+              "    pm.response.to.have.status(409);\r",
+              "});\r",
+              "\r",
+              "pm.test('La respuesta contiene un conflicto', function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData.error.code).to.eql('CONFLICT');\r",
+              "});\r",
+              "\r",
+              "pm.test('Response time is less than 3000ms', function () {\r",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"nombre\": \"Usuario Correo Duplicado\",\r\n  \"email\": \"grupo04.test01@example.com\",\r\n  \"documentoTipo\": \"CI\",\r\n  \"documentoNumero\": \"5678902\",\r\n  \"fechaNacimiento\": \"1995-06-12\",\r\n  \"direccion\": \"Asuncion, Paraguay\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "usuarios"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "03 - Registro rechazado por campos obligatorios incompletos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code es 400', function () {\r",
+              "    pm.response.to.have.status(400);\r",
+              "});\r",
+              "\r",
+              "pm.test('La respuesta contiene error de validacion', function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData.error.code).to.eql('VALIDATION_ERROR');\r",
+              "});\r",
+              "\r",
+              "pm.test('Response time is less than 3000ms', function () {\r",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"grupo04.campos@example.com\",\r\n  \"documentoTipo\": \"CI\",\r\n  \"documentoNumero\": \"5678903\",\r\n  \"fechaNacimiento\": \"1995-06-12\",\r\n  \"direccion\": \"Asuncion, Paraguay\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "usuarios"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "01 - Registro rechazado por correo invalido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code es 400', function () {\r",
+              "    pm.response.to.have.status(400);\r",
+              "});\r",
+              "\r",
+              "pm.test('La respuesta contiene un error', function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData).to.have.property('error');\r",
+              "});\r",
+              "\r",
+              "pm.test('Response time is less than 3000ms', function () {\r",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"nombre\": \"Usuario Grupo 04\",\r\n  \"email\": \"correo-invalido\",\r\n  \"documentoTipo\": \"CI\",\r\n  \"documentoNumero\": \"4567892\",\r\n  \"fechaNacimiento\": \"1995-06-12\",\r\n  \"direccion\": \"Asuncion, Paraguay\"\r\n}",
           "options": {
             "raw": {
               "language": "json"
