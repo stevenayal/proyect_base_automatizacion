@@ -53,11 +53,7 @@ Scenario: Intentar reservar sin completar todos los datos requeridos
 	Given el usuario se encuentra en la pantalla de reserva e ingresa los datos dejando al menos un campo obligatorio vacío
 	When intenta confirmar la reserva
 	Then el sistema debe rechazar la reserva y mostrar un mensaje indicando que el campo obligatorio debe ser completado
-Scenario: Intentar reservar sin completar todos los datos requeridos
-	Given el usuario se encuentra en la pantalla de reserva e ingresa los datos dejando al menos un campo obligatorio vacío
-	When intenta confirmar la reserva
-	Then el sistema debe rechazar la reserva y mostrar un mensaje indicando que el campo obligatorio debe ser completado
-
+ 
 
   # TODO: Scenario: edge case
 
