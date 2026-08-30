@@ -37,6 +37,9 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 | Happy Path | Registro exitoso de nuevo cliente con datos válidos | POST /api/v1/usuarios | 201 Created y se genera el ID del usuario |
 | Negativo | Registro rechazado por número de cédula inválido | POST /api/v1/usuarios | 400 Bad Request y error VALIDATION_ERROR |
 | Edge Case | Intento de registro con cédula ya existente en el sistema | POST /api/v1/usuarios | 409 Conflict y error CONFLICT |
+| Negativo | Registro rechazado por correo electrónico inválido | POST /api/v1/usuarios | 400 Bad Request y error VALIDATION_ERROR |
+| Negativo | Registro rechazado por correo electrónico ya registrado | POST /api/v1/usuarios | 409 Conflict y error CONFLICT |
+| Negativo | Registro rechazado por campos obligatorios incompletos | POST /api/v1/usuarios | 400 Bad Request y error VALIDATION_ERROR |
 
 ### Validaciones adicionales
 
