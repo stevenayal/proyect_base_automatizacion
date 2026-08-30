@@ -60,6 +60,8 @@ BASE_URL=http://localhost:3001 API_KEY=TU_API_KEY node agent.mjs
 > El mismo flujo aplica como base para el **caso negativo**: tras la baja,
 > la verificación devuelve `404` confirmando que el recurso ya no existe.
 
+> **Nota (Andrea):** Mi trazabilidad cubre el caso de **eliminar producto de carrito**. Para poder eliminar, el flujo incluye como primer paso **agregar** una orden (precondición) y como último paso **consultar** para verificar la baja. Si otro/a compañero/a va a cubrir **solo** el escenario de "agregar producto", ese caso estará documentado aparte para no duplicar ni confundir responsabilidades.
+
 | Paso | Acción BDD | Tipo | Endpoint | Método | Datos Entrada | Validaciones / Assertions |
 |---|---|---|---|---|---|---|
 | 1 | Agregar producto al carrito (precondición) | Setup | `{{baseUrl}}/api/v1/ordenes` | POST | `usuarioId: 3`, `items: [{ producto: "Cable HDMI", cantidad: 1, precioUnitario: 50000 }]` | Status **201**, guarda `eliminarId` |
