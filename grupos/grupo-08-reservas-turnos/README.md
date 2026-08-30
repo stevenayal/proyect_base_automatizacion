@@ -5,9 +5,12 @@
 
 ## Integrantes
 
-- (completar: Yessica Ferreira y jessyferreira78@gmail.com — ver `inscripcion-grupos-bdd2.xlsx`)
-- (completar: Salma Gimenez y sagimenez98@gmail.com — ver `inscripcion-grupos-bdd2.xlsx`)
-- (completar: Marcelo Cáceres y marce10py@fpuna.edu.py — ver `inscripcion-grupos-bdd2.xlsx`)
+- Yessica Ferreira, jessyferreira78@gmail.com
+- Salma Gimenez, sagimenez98@gmail.com
+- MArcelo Cáceres, marcaceres10py@gmail.com
+- Oscar Acosta, acostaoscar68@fpuna.edu.py
+- Jovina Romero, sagimenez98@gmail.com
+
 
 ## Alcance
 
