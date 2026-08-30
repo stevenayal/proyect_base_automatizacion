@@ -56,7 +56,7 @@ BASE_URL=http://localhost:3001 API_KEY=TU_API_KEY node agent.mjs
 ## Trazabilidad BDD -> API (AIQUAA)
 
 > Flujo de **eliminar producto de carrito** (Happy Path) — colección
-> `postman/grupo-07-carrito-e-commerce.postman_collection.json` (Andrea).
+> `postman/grupo-07-andrea-escurra-carrito-e-commerce.postman_collection.json` (Andrea).
 > El mismo flujo aplica como base para el **caso negativo**: tras la baja,
 > la verificación devuelve `404` confirmando que el recurso ya no existe.
 
