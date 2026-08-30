@@ -1,0 +1,348 @@
+{
+  "info": {
+    "_postman_id": "d7b673b4-1c39-4166-86cd-c2a37843379b",
+    "name": "Grupo 04 - Onboarding KYC Básico",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "43837863",
+    "_collection_link": "https://go.postman.co/collection/43837863-d7b673b4-1c39-4166-86cd-c2a37843379b?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Crear usuario - Happy Path",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"El usuario se crea correctamente con status 201\", function () {\r",
+              "    pm.response.to.have.status(201);\r",
+              "});\r",
+              "\r",
+              "const response = pm.response.json();\r",
+              "\r",
+              "pm.test(\"La respuesta contiene el ID del nuevo usuario\", function () {\r",
+              "    pm.expect(response.data).to.exist;\r",
+              "    pm.expect(response.data.id).to.exist;\r",
+              "});\r",
+              "\r",
+              "if (response.data && response.data.id) {\r",
+              "    pm.environment.set(\"usuarioId\", response.data.id);\r",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Usuario QA\",\n  \"email\": \"usuario.qa.290826@example.com\",\n  \"documentoTipo\": \"CI\",\n  \"documentoNumero\": \"7834291\",\n  \"fechaNacimiento\": \"1995-06-12\",\n  \"direccion\": \"Asunción, Paraguay\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "usuarios"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Registro con cédula inválida - Negativo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"El registro es rechazado con status 400\", function () {\r",
+              "    pm.response.to.have.status(400);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"La respuesta contiene un error de validación\", function () {\r",
+              "    const response = pm.response.json();\r",
+              "    pm.expect(response.error).to.exist;\r",
+              "    pm.expect(response.error.code).to.eql(\"VALIDATION_ERROR\");\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Usuario Negativo\",\n  \"email\": \"usuario.negativo.290826@example.com\",\n  \"documentoTipo\": \"CI\",\n  \"documentoNumero\": \"\",\n  \"fechaNacimiento\": \"1995-06-12\",\n  \"direccion\": \"Asunción, Paraguay\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "usuarios"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Registro con cédula duplicada - Edge Case",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"El registro duplicado es rechazado con status 409\", function () {\r",
+              "    pm.response.to.have.status(409);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"La respuesta informa un conflicto por dato duplicado\", function () {\r",
+              "    const response = pm.response.json();\r",
+              "\r",
+              "    pm.expect(response.error).to.exist;\r",
+              "    pm.expect(response.error.code).to.eql(\"CONFLICT\");\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Usuario Duplicado\",\n  \"email\": \"usuario.duplicado.290826@example.com\",\n  \"documentoTipo\": \"CI\",\n  \"documentoNumero\": \"7834291\",\n  \"fechaNacimiento\": \"1995-06-12\",\n  \"direccion\": \"Asunción, Paraguay\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "usuarios"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Obtener usuario por id - Validación",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"El usuario se obtiene correctamente con status 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "const response = pm.response.json();\r",
+              "\r",
+              "pm.test(\"El usuario obtenido corresponde al usuario creado\", function () {\r",
+              "    pm.expect(response.data.id.toString())\r",
+              "        .to.eql(pm.environment.get(\"usuarioId\").toString());\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "usuarios",
+            "{{usuarioId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Actualizar estado KYC - Validación",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"kycEstado\": \"verificado\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/usuarios/1/kyc",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "usuarios",
+            "1",
+            "kyc"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Usuarios con KYC pendiente - Onboarding",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"La consulta responde con status 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "const response = pm.response.json();\r",
+              "\r",
+              "pm.test(\"Existen usuarios con KYC pendiente\", function () {\r",
+              "    pm.expect(response.data).to.be.an(\"array\");\r",
+              "    pm.expect(response.data.length).to.be.above(0);\r",
+              "});\r",
+              "\r",
+              "if (response.data.length > 0) {\r",
+              "    pm.environment.set(\"usuarioId\", response.data[0].id);\r",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sql\": \"SELECT id, nombre, documento_tipo, documento_numero, kyc_estado FROM usuarios WHERE kyc_estado = $1\",\n  \"params\": [\n    \"pendiente\"\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sql/select",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "sql",
+            "select"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
