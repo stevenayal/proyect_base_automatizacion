@@ -22,6 +22,8 @@ Feature: Pagos de Servicios
       Given el usuario tiene una factura de ESSAP pendiente de pago
       When el usuario realiza el pago de la factura
       Then el sistema debe confirmar el pago correctamente
+      And se genera el comprobante de pago procesado
+      And el monto de pago coincide con el de la factura
 
     Scenario: Pago exitoso de factura de telefonia
       Given el usuario tiene una factura de telefonia pendiente de pago
@@ -37,10 +39,11 @@ Feature: Pagos de Servicios
       Then el sistema rechaza la operación
       And muestra el mensaje indicando que la factura no fue encontrada o ya pagada
 
-    Scenario: Pago de una factura de ESSAP con numero de issan invalido
-      Given el usuario ingresa un numero de cuenta de ESSAP inexistente
+    Scenario: Pago de una factura con numero invalido de ESSAP 
+      Given el usuario ingresa un numero identificador de ESSAP inexistente
       When el usuario intenta realizar el pago
       Then el sistema debe mostrar un mensaje de error
+      And muestra el mensaje indicando que la factura no fue encontrada o ya fue pagada
 
     Scenario: Intento de pago de telefonia sin deuda pendiente
       Given el usuario no tiene facturas de telefonia pendientes de pago
@@ -65,10 +68,10 @@ Feature: Pagos de Servicios
       When el usuario intenta pagar nuevamente la misma factura
       Then el sistema indica que la factura no fue encontrada o ya se encuentra pagada
 
-    Scenario: Intento de pago de ESSAP durante mantenimiento del sistema
-      Given el sistema de pagos de ESSAP esta en mantenimiento
-      When el usuario intenta confirmar el pago de su factura de agua
-      Then el sistema muestra un mensaje indicando que el servicio esta temporalmente en mantenimiento
+    Scenario: Factura de ESSAP ya pagada anteriormente
+      Given la factura de ESSAP ya fue pagada con anterioridad
+      When el usuario intenta pagar nuevamente la misma factura
+      Then el sistema indica que la factura no fue encontrada o ya se encuentra pagada
 
     Scenario: Pago de factura de telefonia el mismo dia del vencimiento
       Given el usuario tiene una factura de telefonia pendiente con vencimiento en el dia de hoy
