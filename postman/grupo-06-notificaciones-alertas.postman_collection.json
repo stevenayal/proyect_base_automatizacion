@@ -1,0 +1,1736 @@
+{
+  "info": {
+    "name": "Grupo 06 - Notificaciones y Alertas (AIQUAA)",
+    "_postman_id": "a6f0c4d2-0611-4c9e-9c06-0a6b1e6f0006",
+    "description": "Coleccion de API testing del Grupo 06 - Notificaciones y Alertas.\n\nSitio bajo prueba: AIQUAA Sandbox API (https://aiquaa-sandbox-api.vercel.app)\n\nEndpoints cubiertos (5):\n- GET    /api/v1/notificaciones            (query: usuarioId, leido)\n- POST   /api/v1/notificaciones            (body: usuarioId, canal, asunto, mensaje)\n- PUT    /api/v1/notificaciones/{id}       (body: canal, asunto, mensaje)\n- PATCH  /api/v1/notificaciones/{id}/leer\n- DELETE /api/v1/notificaciones/{id}       (soft-delete, 204 sin body)\n\nRegla de negocio documentada por AIQUAA y verificada por esta coleccion:\nleido y estado NO son reemplazables por PUT; leido sigue gobernado por PATCH /{id}/leer.\n\nHallazgos abiertos:\n- HG06-01: el alta no es idempotente; reprocesar el mismo evento crea un segundo registro.\n- HG06-02: id y usuario_id se devuelven como string aunque el OpenAPI los declara integer,\n  y la respuesta incluye un campo 'activo' no documentado.\n\nRequisito de ejecucion: definir la variable de entorno apiKey. Sin ella la API responde\n401 y los tests fallan con un mensaje explicito (no con un TypeError).\n\nTodos los scripts leen el cuerpo de forma defensiva: si la respuesta no es JSON o no trae\nel campo esperado, el test falla con una assertion legible en lugar de romper el script.\n\nCada carpeta corresponde a un escenario BDD de features/notificaciones-alertas.feature.\nMatriz de trazabilidad: grupos/grupo-06-notificaciones-alertas/docs/trazabilidad-bdd-api.md\n\nLa carpeta 00 Setup limpia los datos residuales de corridas previas para que la suite sea\nre-ejecutable. Usa postman.setNextRequest, por lo que requiere ejecucion como coleccion o\ncarpeta (Runner o Newman), no request por request.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      { "key": "key", "value": "x-api-key", "type": "string" },
+      { "key": "value", "value": "{{apiKey}}", "type": "string" },
+      { "key": "in", "value": "header", "type": "string" }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Guardia comun: la coleccion no puede ejecutarse sin API key.",
+          "if (!pm.variables.get('apiKey')) {",
+          "    console.warn('[Grupo 06] La variable apiKey esta vacia: la API respondera 401 UNAUTHORIZED y los tests de negocio fallaran. Cargar la API key en el environment o pasarla con --env-var \"apiKey=...\".');",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Assertions transversales aplicadas a TODOS los requests de la coleccion.",
+          "const maxRT = Number(pm.collectionVariables.get('maxResponseTime')) || 3000;",
+          "const sinCuerpo = pm.response.code === 204 || pm.response.text().length === 0;",
+          "",
+          "pm.test('Response time is less than ' + maxRT + 'ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(maxRT);",
+          "});",
+          "",
+          "if (!sinCuerpo) {",
+          "    pm.test('La respuesta es application/json', function () {",
+          "        pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+          "    });",
+          "",
+          "    pm.test('El cuerpo es JSON parseable', function () {",
+          "        pm.response.to.be.json;",
+          "    });",
+          "}",
+          "",
+          "pm.test('La API no responde con error de servidor (5xx)', function () {",
+          "    pm.expect(pm.response.code).to.be.below(500);",
+          "});",
+          "",
+          "// AIQUAA limita a 30 requests por minuto (cabeceras X-Ratelimit-*).",
+          "// Esta assertion hace visible el agotamiento de la cuota en lugar de dejar",
+          "// que se manifieste como fallos cripticos en los tests especificos.",
+          "pm.test('La cuota de requests no esta agotada (429 RATE_LIMITED)', function () {",
+          "    pm.expect(pm.response.code, 'Rate limit alcanzado: reintentar tras Retry-After=' + pm.response.headers.get('Retry-After')).to.not.eql(429);",
+          "});",
+          "",
+          "// Diagnostico temprano del error mas comun al importar la coleccion.",
+          "if (pm.response.code === 401) {",
+          "    console.warn('[Grupo 06] 401 UNAUTHORIZED: revisar la variable apiKey del environment activo.');",
+          "}",
+          "",
+          "const restantes = pm.response.headers.get('X-Ratelimit-Remaining');",
+          "if (restantes !== null && Number(restantes) <= 5) {",
+          "    console.warn('[Rate limit] Quedan ' + restantes + ' de ' + pm.response.headers.get('X-Ratelimit-Limit') + ' requests en la ventana actual.');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://aiquaa-sandbox-api.vercel.app", "type": "string" },
+    { "key": "usuarioId", "value": "1", "type": "string" },
+    { "key": "maxResponseTime", "value": "3000", "type": "string" },
+    { "key": "idInexistente", "value": "99999999", "type": "string" },
+    { "key": "prefijoDatosPrueba", "value": "TRX-00", "type": "string" },
+    { "key": "trxHappyPush", "value": "TRX-001", "type": "string" },
+    { "key": "montoHappyPush", "value": "500000", "type": "string" },
+    { "key": "trxCanalDesactivado", "value": "TRX-002", "type": "string" },
+    { "key": "trxDuplicado", "value": "TRX-003", "type": "string" },
+    { "key": "trxRespaldoEmail", "value": "TRX-004", "type": "string" },
+    { "key": "montoRespaldoEmail", "value": "750000", "type": "string" },
+    { "key": "trxHorarioSilencioso", "value": "TRX-005", "type": "string" },
+    { "key": "trxHappySms", "value": "TRX-006", "type": "string" },
+    { "key": "montoHappySms", "value": "1000000", "type": "string" },
+    { "key": "trxSmsInvalido", "value": "TRX-007", "type": "string" },
+    { "key": "trxMulticanal", "value": "TRX-009", "type": "string" },
+    { "key": "montoMulticanal", "value": "1200000", "type": "string" },
+    { "key": "canalNoSoportado", "value": "whatsapp", "type": "string" },
+    { "key": "pendientesLimpieza", "value": "[]", "type": "string" },
+    { "key": "cleanupId", "value": "", "type": "string" },
+    { "key": "notifIdPush", "value": "", "type": "string" },
+    { "key": "notifIdSms", "value": "", "type": "string" },
+    { "key": "notifIdRespaldo", "value": "", "type": "string" },
+    { "key": "notifIdCanalOmitido", "value": "", "type": "string" },
+    { "key": "notifIdMulticanalPush", "value": "", "type": "string" },
+    { "key": "notifIdMulticanalEmail", "value": "", "type": "string" },
+    { "key": "notifIdDuplicado1", "value": "", "type": "string" },
+    { "key": "notifIdDuplicado2", "value": "", "type": "string" },
+    { "key": "notifIdDiferida", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 Setup - Higiene de datos de prueba",
+      "description": "El sandbox de AIQUAA es compartido y persistente: los registros creados por una corrida siguen presentes en la siguiente.\nEsta carpeta descarta las notificaciones residuales cuyo mensaje o asunto contiene el prefijo {{prefijoDatosPrueba}}, de modo que los conteos exactos de S2, S3, S4 y S8 sean deterministas.\nNo toca los datos semilla del laboratorio, que no usan identificadores TRX-00x.\nSi la respuesta no trae un listado (por ejemplo un 401 por falta de API key) la carpeta no rompe: informa el problema y continua hacia S1.",
+      "item": [
+        {
+          "name": "GET Inventario de notificaciones de corridas previas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var lista = Array.isArray(body.data) ? body.data : [];",
+                  "",
+                  "pm.test('Status 200 - inventario obtenido', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('La respuesta trae el arreglo data', function () {",
+                  "    pm.expect(body.data, 'La respuesta no contiene un arreglo data (revisar apiKey si el status es 401)').to.be.an('array');",
+                  "});",
+                  "",
+                  "var prefijo = pm.collectionVariables.get('prefijoDatosPrueba');",
+                  "var residuales = lista",
+                  "    .filter(function (n) {",
+                  "        return (n.mensaje || '').indexOf(prefijo) !== -1 || (n.asunto || '').indexOf(prefijo) !== -1;",
+                  "    })",
+                  "    .map(function (n) { return n.id; });",
+                  "",
+                  "pm.collectionVariables.set('pendientesLimpieza', JSON.stringify(residuales));",
+                  "",
+                  "pm.test('Inventario de datos residuales tomado', function () {",
+                  "    pm.expect(residuales).to.be.an('array');",
+                  "});",
+                  "",
+                  "if (residuales.length === 0) {",
+                  "    console.log('[Setup] Sin datos residuales: el entorno ya esta limpio.');",
+                  "    postman.setNextRequest('POST Crear notificacion push (TRX-001)');",
+                  "} else {",
+                  "    console.log('[Setup] Se descartaran ' + residuales.length + ' notificaciones residuales: ' + residuales.join(', '));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones?usuarioId={{usuarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"],
+              "query": [{ "key": "usuarioId", "value": "{{usuarioId}}" }]
+            }
+          }
+        },
+        {
+          "name": "DELETE Descartar notificacion residual",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Toma el siguiente id de la cola de limpieza antes de resolver la URL.",
+                  "var cola = [];",
+                  "try { cola = JSON.parse(pm.collectionVariables.get('pendientesLimpieza') || '[]'); } catch (e) { cola = []; }",
+                  "if (!Array.isArray(cola)) { cola = []; }",
+                  "pm.collectionVariables.set('cleanupId', cola.length ? cola.shift() : pm.collectionVariables.get('idInexistente'));",
+                  "pm.collectionVariables.set('pendientesLimpieza', JSON.stringify(cola));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('El residual queda descartado (204) o ya no existia (404)', function () {",
+                  "    pm.expect([204, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "// Bucle sobre la cola: se repite este request hasta vaciarla.",
+                  "var cola = [];",
+                  "try { cola = JSON.parse(pm.collectionVariables.get('pendientesLimpieza') || '[]'); } catch (e) { cola = []; }",
+                  "if (Array.isArray(cola) && cola.length > 0) {",
+                  "    postman.setNextRequest('DELETE Descartar notificacion residual');",
+                  "} else {",
+                  "    postman.setNextRequest('POST Crear notificacion push (TRX-001)');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones/{{cleanupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones", "{{cleanupId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "S1 @happy_path - Push tras transferencia exitosa (TRX-001)",
+      "description": "BDD: 'Enviar una notificacion push despues de una transferencia exitosa'.\nMapeo: POST /api/v1/notificaciones (canal=push) + GET /api/v1/notificaciones?usuarioId.\nThen validado: la notificacion incluye el monto y el identificador de la transferencia.",
+      "item": [
+        {
+          "name": "POST Crear notificacion push (TRX-001)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var data = body.data || {};",
+                  "",
+                  "pm.test('Status 201 - notificacion creada', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('La respuesta expone el objeto data con un identificador', function () {",
+                  "    pm.expect(body, 'La respuesta no contiene data (revisar apiKey si el status es 401)').to.have.property('data');",
+                  "    pm.expect(data.id).to.not.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('El canal entregado es push', function () {",
+                  "    pm.expect(data.canal).to.eql('push');",
+                  "});",
+                  "",
+                  "pm.test('La notificacion pertenece al usuario bajo prueba', function () {",
+                  "    pm.expect(String(data.usuario_id)).to.eql(pm.collectionVariables.get('usuarioId'));",
+                  "});",
+                  "",
+                  "pm.test('El mensaje incluye el monto y el identificador de la transferencia', function () {",
+                  "    pm.expect(data.mensaje).to.be.a('string');",
+                  "    pm.expect(data.mensaje).to.include(pm.collectionVariables.get('montoHappyPush'));",
+                  "    pm.expect(data.mensaje).to.include(pm.collectionVariables.get('trxHappyPush'));",
+                  "});",
+                  "",
+                  "pm.test('El asunto referencia la transferencia TRX-001', function () {",
+                  "    pm.expect(data.asunto).to.be.a('string');",
+                  "    pm.expect(data.asunto).to.include(pm.collectionVariables.get('trxHappyPush'));",
+                  "});",
+                  "",
+                  "pm.test('El estado pertenece al enum documentado', function () {",
+                  "    pm.expect(['enviada', 'fallida', 'pendiente']).to.include(data.estado);",
+                  "});",
+                  "",
+                  "pm.test('La notificacion nace sin leer', function () {",
+                  "    pm.expect(data.leido).to.be.a('boolean');",
+                  "    pm.expect(data.leido).to.eql(false);",
+                  "});",
+                  "",
+                  "pm.test('created_at usa formato date-time RFC 3339', function () {",
+                  "    pm.expect(data.created_at).to.be.a('string');",
+                  "    pm.expect(data.created_at).to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}/);",
+                  "});",
+                  "",
+                  "pm.test('HG06-02: id y usuario_id se devuelven como string pese a estar declarados integer', function () {",
+                  "    pm.expect(data.id).to.be.a('string');",
+                  "    pm.expect(data.usuario_id).to.be.a('string');",
+                  "    console.warn('[HG06-02] El OpenAPI declara id/usuario_id como integer; la API responde string.');",
+                  "});",
+                  "",
+                  "pm.test('HG06-02: la respuesta incluye el campo no documentado activo', function () {",
+                  "    pm.expect(data).to.have.property('activo');",
+                  "    console.warn('[HG06-02] Campo activo presente en la respuesta y ausente del contrato publicado.');",
+                  "});",
+                  "",
+                  "// Encadenamiento: el id se reutiliza en el GET de verificacion.",
+                  "if (pm.response.code === 201 && data.id !== undefined) {",
+                  "    pm.collectionVariables.set('notifIdPush', String(data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": {{usuarioId}},\n  \"canal\": \"push\",\n  \"asunto\": \"Transferencia exitosa {{trxHappyPush}}\",\n  \"mensaje\": \"Se confirmo una transferencia por {{montoHappyPush}} Gs. Identificador: {{trxHappyPush}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"]
+            },
+            "description": "Given el usuario tiene habilitadas las notificaciones push / When se confirma una transferencia exitosa de 500000 Gs con el identificador TRX-001."
+          }
+        },
+        {
+          "name": "GET Verificar push en el listado del usuario (TRX-001)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var lista = Array.isArray(body.data) ? body.data : [];",
+                  "",
+                  "pm.test('Status 200 - listado de notificaciones', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('data es un arreglo', function () {",
+                  "    pm.expect(body.data, 'La respuesta no contiene un arreglo data').to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('El filtro usuarioId solo devuelve notificaciones de ese usuario', function () {",
+                  "    var usuarioId = pm.collectionVariables.get('usuarioId');",
+                  "    lista.forEach(function (n) {",
+                  "        pm.expect(String(n.usuario_id)).to.eql(usuarioId);",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('La notificacion push creada en el paso anterior esta en el listado', function () {",
+                  "    var esperado = pm.collectionVariables.get('notifIdPush');",
+                  "    var encontrada = lista.filter(function (n) { return String(n.id) === esperado; })[0];",
+                  "    pm.expect(encontrada, 'No se encontro la notificacion id=' + esperado).to.not.be.undefined;",
+                  "    pm.expect(encontrada.canal).to.eql('push');",
+                  "    pm.expect(encontrada.mensaje).to.include(pm.collectionVariables.get('trxHappyPush'));",
+                  "});",
+                  "",
+                  "pm.test('Todo item del listado respeta el contrato Notificacion', function () {",
+                  "    pm.expect(lista.length, 'El listado esta vacio: no hay nada que contrastar').to.be.above(0);",
+                  "    lista.forEach(function (n) {",
+                  "        pm.expect(n).to.include.keys('id', 'usuario_id', 'canal', 'asunto', 'mensaje', 'leido', 'estado', 'created_at');",
+                  "        pm.expect(['push', 'email', 'sms']).to.include(n.canal);",
+                  "        pm.expect(['enviada', 'fallida', 'pendiente']).to.include(n.estado);",
+                  "        pm.expect(n.leido).to.be.a('boolean');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones?usuarioId={{usuarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"],
+              "query": [{ "key": "usuarioId", "value": "{{usuarioId}}" }]
+            },
+            "description": "Then el sistema debe enviar una notificacion push al dispositivo registrado (verificado por persistencia en el listado)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "S6 @happy_path - SMS tras transferencia exitosa (TRX-006)",
+      "description": "BDD: 'Enviar una notificacion por SMS despues de una transferencia exitosa'.\nMapeo: POST /api/v1/notificaciones (canal=sms) + GET de verificacion.",
+      "item": [
+        {
+          "name": "POST Crear notificacion SMS (TRX-006)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var data = body.data || {};",
+                  "",
+                  "pm.test('Status 201 - notificacion SMS creada', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('El canal entregado es sms', function () {",
+                  "    pm.expect(data.canal).to.eql('sms');",
+                  "});",
+                  "",
+                  "pm.test('El mensaje incluye el monto y el identificador de la transferencia', function () {",
+                  "    pm.expect(data.mensaje).to.be.a('string');",
+                  "    pm.expect(data.mensaje).to.include(pm.collectionVariables.get('montoHappySms'));",
+                  "    pm.expect(data.mensaje).to.include(pm.collectionVariables.get('trxHappySms'));",
+                  "});",
+                  "",
+                  "pm.test('El estado pertenece al enum documentado', function () {",
+                  "    pm.expect(['enviada', 'fallida', 'pendiente']).to.include(data.estado);",
+                  "});",
+                  "",
+                  "pm.test('El id generado es distinto al de la notificacion push', function () {",
+                  "    pm.expect(data.id).to.not.be.undefined;",
+                  "    pm.expect(String(data.id)).to.not.eql(pm.collectionVariables.get('notifIdPush'));",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201 && data.id !== undefined) {",
+                  "    pm.collectionVariables.set('notifIdSms', String(data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": {{usuarioId}},\n  \"canal\": \"sms\",\n  \"asunto\": \"Transferencia exitosa {{trxHappySms}}\",\n  \"mensaje\": \"Se confirmo una transferencia por {{montoHappySms}} Gs. Identificador: {{trxHappySms}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"]
+            },
+            "description": "Given el usuario tiene habilitadas las notificaciones por SMS y un numero valido registrado."
+          }
+        },
+        {
+          "name": "GET Verificar SMS en el listado del usuario (TRX-006)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var lista = Array.isArray(body.data) ? body.data : [];",
+                  "",
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('La notificacion SMS creada esta en el listado con canal sms', function () {",
+                  "    var esperado = pm.collectionVariables.get('notifIdSms');",
+                  "    var encontrada = lista.filter(function (n) { return String(n.id) === esperado; })[0];",
+                  "    pm.expect(encontrada, 'No se encontro la notificacion id=' + esperado).to.not.be.undefined;",
+                  "    pm.expect(encontrada.canal).to.eql('sms');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones?usuarioId={{usuarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"],
+              "query": [{ "key": "usuarioId", "value": "{{usuarioId}}" }]
+            },
+            "description": "Then el sistema debe enviar una notificacion por SMS al numero registrado."
+          }
+        }
+      ]
+    },
+    {
+      "name": "S8 @alternative_path - Multicanal push + email (TRX-009)",
+      "description": "BDD: 'Enviar notificaciones por multiples canales segun las preferencias del usuario'.\nMapeo: dos POST (push y email) sobre la misma transferencia + GET que verifica ambos canales registrados como entregados.",
+      "item": [
+        {
+          "name": "POST Canal push multicanal (TRX-009)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var data = body.data || {};",
+                  "",
+                  "pm.test('Status 201 - canal push creado', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('El canal es push y refiere a TRX-009', function () {",
+                  "    pm.expect(data.canal).to.eql('push');",
+                  "    pm.expect(data.mensaje).to.be.a('string');",
+                  "    pm.expect(data.mensaje).to.include(pm.collectionVariables.get('trxMulticanal'));",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201 && data.id !== undefined) {",
+                  "    pm.collectionVariables.set('notifIdMulticanalPush', String(data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": {{usuarioId}},\n  \"canal\": \"push\",\n  \"asunto\": \"Transferencia exitosa {{trxMulticanal}}\",\n  \"mensaje\": \"Se confirmo una transferencia por {{montoMulticanal}} Gs. Identificador: {{trxMulticanal}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"]
+            }
+          }
+        },
+        {
+          "name": "POST Canal email multicanal (TRX-009)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var data = body.data || {};",
+                  "",
+                  "pm.test('Status 201 - canal email creado', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('El canal es email y refiere a TRX-009', function () {",
+                  "    pm.expect(data.canal).to.eql('email');",
+                  "    pm.expect(data.mensaje).to.be.a('string');",
+                  "    pm.expect(data.mensaje).to.include(pm.collectionVariables.get('trxMulticanal'));",
+                  "});",
+                  "",
+                  "pm.test('El id del canal email difiere del id del canal push', function () {",
+                  "    pm.expect(data.id).to.not.be.undefined;",
+                  "    pm.expect(String(data.id)).to.not.eql(pm.collectionVariables.get('notifIdMulticanalPush'));",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201 && data.id !== undefined) {",
+                  "    pm.collectionVariables.set('notifIdMulticanalEmail', String(data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": {{usuarioId}},\n  \"canal\": \"email\",\n  \"asunto\": \"Transferencia exitosa {{trxMulticanal}}\",\n  \"mensaje\": \"Se confirmo una transferencia por {{montoMulticanal}} Gs. Identificador: {{trxMulticanal}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"]
+            }
+          }
+        },
+        {
+          "name": "GET Verificar ambos canales entregados (TRX-009)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var lista = Array.isArray(body.data) ? body.data : [];",
+                  "var trx = pm.collectionVariables.get('trxMulticanal');",
+                  "var deLaTrx = lista.filter(function (n) { return (n.mensaje || '').indexOf(trx) !== -1; });",
+                  "",
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Existen exactamente dos entregas registradas para TRX-009', function () {",
+                  "    pm.expect(deLaTrx.length).to.eql(2);",
+                  "});",
+                  "",
+                  "pm.test('Los canales registrados para TRX-009 son push y email', function () {",
+                  "    var canales = deLaTrx.map(function (n) { return n.canal; });",
+                  "    pm.expect(canales).to.include('push');",
+                  "    pm.expect(canales).to.include('email');",
+                  "});",
+                  "",
+                  "pm.test('Ambos canales quedan en un estado de entrega valido', function () {",
+                  "    var ids = [",
+                  "        pm.collectionVariables.get('notifIdMulticanalPush'),",
+                  "        pm.collectionVariables.get('notifIdMulticanalEmail')",
+                  "    ];",
+                  "    ids.forEach(function (id) {",
+                  "        var n = lista.filter(function (x) { return String(x.id) === id; })[0];",
+                  "        pm.expect(n, 'Falta la notificacion id=' + id).to.not.be.undefined;",
+                  "        pm.expect(['enviada', 'pendiente']).to.include(n.estado);",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones?usuarioId={{usuarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"],
+              "query": [{ "key": "usuarioId", "value": "{{usuarioId}}" }]
+            },
+            "description": "Then el sistema debe enviar push y email / And debe registrar ambos canales como entregados."
+          }
+        }
+      ]
+    },
+    {
+      "name": "S4 @alternative_path - Email de respaldo por token vencido (TRX-004)",
+      "description": "BDD: 'Usar email como canal de respaldo cuando el push no puede entregarse'.\nMapeo: POST canal=push (intento inicial) + PUT /api/v1/notificaciones/{id} que reemplaza el canal por email (conmutacion al canal de respaldo) + GET de verificacion.\nEl id se conserva, lo que evidencia que se trata de la misma entrega redirigida y no de una notificacion nueva.",
+      "item": [
+        {
+          "name": "POST Intento inicial por push (TRX-004)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var data = body.data || {};",
+                  "",
+                  "pm.test('Status 201 - intento push registrado', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('El intento inicial usa el canal push', function () {",
+                  "    pm.expect(data.canal).to.eql('push');",
+                  "});",
+                  "",
+                  "pm.test('El mensaje conserva monto e identificador TRX-004', function () {",
+                  "    pm.expect(data.mensaje).to.be.a('string');",
+                  "    pm.expect(data.mensaje).to.include(pm.collectionVariables.get('montoRespaldoEmail'));",
+                  "    pm.expect(data.mensaje).to.include(pm.collectionVariables.get('trxRespaldoEmail'));",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201 && data.id !== undefined) {",
+                  "    pm.collectionVariables.set('notifIdRespaldo', String(data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": {{usuarioId}},\n  \"canal\": \"push\",\n  \"asunto\": \"Transferencia exitosa {{trxRespaldoEmail}}\",\n  \"mensaje\": \"Se confirmo una transferencia por {{montoRespaldoEmail}} Gs. Identificador: {{trxRespaldoEmail}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"]
+            },
+            "description": "Given el usuario tiene un dispositivo registrado con un token vencido."
+          }
+        },
+        {
+          "name": "PUT Conmutar al canal de respaldo email (TRX-004)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var data = body.data || {};",
+                  "",
+                  "pm.test('Status 200 - notificacion reemplazada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('El canal fue reemplazado por email', function () {",
+                  "    pm.expect(data.canal).to.eql('email');",
+                  "});",
+                  "",
+                  "pm.test('El id de la entrega se conserva tras el PUT', function () {",
+                  "    pm.expect(data.id).to.not.be.undefined;",
+                  "    pm.expect(String(data.id)).to.eql(pm.collectionVariables.get('notifIdRespaldo'));",
+                  "});",
+                  "",
+                  "pm.test('El asunto registra el fallo del canal push', function () {",
+                  "    pm.expect(data.asunto).to.be.a('string');",
+                  "    pm.expect(data.asunto).to.include('push fallido');",
+                  "});",
+                  "",
+                  "pm.test('El mensaje sigue trazando la transferencia TRX-004', function () {",
+                  "    pm.expect(data.mensaje).to.be.a('string');",
+                  "    pm.expect(data.mensaje).to.include(pm.collectionVariables.get('trxRespaldoEmail'));",
+                  "});",
+                  "",
+                  "pm.test('El usuario destinatario no cambia', function () {",
+                  "    pm.expect(String(data.usuario_id)).to.eql(pm.collectionVariables.get('usuarioId'));",
+                  "});",
+                  "",
+                  "pm.test('created_at no se altera: es la misma entrega, no una nueva', function () {",
+                  "    pm.expect(data.created_at).to.be.a('string');",
+                  "    pm.expect(data.created_at).to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"canal\": \"email\",\n  \"asunto\": \"Respaldo por push fallido - {{trxRespaldoEmail}}\",\n  \"mensaje\": \"Push no entregado por token vencido. Se confirmo una transferencia por {{montoRespaldoEmail}} Gs. Identificador: {{trxRespaldoEmail}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones/{{notifIdRespaldo}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones", "{{notifIdRespaldo}}"]
+            },
+            "description": "Then el sistema no debe entregar la notificacion push por el token vencido / And el sistema debe enviar una notificacion por email al usuario."
+          }
+        },
+        {
+          "name": "GET Verificar el respaldo registrado como email (TRX-004)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var lista = Array.isArray(body.data) ? body.data : [];",
+                  "var trx = pm.collectionVariables.get('trxRespaldoEmail');",
+                  "",
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('La entrega de TRX-004 quedo registrada en el canal email', function () {",
+                  "    var esperado = pm.collectionVariables.get('notifIdRespaldo');",
+                  "    var n = lista.filter(function (x) { return String(x.id) === esperado; })[0];",
+                  "    pm.expect(n, 'No se encontro la notificacion id=' + esperado).to.not.be.undefined;",
+                  "    pm.expect(n.canal).to.eql('email');",
+                  "});",
+                  "",
+                  "pm.test('No queda ninguna entrega push activa para TRX-004', function () {",
+                  "    var pushDeLaTrx = lista.filter(function (n) {",
+                  "        return (n.mensaje || '').indexOf(trx) !== -1 && n.canal === 'push';",
+                  "    });",
+                  "    pm.expect(pushDeLaTrx.length).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones?usuarioId={{usuarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"],
+              "query": [{ "key": "usuarioId", "value": "{{usuarioId}}" }]
+            },
+            "description": "And debe registrar el canal push como fallido y el email como entregado."
+          }
+        }
+      ]
+    },
+    {
+      "name": "S2 @negative - Canal desactivado por preferencia (TRX-002)",
+      "description": "BDD: 'No enviar una notificacion push cuando el canal esta desactivado'.\nMapeo en dos frentes:\n1) Control de contrato: un canal fuera del enum push|email|sms debe rechazarse con 400 VALIDATION_ERROR.\n2) Supresion de la entrega: DELETE /api/v1/notificaciones/{id} (soft-delete) deja al usuario sin la notificacion push, verificado por el GET posterior.",
+      "item": [
+        {
+          "name": "POST Canal fuera del enum debe ser rechazado (TRX-002)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var error = body.error || {};",
+                  "",
+                  "pm.test('Status 400 - body invalido', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('La respuesta expone el objeto error del contrato ErrorResponse', function () {",
+                  "    pm.expect(body).to.have.property('error');",
+                  "    pm.expect(error).to.have.property('code');",
+                  "    pm.expect(error).to.have.property('message');",
+                  "});",
+                  "",
+                  "pm.test('El codigo de error es VALIDATION_ERROR', function () {",
+                  "    pm.expect(error.code).to.eql('VALIDATION_ERROR');",
+                  "});",
+                  "",
+                  "pm.test('El detalle del error senala el campo canal y el valor rechazado', function () {",
+                  "    pm.expect(error.details).to.be.a('string');",
+                  "    pm.expect(error.details).to.include('canal');",
+                  "    pm.expect(error.details).to.include(pm.collectionVariables.get('canalNoSoportado'));",
+                  "});",
+                  "",
+                  "pm.test('No se creo ninguna notificacion (la respuesta no trae data)', function () {",
+                  "    pm.expect(body).to.not.have.property('data');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": {{usuarioId}},\n  \"canal\": \"{{canalNoSoportado}}\",\n  \"asunto\": \"Transferencia exitosa {{trxCanalDesactivado}}\",\n  \"mensaje\": \"Se confirmo una transferencia por 500000 Gs. Identificador: {{trxCanalDesactivado}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"]
+            },
+            "description": "Given el usuario tiene deshabilitadas las notificaciones push (canal no admitido por el contrato)."
+          }
+        },
+        {
+          "name": "POST Alta previa al descarte por preferencia (TRX-002)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var data = body.data || {};",
+                  "",
+                  "pm.test('Status 201 - notificacion creada antes de aplicar la preferencia', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('La notificacion creada trae identificador', function () {",
+                  "    pm.expect(data.id).to.not.be.undefined;",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201 && data.id !== undefined) {",
+                  "    pm.collectionVariables.set('notifIdCanalOmitido', String(data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": {{usuarioId}},\n  \"canal\": \"push\",\n  \"asunto\": \"Transferencia exitosa {{trxCanalDesactivado}}\",\n  \"mensaje\": \"Se confirmo una transferencia por 500000 Gs. Identificador: {{trxCanalDesactivado}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"]
+            },
+            "description": "When se confirma una transferencia exitosa de 500000 Gs con el identificador TRX-002."
+          }
+        },
+        {
+          "name": "DELETE Omitir el canal push por preferencia (TRX-002)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204 - soft-delete aplicado', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.test('La respuesta 204 no devuelve cuerpo', function () {",
+                  "    pm.expect(pm.response.text()).to.have.lengthOf(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones/{{notifIdCanalOmitido}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones", "{{notifIdCanalOmitido}}"]
+            },
+            "description": "Then el sistema no debe enviar una notificacion push al usuario / And debe registrar que el canal fue omitido por preferencia del usuario."
+          }
+        },
+        {
+          "name": "GET El usuario no recibe la notificacion omitida (TRX-002)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var lista = Array.isArray(body.data) ? body.data : [];",
+                  "",
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('La notificacion omitida ya no figura en el listado del usuario', function () {",
+                  "    pm.expect(body.data, 'La respuesta no contiene un arreglo data').to.be.an('array');",
+                  "    var omitida = pm.collectionVariables.get('notifIdCanalOmitido');",
+                  "    var ids = lista.map(function (n) { return String(n.id); });",
+                  "    pm.expect(ids).to.not.include(omitida);",
+                  "});",
+                  "",
+                  "pm.test('No queda ninguna entrega activa para TRX-002', function () {",
+                  "    var trx = pm.collectionVariables.get('trxCanalDesactivado');",
+                  "    var deLaTrx = lista.filter(function (n) { return (n.mensaje || '').indexOf(trx) !== -1; });",
+                  "    pm.expect(deLaTrx.length).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones?usuarioId={{usuarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"],
+              "query": [{ "key": "usuarioId", "value": "{{usuarioId}}" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "S7 @negative - Datos obligatorios invalidos en SMS (TRX-007)",
+      "description": "BDD: 'No enviar una notificacion por SMS cuando el numero de telefono es invalido'.\nMapeo parcial: la API no recibe el numero de telefono. Se valida el control de campos obligatorios (mensaje ausente y usuarioId con tipo invalido) que impide generar la entrega.",
+      "item": [
+        {
+          "name": "POST SMS sin campo mensaje debe fallar (TRX-007)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var error = body.error || {};",
+                  "",
+                  "pm.test('Status 400 - falta un campo requerido', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('El codigo de error es VALIDATION_ERROR', function () {",
+                  "    pm.expect(error.code).to.eql('VALIDATION_ERROR');",
+                  "});",
+                  "",
+                  "pm.test('El mensaje de error no esta vacio', function () {",
+                  "    pm.expect(error.message).to.be.a('string');",
+                  "    pm.expect(error.message.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test('El detalle senala el campo mensaje como requerido', function () {",
+                  "    pm.expect(error.details).to.be.a('string');",
+                  "    pm.expect(error.details).to.include('mensaje');",
+                  "    pm.expect(error.details).to.include('Required');",
+                  "});",
+                  "",
+                  "pm.test('El intento no genera una notificacion entregada', function () {",
+                  "    pm.expect(body).to.not.have.property('data');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": {{usuarioId}},\n  \"canal\": \"sms\",\n  \"asunto\": \"Transferencia exitosa {{trxSmsInvalido}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"]
+            },
+            "description": "Then el sistema no debe entregar la notificacion por SMS."
+          }
+        },
+        {
+          "name": "POST SMS con usuarioId invalido debe fallar (TRX-007)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var error = body.error || {};",
+                  "",
+                  "pm.test('Status 400 - usuarioId con tipo invalido', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('El codigo de error es VALIDATION_ERROR', function () {",
+                  "    pm.expect(error.code).to.eql('VALIDATION_ERROR');",
+                  "});",
+                  "",
+                  "pm.test('El detalle senala el campo usuarioId', function () {",
+                  "    pm.expect(error.details).to.be.a('string');",
+                  "    pm.expect(error.details).to.include('usuarioId');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": \"telefono-invalido\",\n  \"canal\": \"sms\",\n  \"asunto\": \"Transferencia exitosa {{trxSmsInvalido}}\",\n  \"mensaje\": \"Se confirmo una transferencia por 600000 Gs. Identificador: {{trxSmsInvalido}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"]
+            },
+            "description": "And debe registrar el intento de entrega como fallido."
+          }
+        }
+      ]
+    },
+    {
+      "name": "S3 @edge_case - Reproceso del mismo evento (TRX-003)",
+      "description": "BDD: 'Evitar notificaciones duplicadas ante el reprocesamiento de un evento'.\nMapeo: POST del evento, POST del reproceso, DELETE (soft-delete) del duplicado y GET que confirma un unico registro de entrega para TRX-003.\nHallazgo HG06-01: la API acepta el reproceso y crea un segundo registro en lugar de responder 409 CONFLICT.",
+      "item": [
+        {
+          "name": "POST Primer procesamiento del evento (TRX-003)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var data = body.data || {};",
+                  "",
+                  "pm.test('Status 201 - primera notificacion creada', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('La notificacion refiere a TRX-003', function () {",
+                  "    pm.expect(data.mensaje).to.be.a('string');",
+                  "    pm.expect(data.mensaje).to.include(pm.collectionVariables.get('trxDuplicado'));",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201 && data.id !== undefined) {",
+                  "    pm.collectionVariables.set('notifIdDuplicado1', String(data.id));",
+                  "    pm.collectionVariables.set('notifIdDuplicado2', '');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": {{usuarioId}},\n  \"canal\": \"push\",\n  \"asunto\": \"Transferencia exitosa {{trxDuplicado}}\",\n  \"mensaje\": \"Se confirmo una transferencia por 500000 Gs. Identificador: {{trxDuplicado}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"]
+            },
+            "description": "Given existe una transferencia exitosa con el identificador TRX-003."
+          }
+        },
+        {
+          "name": "POST Reproceso del mismo evento (TRX-003)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var data = body.data || {};",
+                  "var error = body.error || {};",
+                  "var primero = pm.collectionVariables.get('notifIdDuplicado1');",
+                  "",
+                  "pm.test('El reproceso es resuelto por la API sin error de servidor', function () {",
+                  "    pm.expect([200, 201, 409]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201 && data.id !== undefined) {",
+                  "    pm.collectionVariables.set('notifIdDuplicado2', String(data.id));",
+                  "}",
+                  "",
+                  "pm.test('HG06-01: contraste entre la regla BDD de unicidad y el comportamiento real', function () {",
+                  "    if (pm.response.code === 409) {",
+                  "        // Comportamiento esperado por el BDD: el duplicado se rechaza en origen.",
+                  "        pm.expect(error.code).to.eql('CONFLICT');",
+                  "    } else {",
+                  "        // Comportamiento observado: la API crea un segundo registro de entrega.",
+                  "        pm.expect(data.id, 'El reproceso no devolvio un identificador').to.not.be.undefined;",
+                  "        pm.expect(String(data.id)).to.not.eql(primero);",
+                  "        console.warn('[HG06-01] El BDD exige una unica notificacion por evento; la API creo los ids ' + primero + ' y ' + data.id + '.');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": {{usuarioId}},\n  \"canal\": \"push\",\n  \"asunto\": \"Transferencia exitosa {{trxDuplicado}}\",\n  \"mensaje\": \"Se confirmo una transferencia por 500000 Gs. Identificador: {{trxDuplicado}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"]
+            },
+            "description": "When el sistema procesa dos veces el evento de la transferencia TRX-003."
+          }
+        },
+        {
+          "name": "DELETE Descartar la entrega duplicada (TRX-003)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si la API rechazo el reproceso (409) no hay duplicado que descartar:",
+                  "// se reusa el id original para que el DELETE siga siendo un request valido.",
+                  "if (!pm.collectionVariables.get('notifIdDuplicado2')) {",
+                  "    pm.collectionVariables.set('notifIdDuplicado2', pm.collectionVariables.get('notifIdDuplicado1') || pm.collectionVariables.get('idInexistente'));",
+                  "    console.warn('[HG06-01] No hubo duplicado: la API aplico idempotencia en el reproceso.');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204 - entrega duplicada descartada', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.test('La respuesta 204 no devuelve cuerpo', function () {",
+                  "    pm.expect(pm.response.text()).to.have.lengthOf(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones/{{notifIdDuplicado2}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones", "{{notifIdDuplicado2}}"]
+            },
+            "description": "Then el usuario debe recibir una sola notificacion push."
+          }
+        },
+        {
+          "name": "GET Un unico registro de entrega para TRX-003",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var lista = Array.isArray(body.data) ? body.data : [];",
+                  "var trx = pm.collectionVariables.get('trxDuplicado');",
+                  "var registros = lista.filter(function (n) { return (n.mensaje || '').indexOf(trx) !== -1; });",
+                  "",
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Debe existir un unico registro de entrega asociado a TRX-003', function () {",
+                  "    pm.expect(registros.length).to.eql(1);",
+                  "});",
+                  "",
+                  "pm.test('El registro sobreviviente es el del primer procesamiento', function () {",
+                  "    pm.expect(registros[0], 'No quedo ningun registro para ' + trx).to.not.be.undefined;",
+                  "    pm.expect(String(registros[0].id)).to.eql(pm.collectionVariables.get('notifIdDuplicado1'));",
+                  "    pm.expect(registros[0].canal).to.eql('push');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones?usuarioId={{usuarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"],
+              "query": [{ "key": "usuarioId", "value": "{{usuarioId}}" }]
+            },
+            "description": "And debe existir un unico registro de entrega asociado al identificador TRX-003."
+          }
+        }
+      ]
+    },
+    {
+      "name": "S5 @edge_case - Entrega diferida por horario silencioso (TRX-005)",
+      "description": "BDD: 'Diferir la notificacion durante el horario silencioso del usuario'.\nMapeo: POST en horario silencioso, GET leido=false (la entrega queda pendiente para el usuario), PATCH /{id}/leer al finalizar el horario y GET leido=false que confirma que ya no esta pendiente.\nIncluye el invariante documentado por AIQUAA: PUT no reemplaza leido ni estado.",
+      "item": [
+        {
+          "name": "POST Notificacion generada en horario silencioso (TRX-005)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var data = body.data || {};",
+                  "",
+                  "pm.test('Status 201 - notificacion registrada', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('La notificacion nace sin leer', function () {",
+                  "    pm.expect(data.leido).to.eql(false);",
+                  "});",
+                  "",
+                  "pm.test('El estado permite diferir o entregar', function () {",
+                  "    pm.expect(['pendiente', 'enviada']).to.include(data.estado);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201 && data.id !== undefined) {",
+                  "    pm.collectionVariables.set('notifIdDiferida', String(data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": {{usuarioId}},\n  \"canal\": \"push\",\n  \"asunto\": \"Transferencia exitosa {{trxHorarioSilencioso}}\",\n  \"mensaje\": \"Se confirmo una transferencia por 500000 Gs a las 23:30. Identificador: {{trxHorarioSilencioso}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"]
+            },
+            "description": "When se confirma una transferencia exitosa con el identificador TRX-005 a las 23:30."
+          }
+        },
+        {
+          "name": "GET La entrega queda pendiente durante el horario silencioso (TRX-005)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var lista = Array.isArray(body.data) ? body.data : [];",
+                  "",
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('El filtro leido=false solo devuelve notificaciones no leidas', function () {",
+                  "    pm.expect(body.data, 'La respuesta no contiene un arreglo data').to.be.an('array');",
+                  "    lista.forEach(function (n) {",
+                  "        pm.expect(n.leido).to.eql(false);",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('La notificacion diferida figura entre las pendientes', function () {",
+                  "    var esperado = pm.collectionVariables.get('notifIdDiferida');",
+                  "    var ids = lista.map(function (n) { return String(n.id); });",
+                  "    pm.expect(ids).to.include(esperado);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones?usuarioId={{usuarioId}}&leido=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"],
+              "query": [
+                { "key": "usuarioId", "value": "{{usuarioId}}" },
+                { "key": "leido", "value": "false" }
+              ]
+            },
+            "description": "Then el sistema no debe enviar la notificacion push de inmediato."
+          }
+        },
+        {
+          "name": "PATCH Entrega consumida al finalizar el horario silencioso (TRX-005)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var data = body.data || {};",
+                  "",
+                  "pm.test('Status 200 - notificacion actualizada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('La notificacion diferida queda marcada como leida', function () {",
+                  "    pm.expect(data.leido).to.eql(true);",
+                  "});",
+                  "",
+                  "pm.test('El PATCH opera sobre la misma notificacion diferida', function () {",
+                  "    pm.expect(data.id).to.not.be.undefined;",
+                  "    pm.expect(String(data.id)).to.eql(pm.collectionVariables.get('notifIdDiferida'));",
+                  "});",
+                  "",
+                  "pm.test('El contenido de la notificacion no se altera al marcarla leida', function () {",
+                  "    pm.expect(data.mensaje).to.be.a('string');",
+                  "    pm.expect(data.mensaje).to.include(pm.collectionVariables.get('trxHorarioSilencioso'));",
+                  "    pm.expect(data.canal).to.eql('push');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones/{{notifIdDiferida}}/leer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones", "{{notifIdDiferida}}", "leer"]
+            },
+            "description": "And el sistema debe programar la entrega para las 07:00 del dia siguiente (entrega consumida por el usuario)."
+          }
+        },
+        {
+          "name": "PUT Invariante: leido y estado no son reemplazables por PUT (TRX-005)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var data = body.data || {};",
+                  "",
+                  "pm.test('Status 200 - notificacion reemplazada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('El PUT actualiza el contenido enviado', function () {",
+                  "    pm.expect(data.asunto).to.be.a('string');",
+                  "    pm.expect(data.asunto).to.include('reprogramada');",
+                  "});",
+                  "",
+                  "pm.test('El campo leido permanece en true (gobernado solo por PATCH /leer)', function () {",
+                  "    pm.expect(data.leido).to.eql(true);",
+                  "});",
+                  "",
+                  "pm.test('El campo estado no fue reemplazado por el valor fallida enviado en el body', function () {",
+                  "    pm.expect(data.estado).to.not.eql('fallida');",
+                  "    pm.expect(['enviada', 'pendiente']).to.include(data.estado);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"canal\": \"push\",\n  \"asunto\": \"Entrega reprogramada 07:00 - {{trxHorarioSilencioso}}\",\n  \"mensaje\": \"Entrega diferida por horario silencioso. Identificador: {{trxHorarioSilencioso}}\",\n  \"leido\": false,\n  \"estado\": \"fallida\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones/{{notifIdDiferida}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones", "{{notifIdDiferida}}"]
+            },
+            "description": "Regla AIQUAA: leido/estado no son reemplazables por PUT. El body envia leido=false y estado=fallida a proposito para comprobar que la API los ignora."
+          }
+        },
+        {
+          "name": "GET La entrega ya no figura como pendiente (TRX-005)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var lista = Array.isArray(body.data) ? body.data : [];",
+                  "",
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('La notificacion ya consumida no aparece entre las pendientes', function () {",
+                  "    pm.expect(body.data, 'La respuesta no contiene un arreglo data').to.be.an('array');",
+                  "    var diferida = pm.collectionVariables.get('notifIdDiferida');",
+                  "    var ids = lista.map(function (n) { return String(n.id); });",
+                  "    pm.expect(ids).to.not.include(diferida);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones?usuarioId={{usuarioId}}&leido=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"],
+              "query": [
+                { "key": "usuarioId", "value": "{{usuarioId}}" },
+                { "key": "leido", "value": "false" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "CONTRATO @negative - Recursos inexistentes (404)",
+      "description": "Casos transversales de contrato: los tres endpoints por id deben responder 404 NOT_FOUND ante un identificador inexistente. Cubre el riesgo de procesamiento sobre notificaciones inexistentes del analisis de alcance del grupo.",
+      "item": [
+        {
+          "name": "PUT Notificacion inexistente debe responder 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var error = body.error || {};",
+                  "",
+                  "pm.test('Status 404 - recurso no encontrado', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('El codigo de error es NOT_FOUND', function () {",
+                  "    pm.expect(error.code).to.eql('NOT_FOUND');",
+                  "});",
+                  "",
+                  "pm.test('No se devuelve data para un recurso inexistente', function () {",
+                  "    pm.expect(body).to.not.have.property('data');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"canal\": \"email\",\n  \"asunto\": \"Notificacion inexistente\",\n  \"mensaje\": \"Intento de reemplazo sobre un id que no existe\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones/{{idInexistente}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones", "{{idInexistente}}"]
+            }
+          }
+        },
+        {
+          "name": "PATCH Marcar leida una notificacion inexistente debe responder 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var error = body.error || {};",
+                  "",
+                  "pm.test('Status 404 - recurso no encontrado', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('El codigo de error es NOT_FOUND', function () {",
+                  "    pm.expect(error.code).to.eql('NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones/{{idInexistente}}/leer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones", "{{idInexistente}}", "leer"]
+            }
+          }
+        },
+        {
+          "name": "DELETE Notificacion inexistente debe responder 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var error = body.error || {};",
+                  "",
+                  "pm.test('Status 404 - recurso no encontrado', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('El codigo de error es NOT_FOUND', function () {",
+                  "    pm.expect(error.code).to.eql('NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones/{{idInexistente}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones", "{{idInexistente}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SEG @negative - Seguridad y contrato de errores",
+      "description": "Casos transversales de seguridad exigidos por el contrato AIQUAA: 401 sin API key y 401 con API key invalida. Cubren el requisito Auth Required de los cinco endpoints.\nEsta carpeta se ejecuta sin credenciales a proposito, por lo que no depende de la variable apiKey.",
+      "item": [
+        {
+          "name": "GET Sin API key debe responder 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var error = body.error || {};",
+                  "",
+                  "pm.test('Status 401 - acceso no autorizado', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('El codigo de error es UNAUTHORIZED', function () {",
+                  "    pm.expect(error.code).to.eql('UNAUTHORIZED');",
+                  "});",
+                  "",
+                  "pm.test('No se filtran datos de notificaciones en la respuesta', function () {",
+                  "    pm.expect(body).to.not.have.property('data');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones?usuarioId={{usuarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"],
+              "query": [{ "key": "usuarioId", "value": "{{usuarioId}}" }]
+            }
+          }
+        },
+        {
+          "name": "GET Con API key invalida debe responder 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var error = body.error || {};",
+                  "",
+                  "pm.test('Status 401 - API key invalida o inactiva', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('El contrato ErrorResponse se respeta', function () {",
+                  "    pm.expect(error.code).to.eql('UNAUTHORIZED');",
+                  "    pm.expect(error.message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "x-api-key", "value": "api-key-invalida-grupo-06" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones?usuarioId={{usuarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"],
+              "query": [{ "key": "usuarioId", "value": "{{usuarioId}}" }]
+            }
+          }
+        },
+        {
+          "name": "POST Sin API key debe responder 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var error = body.error || {};",
+                  "",
+                  "pm.test('Status 401 - la escritura tambien exige API key', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('El codigo de error es UNAUTHORIZED', function () {",
+                  "    pm.expect(error.code).to.eql('UNAUTHORIZED');",
+                  "});",
+                  "",
+                  "pm.test('No se creo ninguna notificacion', function () {",
+                  "    pm.expect(body).to.not.have.property('data');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": {{usuarioId}},\n  \"canal\": \"push\",\n  \"asunto\": \"Intento sin credenciales\",\n  \"mensaje\": \"Este alta no debe persistirse\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notificaciones"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

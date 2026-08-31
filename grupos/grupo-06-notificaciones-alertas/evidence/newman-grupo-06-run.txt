@@ -1,0 +1,513 @@
+newman
+
+Grupo 06 - Notificaciones y Alertas (AIQUAA)
+
+□ 00 Setup - Higiene de datos de prueba
+└ GET Inventario de notificaciones de corridas previas
+  GET https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1 [200 OK, 2.74kB, 515ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 200 - inventario obtenido
+  √  La respuesta trae el arreglo data
+  √  Inventario de datos residuales tomado
+  ┌
+  │ '[Setup] Se descartaran 7 notificaciones residuales: 6
+  │ 2, 63, 64, 65, 66, 68, 70'
+  └
+
+└ DELETE Descartar notificacion residual
+  DELETE https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/62 [204 No Content, 330B, 255ms]
+  √  Response time is less than 3000ms
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  El residual queda descartado (204) o ya no existia (404)
+  ┌
+  │ 'Using "postman.setNextRequest" is deprecated. Use "pm
+  │ .execution.setNextRequest()" instead.'
+  └
+
+Attempting to set next request to DELETE Descartar notificacion residual
+
+└ DELETE Descartar notificacion residual
+  DELETE https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/63 [204 No Content, 330B, 241ms]
+  √  Response time is less than 3000ms
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  El residual queda descartado (204) o ya no existia (404)
+  ┌
+  │ 'Using "postman.setNextRequest" is deprecated. Use "pm
+  │ .execution.setNextRequest()" instead.'
+  └
+
+Attempting to set next request to DELETE Descartar notificacion residual
+
+└ DELETE Descartar notificacion residual
+  DELETE https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/64 [204 No Content, 330B, 254ms]
+  √  Response time is less than 3000ms
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  El residual queda descartado (204) o ya no existia (404)
+  ┌
+  │ 'Using "postman.setNextRequest" is deprecated. Use "pm
+  │ .execution.setNextRequest()" instead.'
+  └
+
+Attempting to set next request to DELETE Descartar notificacion residual
+
+└ DELETE Descartar notificacion residual
+  DELETE https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/65 [204 No Content, 330B, 243ms]
+  √  Response time is less than 3000ms
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  El residual queda descartado (204) o ya no existia (404)
+  ┌
+  │ 'Using "postman.setNextRequest" is deprecated. Use "pm
+  │ .execution.setNextRequest()" instead.'
+  └
+
+Attempting to set next request to DELETE Descartar notificacion residual
+
+└ DELETE Descartar notificacion residual
+  DELETE https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/66 [204 No Content, 330B, 245ms]
+  √  Response time is less than 3000ms
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  El residual queda descartado (204) o ya no existia (404)
+  ┌
+  │ 'Using "postman.setNextRequest" is deprecated. Use "pm
+  │ .execution.setNextRequest()" instead.'
+  └
+
+Attempting to set next request to DELETE Descartar notificacion residual
+
+└ DELETE Descartar notificacion residual
+  DELETE https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/68 [204 No Content, 330B, 258ms]
+  √  Response time is less than 3000ms
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  El residual queda descartado (204) o ya no existia (404)
+  ┌
+  │ 'Using "postman.setNextRequest" is deprecated. Use "pm
+  │ .execution.setNextRequest()" instead.'
+  └
+
+Attempting to set next request to DELETE Descartar notificacion residual
+
+└ DELETE Descartar notificacion residual
+  DELETE https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/70 [204 No Content, 330B, 243ms]
+  √  Response time is less than 3000ms
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  El residual queda descartado (204) o ya no existia (404)
+  ┌
+  │ 'Using "postman.setNextRequest" is deprecated. Use "pm
+  │ .execution.setNextRequest()" instead.'
+  └
+
+Attempting to set next request to POST Crear notificacion push (TRX-001)
+
+□ S1 @happy_path - Push tras transferencia exitosa (TRX-001)
+└ POST Crear notificacion push (TRX-001)
+  POST https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones [201 Created, 642B, 250ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 201 - notificacion creada
+  √  La respuesta expone el objeto data con un identificador
+  √  El canal entregado es push
+  √  La notificacion pertenece al usuario bajo prueba
+  √  El mensaje incluye el monto y el identificador de la transferencia
+  √  El asunto referencia la transferencia TRX-001
+  √  El estado pertenece al enum documentado
+  √  La notificacion nace sin leer
+  √  created_at usa formato date-time RFC 3339
+  ┌
+  │ '[HG06-02] El OpenAPI declara id/usuario_id como integ
+  │ er; la API responde string.'
+  └
+  √  HG06-02: id y usuario_id se devuelven como string pese a estar declarados integer
+  ┌
+  │ '[HG06-02] Campo activo presente en la respuesta y aus
+  │ ente del contrato publicado.'
+  └
+  √  HG06-02: la respuesta incluye el campo no documentado activo
+
+└ GET Verificar push en el listado del usuario (TRX-001)
+  GET https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1 [200 OK, 1.18kB, 247ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 200 - listado de notificaciones
+  √  data es un arreglo
+  √  El filtro usuarioId solo devuelve notificaciones de ese usuario
+  √  La notificacion push creada en el paso anterior esta en el listado
+  √  Todo item del listado respeta el contrato Notificacion
+
+□ S6 @happy_path - SMS tras transferencia exitosa (TRX-006)
+└ POST Crear notificacion SMS (TRX-006)
+  POST https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones [201 Created, 642B, 256ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 201 - notificacion SMS creada
+  √  El canal entregado es sms
+  √  El mensaje incluye el monto y el identificador de la transferencia
+  √  El estado pertenece al enum documentado
+  √  El id generado es distinto al de la notificacion push
+
+└ GET Verificar SMS en el listado del usuario (TRX-006)
+  GET https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1 [200 OK, 1.43kB, 246ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 200
+  √  La notificacion SMS creada esta en el listado con canal sms
+
+□ S8 @alternative_path - Multicanal push + email (TRX-009)
+└ POST Canal push multicanal (TRX-009)
+  POST https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones [201 Created, 643B, 241ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 201 - canal push creado
+  √  El canal es push y refiere a TRX-009
+
+└ POST Canal email multicanal (TRX-009)
+  POST https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones [201 Created, 644B, 250ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 201 - canal email creado
+  √  El canal es email y refiere a TRX-009
+  √  El id del canal email difiere del id del canal push
+
+└ GET Verificar ambos canales entregados (TRX-009)
+  GET https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1 [200 OK, 1.94kB, 237ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 200
+  √  Existen exactamente dos entregas registradas para TRX-009
+  √  Los canales registrados para TRX-009 son push y email
+  √  Ambos canales quedan en un estado de entrega valido
+
+□ S4 @alternative_path - Email de respaldo por token vencido (TRX-004)
+└ POST Intento inicial por push (TRX-004)
+  POST https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones [201 Created, 642B, 249ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 201 - intento push registrado
+  √  El intento inicial usa el canal push
+  √  El mensaje conserva monto e identificador TRX-004
+
+└ PUT Conmutar al canal de respaldo email (TRX-004)
+  PUT https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/75 [200 OK, 708B, 248ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 200 - notificacion reemplazada
+  √  El canal fue reemplazado por email
+  √  El id de la entrega se conserva tras el PUT
+  √  El asunto registra el fallo del canal push
+  √  El mensaje sigue trazando la transferencia TRX-004
+  √  El usuario destinatario no cambia
+  √  created_at no se altera: es la misma entrega, no una nueva
+
+└ GET Verificar el respaldo registrado como email (TRX-004)
+  GET https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1 [200 OK, 2.24kB, 324ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 200
+  √  La entrega de TRX-004 quedo registrada en el canal email
+  √  No queda ninguna entrega push activa para TRX-004
+
+□ S2 @negative - Canal desactivado por preferencia (TRX-002)
+└ POST Canal fuera del enum debe ser rechazado (TRX-002)
+  POST https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones [400 Bad Request, 768B, 236ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 400 - body invalido
+  √  La respuesta expone el objeto error del contrato ErrorResponse
+  √  El codigo de error es VALIDATION_ERROR
+  √  El detalle del error senala el campo canal y el valor rechazado
+  √  No se creo ninguna notificacion (la respuesta no trae data)
+
+└ POST Alta previa al descarte por preferencia (TRX-002)
+  POST https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones [201 Created, 642B, 250ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 201 - notificacion creada antes de aplicar la preferencia
+  √  La notificacion creada trae identificador
+
+└ DELETE Omitir el canal push por preferencia (TRX-002)
+  DELETE https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/76 [204 No Content, 330B, 248ms]
+  √  Response time is less than 3000ms
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 204 - soft-delete aplicado
+  √  La respuesta 204 no devuelve cuerpo
+
+└ GET El usuario no recibe la notificacion omitida (TRX-002)
+  GET https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1 [200 OK, 2.24kB, 247ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 200
+  √  La notificacion omitida ya no figura en el listado del usuario
+  √  No queda ninguna entrega activa para TRX-002
+
+□ S7 @negative - Datos obligatorios invalidos en SMS (TRX-007)
+└ POST SMS sin campo mensaje debe fallar (TRX-007)
+  POST https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones [400 Bad Request, 652B, 241ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 400 - falta un campo requerido
+  √  El codigo de error es VALIDATION_ERROR
+  √  El mensaje de error no esta vacio
+  √  El detalle senala el campo mensaje como requerido
+  √  El intento no genera una notificacion entregada
+
+└ POST SMS con usuarioId invalido debe fallar (TRX-007)
+  POST https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones [400 Bad Request, 669B, 238ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 400 - usuarioId con tipo invalido
+  √  El codigo de error es VALIDATION_ERROR
+  √  El detalle senala el campo usuarioId
+
+□ S3 @edge_case - Reproceso del mismo evento (TRX-003)
+└ POST Primer procesamiento del evento (TRX-003)
+  POST https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones [201 Created, 642B, 240ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 201 - primera notificacion creada
+  √  La notificacion refiere a TRX-003
+
+└ POST Reproceso del mismo evento (TRX-003)
+  POST https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones [201 Created, 642B, 246ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  El reproceso es resuelto por la API sin error de servidor
+  ┌
+  │ '[HG06-01] El BDD exige una unica notificacion por eve
+  │ nto; la API creo los ids 77 y 78.'
+  └
+  √  HG06-01: contraste entre la regla BDD de unicidad y el comportamiento real
+
+└ DELETE Descartar la entrega duplicada (TRX-003)
+  DELETE https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/78 [204 No Content, 330B, 250ms]
+  √  Response time is less than 3000ms
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 204 - entrega duplicada descartada
+  √  La respuesta 204 no devuelve cuerpo
+
+└ GET Un unico registro de entrega para TRX-003
+  GET https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1 [200 OK, 2.49kB, 245ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 200
+  √  Debe existir un unico registro de entrega asociado a TRX-003
+  √  El registro sobreviviente es el del primer procesamiento
+
+□ S5 @edge_case - Entrega diferida por horario silencioso (TRX-005)
+└ POST Notificacion generada en horario silencioso (TRX-005)
+  POST https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones [201 Created, 654B, 248ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 201 - notificacion registrada
+  √  La notificacion nace sin leer
+  √  El estado permite diferir o entregar
+
+└ GET La entrega queda pendiente durante el horario silencioso (TRX-005)
+  GET https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1&leido=false [200 OK, 2.24kB, 261ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 200
+  √  El filtro leido=false solo devuelve notificaciones no leidas
+  √  La notificacion diferida figura entre las pendientes
+
+└ PATCH Entrega consumida al finalizar el horario silencioso (TRX-005)
+  PATCH https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/79/leer [200 OK, 680B, 242ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 200 - notificacion actualizada
+  √  La notificacion diferida queda marcada como leida
+  √  El PATCH opera sobre la misma notificacion diferida
+  √  El contenido de la notificacion no se altera al marcarla leida
+
+└ PUT Invariante: leido y estado no son reemplazables por PUT (TRX-005)
+  PUT https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/79 [200 OK, 666B, 245ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 200 - notificacion reemplazada
+  √  El PUT actualiza el contenido enviado
+  √  El campo leido permanece en true (gobernado solo por PATCH /leer)
+  √  El campo estado no fue reemplazado por el valor fallida enviado en el body
+
+└ GET La entrega ya no figura como pendiente (TRX-005)
+  GET https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1&leido=false [200 OK, 1.98kB, 240ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 200
+  √  La notificacion ya consumida no aparece entre las pendientes
+
+□ CONTRATO @negative - Recursos inexistentes (404)
+└ PUT Notificacion inexistente debe responder 404
+  PUT https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/99999999 [404 Not Found, 482B, 243ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 404 - recurso no encontrado
+  √  El codigo de error es NOT_FOUND
+  √  No se devuelve data para un recurso inexistente
+
+└ PATCH Marcar leida una notificacion inexistente debe responder 404
+  PATCH https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/99999999/leer [404 Not Found, 487B, 242ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 404 - recurso no encontrado
+  √  El codigo de error es NOT_FOUND
+
+└ DELETE Notificacion inexistente debe responder 404
+  DELETE https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones/99999999 [404 Not Found, 482B, 240ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  √  Status 404 - recurso no encontrado
+  √  El codigo de error es NOT_FOUND
+
+□ SEG @negative - Seguridad y contrato de errores
+└ GET Sin API key debe responder 401
+  GET https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1 [401 Unauthorized, 469B, 195ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  ┌
+  │ '[Grupo 06] 401 UNAUTHORIZED: revisar la variable apiK
+  │ ey del environment activo.'
+  └
+  √  Status 401 - acceso no autorizado
+  √  El codigo de error es UNAUTHORIZED
+  √  No se filtran datos de notificaciones en la respuesta
+
+└ GET Con API key invalida debe responder 401
+  GET https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1 [401 Unauthorized, 469B, 167ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  ┌
+  │ '[Grupo 06] 401 UNAUTHORIZED: revisar la variable apiK
+  │ ey del environment activo.'
+  └
+  √  Status 401 - API key invalida o inactiva
+  √  El contrato ErrorResponse se respeta
+
+└ POST Sin API key debe responder 401
+  POST https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones [401 Unauthorized, 461B, 162ms]
+  √  Response time is less than 3000ms
+  √  La respuesta es application/json
+  √  El cuerpo es JSON parseable
+  √  La API no responde con error de servidor (5xx)
+  √  La cuota de requests no esta agotada (429 RATE_LIMITED)
+  ┌
+  │ '[Grupo 06] 401 UNAUTHORIZED: revisar la variable apiK
+  │ ey del environment activo.'
+  └
+  √  Status 401 - la escritura tambien exige API key
+  √  El codigo de error es UNAUTHORIZED
+  √  No se creo ninguna notificacion
+
+┌─────────────────────────┬────────────────────┬────────────────────┐
+│                         │           executed │             failed │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│              iterations │                  1 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│                requests │                 39 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│            test-scripts │                 78 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│      prerequest-scripts │                 47 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│              assertions │                292 │                  0 │
+├─────────────────────────┴────────────────────┴────────────────────┤
+│ total run duration: 1m 51.4s                                      │
+├───────────────────────────────────────────────────────────────────┤
+│ total data received: 19.37kB (approx)                             │
+├───────────────────────────────────────────────────────────────────┤
+│ average response time: 249ms [min: 162ms, max: 515ms, s.d.: 49ms] │
+└───────────────────────────────────────────────────────────────────┘
