@@ -189,11 +189,11 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": ""
+      "value": "https://aiquaa-sandbox-api.vercel.app"
     },
     {
       "key": "apiKey",
-      "value": ""
+      "value": "sbx_demo_f581ca21e68a347288c94d71"
     },
     {
       "key": "eliminarId",
