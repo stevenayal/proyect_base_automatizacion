@@ -321,3 +321,27 @@ pm.test('El monto coincide con lo enviado', function () {
 pm.test('El tiempo de respuesta es menor a 3000ms', function () {
     pm.expect(pm.response.responseTime).to.be.below(3000);
 });
+
+## Scenario: Intento de pago de factura con monto invalido
+    Given el usuario posee una factura pendiente de pago
+    When el usuario intenta registrar un pago con un monto invalido o menor o igual a cero
+    Then el sistema rechaza la transaccion con un código de error de validacion
+    And el estado de la factura se mantiene como pendiente
+
+Postman: POST {{baseUrl}}/api/v1/facturas/{{ID_tabla}}/pagar
+Body: {
+  "metodoPago": "tarjeta",
+  "monto": -5000
+}
+
+Test: 
+// Validar que la API rechace la petición por validación (400 Bad Request)
+pm.test("La API responde con código 400 Bad Request", function () {
+    pm.response.to.have.status(400);
+});
+
+// Validar estructura del error
+pm.test("El código de error indica solicitud inválida", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.error.code).to.eql("INVALID_INPUT");
+});

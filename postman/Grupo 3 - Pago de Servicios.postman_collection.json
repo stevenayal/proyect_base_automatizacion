@@ -851,6 +851,94 @@
         "description": "Mapea 'Pago de factura de telefonia el mismo dia del vencimiento': el pre-request busca (via /api/v1/sql/select) una factura de TELEFONIA pendiente/vencida cuyo fecha_vencimiento = CURRENT_DATE, y luego se paga con POST /facturas/{{ID_tabla}}/pagar, replicando el patron de 'Pago exitoso de factura de ANDE'."
       },
       "response": []
+    },
+    {
+      "name": "Pago de factura con monto invalido",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var rawUsuarioId = pm.environment.get(\"UsuarioID\");",
+              "var usuarioIdNum = parseInt(rawUsuarioId, 10) || 1;",
+              "",
+              "const queryBody = {",
+              "    sql: \"SELECT id FROM facturas WHERE estado = $1 AND usuario_id = $2 LIMIT 1\",",
+              "    params: [\"pendiente\", usuarioIdNum]",
+              "};",
+              "",
+              "var baseUrl = pm.collectionVariables.get(\"baseUrl\") || pm.environment.get(\"baseUrl\");",
+              "var apiKey = pm.collectionVariables.get(\"apiKey\") || pm.environment.get(\"apiKey\");",
+              "",
+              "pm.sendRequest({",
+              "    url: baseUrl + \"/api/v1/sql/select\",",
+              "    method: 'POST',",
+              "    header: { 'Content-Type': 'application/json', 'x-api-key': apiKey },",
+              "    body: { mode: 'raw', raw: JSON.stringify(queryBody) }",
+              "}, function (err, res) {",
+              "    if (!err && res.json() && res.json().data && res.json().data.length > 0) {",
+              "        pm.collectionVariables.set(\"ID_tabla\", res.json().data[0].id);",
+              "    } else {",
+              "        pm.collectionVariables.set(\"ID_tabla\", 1);",
+              "    }",
+              "});"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"La API responde con código 400 Bad Request\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"El código de error indica solicitud inválida\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error.code).to.eql(\"INVALID_INPUT\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"metodoPago\": \"tarjeta\",\n  \"monto\": -5000\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/facturas/{{ID_tabla}}/pagar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "facturas",
+            "{{ID_tabla}}",
+            "pagar"
+          ]
+        }
+      },
+      "response": []
     }
   ],
   "event": [
