@@ -15,21 +15,24 @@ Feature: Carrito de Compras / E-commerce
     When el sistema calcula el total del carrito
     Then el total debe ser 360000
 
-  #Scenario: Completar una compra con productos disponibles - Juan Barreto
+  # Happy Path - Juan Barreto
+  Scenario: Completar una compra con productos disponibles
     Given que el cliente tiene productos disponibles en el carrito
     And el cliente corresponde a un usuario válido
     When confirma la compra
     Then el pedido se registra correctamente
-    And se muestra la confirmación de la compra
+    And el pedido queda en estado pendiente
 
-  #Scenario: No permitir finalizar una compra con el carrito vacío - Juan Barreto
+  # Caso negativo - Juan Barreto
+  Scenario: No permitir finalizar una compra con el carrito vacío
     Given que el cliente tiene el carrito vacío
     And el cliente corresponde a un usuario válido
     When intenta confirmar la compra
     Then el sistema debe impedir finalizar la compra
     And debe indicar que los datos de la compra no son válidos
 
-  #Scenario: Confirmar la compra de la última unidad disponible - Juan Barreto
+  # Edge case - Juan Barreto
+  Scenario: No permitir confirmar una compra con cantidad cero de un producto
     Given que el cliente tiene un producto en el carrito con cantidad cero
     And el cliente corresponde a un usuario válido
     When intenta confirmar la compra
