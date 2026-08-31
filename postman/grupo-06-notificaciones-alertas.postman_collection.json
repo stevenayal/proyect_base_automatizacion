@@ -307,6 +307,59 @@
           }
         },
         {
+          "name": "GET Traer la notificacion push por id (TRX-001)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var data = body.data || {};",
+                  "",
+                  "pm.test('Status 200 - notificacion encontrada por id', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('El id devuelto coincide con el creado en el POST anterior', function () {",
+                  "    pm.expect(String(data.id)).to.eql(pm.collectionVariables.get('notifIdPush'));",
+                  "});",
+                  "",
+                  "pm.test('El canal sigue siendo push', function () {",
+                  "    pm.expect(data.canal).to.eql('push');",
+                  "});",
+                  "",
+                  "pm.test('El mensaje corresponde a TRX-001', function () {",
+                  "    pm.expect(data.mensaje).to.include(pm.collectionVariables.get('trxHappyPush'));",
+                  "});",
+                  "",
+                  "pm.test('La respuesta respeta el contrato Notificacion', function () {",
+                  "    pm.expect(data).to.include.keys('id', 'usuario_id', 'canal', 'asunto', 'mensaje', 'leido', 'estado', 'created_at');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones/{{notifIdPush}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notificaciones",
+                "{{notifIdPush}}"
+              ]
+            },
+            "description": "Cobertura de endpoint: GET /api/v1/notificaciones/{id}, ausente en la version anterior de la coleccion (solo se probaba el listado). Confirma que la notificacion creada para TRX-001 puede recuperarse individualmente por id."
+          }
+        },
+        {
           "name": "GET Verificar push en el listado del usuario (TRX-001)",
           "event": [
             {
@@ -1571,6 +1624,51 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "notificaciones", "{{idInexistente}}", "leer"]
             }
+          }
+        },
+        {
+          "name": "GET Notificacion inexistente debe responder 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = {};",
+                  "try { body = pm.response.json() || {}; } catch (e) { /* respuesta no JSON */ }",
+                  "var error = body.error || {};",
+                  "",
+                  "pm.test('Status 404 - recurso no encontrado', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('El codigo de error es NOT_FOUND', function () {",
+                  "    pm.expect(error.code).to.eql('NOT_FOUND');",
+                  "});",
+                  "",
+                  "pm.test('No se devuelve data para un recurso inexistente', function () {",
+                  "    pm.expect(body).to.not.have.property('data');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones/{{idInexistente}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notificaciones",
+                "{{idInexistente}}"
+              ]
+            },
+            "description": "Cobertura de endpoint: GET /api/v1/notificaciones/{id} sobre un id inexistente. Completa la simetria con el 404 ya probado en PUT/PATCH/DELETE de esta misma carpeta."
           }
         },
         {
