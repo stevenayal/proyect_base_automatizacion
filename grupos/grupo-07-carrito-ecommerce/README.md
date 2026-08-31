@@ -52,3 +52,24 @@ BASE_URL=http://localhost:3001 API_KEY=TU_API_KEY node agent.mjs
 - [ ] Evidencias en `evidence/`
 - [ ] CI/CD verde
 - [ ] PR a `main` usando la plantilla del repo
+
+## Trazabilidad BDD -> API (AIQUAA)
+
+> Flujo de **eliminar producto de carrito** (Happy Path) — colección
+> `postman/grupo-07-andrea-escurra-carrito-e-commerce.postman_collection.json` (Andrea).
+> El mismo flujo aplica como base para el **caso negativo**: tras la baja,
+> la verificación devuelve `404` confirmando que el recurso ya no existe.
+
+> **Nota (Andrea):** Mi trazabilidad cubre el caso de **eliminar producto de carrito**. Para poder eliminar, el flujo incluye como primer paso **agregar** una orden (precondición) y como último paso **consultar** para verificar la baja. Si otro/a compañero/a va a cubrir **solo** el escenario de "agregar producto", ese caso estará documentado aparte para no duplicar ni confundir responsabilidades.
+
+| Paso | Acción BDD | Tipo | Endpoint | Método | Datos Entrada | Validaciones / Assertions |
+|---|---|---|---|---|---|---|
+| 1 | Agregar producto al carrito (precondición) | Setup | `{{baseUrl}}/api/v1/ordenes` | POST | `usuarioId: 3`, `items: [{ producto: "Cable HDMI", cantidad: 1, precioUnitario: 50000 }]` | Status **201**, guarda `eliminarId` |
+| 2 | Eliminar el producto del carrito | Happy Path | `{{baseUrl}}/api/v1/ordenes/{{eliminarId}}` | DELETE | `eliminarId` de la orden creada | Status **204** (baja exitosa) |
+| 3 | Verificar que el producto ya no existe | Verificación | `{{baseUrl}}/api/v1/ordenes/{{eliminarId}}` | GET | `eliminarId` | Status **404** (orden dada de baja) |
+
+## Variables de Entorno Utilizadas
+
+- `baseUrl` → `https://aiquaa-sandbox-api.vercel.app`
+- `apiKey` → `sbx_demo_f581ca21e68a347288c94d71`
+- `eliminarId` → se setea automáticamente desde la respuesta del paso 1
