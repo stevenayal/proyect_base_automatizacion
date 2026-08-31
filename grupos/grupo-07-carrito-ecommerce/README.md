@@ -53,6 +53,21 @@ BASE_URL=http://localhost:3001 API_KEY=TU_API_KEY node agent.mjs
 - [ ] CI/CD verde
 - [ ] PR a `main` usando la plantilla del repo
 
+## Trazabilidad BDD -> API - Juan Barreto
+
+Colección Postman: `postman/grupo-07-juan-barreto-carrito-e-commerce.postman_collection.json`.
+
+| Escenario BDD | Tipo | Endpoint | Método | Datos de entrada | Validaciones / Assertions |
+|---|---|---|---|---|---|
+| Completar una compra con productos disponibles | Happy Path | `{{baseUrl}}/api/v1/ordenes` | POST | `usuarioId: 1`; dos ítems: Teclado (`cantidad: 2`, `precioUnitario: 10.50`) y Mouse (`cantidad: 1`, `precioUnitario: 5.25`) | Status **201**; `data.id` existe; `data.estado` es `pendiente`; `data.items` contiene dos elementos; `data.monto` es **26.25**; tiempo de respuesta menor a 3000 ms; guarda `data.id` en `ordenId` |
+| No permitir finalizar una compra con el carrito vacío | Negativo | `{{baseUrl}}/api/v1/ordenes` | POST | `usuarioId: 1`; `items: []` | Status **400**; existe la estructura `error`; `error.code` es `VALIDATION_ERROR`; tiempo de respuesta menor a 3000 ms |
+| No permitir confirmar una compra con cantidad cero de un producto | Edge Case | `{{baseUrl}}/api/v1/ordenes` | POST | `usuarioId: 1`; Teclado con `cantidad: 0` y `precioUnitario: 10.50` | Status **400**; existe la estructura `error`; `error.code` es `VALIDATION_ERROR`; tiempo de respuesta menor a 3000 ms |
+
+### Variables de colección utilizadas
+
+- `baseUrl`: URL base del sandbox AIQUAA (`https://aiquaa-sandbox-api.vercel.app`).
+- `apiKey`: API key enviada mediante el header `x-api-key`; su valor se mantiene vacío en el archivo exportado para no publicar credenciales.
+- `ordenId`: identificador guardado automáticamente desde `data.id` después del checkout exitoso.
 ## Trazabilidad BDD -> API (AIQUAA)
 
 > Flujo de **eliminar producto de carrito** (Happy Path) — colección
