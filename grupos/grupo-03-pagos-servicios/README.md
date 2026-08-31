@@ -279,3 +279,45 @@ pm.test("El monto pagado coincide con el monto de la factura", function () {
 pm.test("La factura pagada es la que vencia hoy (segun la busqueda del pre-request)", function () {
     pm.expect(pm.collectionVariables.get("ID_tabla")).to.not.eql(0);
 });
+
+## Scenario: Pago exitoso de factura de ANDE - creación de factura
+  Given el usuario completa los datos de una factura pendiente para el proveedor ANDE
+  When el usuario envía el registro de la factura al sistema
+  Then el sistema crea la factura correctamente
+  And el estado inicial de la factura es "pendiente"
+
+Postman: https://aiquaa-sandbox-api.vercel.app/api/v1/facturas
+
+
+pm.test('Código de estado es 201 Created', function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test('La respuesta contiene el objeto data', function () {
+    var datosRespuesta = pm.response.json();
+    pm.expect(datosRespuesta.data).to.exist;
+});
+
+pm.test('El proveedor de la factura es ANDE', function () {
+    var datosRespuesta = pm.response.json();
+    pm.expect(datosRespuesta.data.proveedor).to.eql('ANDE');
+});
+
+pm.test('El estado inicial es pendiente', function () {
+    var datosRespuesta = pm.response.json();
+    pm.expect(datosRespuesta.data.estado).to.eql('pendiente');
+});
+
+pm.test('Se genera un id para la factura', function () {
+    var datosRespuesta = pm.response.json();
+    pm.expect(datosRespuesta.data.id).to.exist;
+});
+
+pm.test('El monto coincide con lo enviado', function () {
+    var datosRespuesta = pm.response.json();
+    pm.expect(datosRespuesta.data.monto).to.eql("1000.00");
+});
+
+pm.test('El tiempo de respuesta es menor a 3000ms', function () {
+    pm.expect(pm.response.responseTime).to.be.below(3000);
+});
