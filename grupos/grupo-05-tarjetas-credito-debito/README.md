@@ -9,6 +9,7 @@
 - Rafael Estigarribia ---> (rafaer93@gmail.com)
 - Emilio Oheler ---> (ohelerhernan@gmail.com)
 - Matias Murto ---> (matiasmurto1@gmail.com)
+- Ivan Bolaños ---> (ivanbolanos92@gmail.com)
 
 ## Alcance
 
