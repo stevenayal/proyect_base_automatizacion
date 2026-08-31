@@ -101,8 +101,8 @@
             "exec": [
               "pm.test('status 200', () => pm.response.to.have.status(200));",
               "const j = pm.response.json();",
-              "pm.test('todas pertenecen al comprador 1', () => { j.data.forEach(o => pm.expect(o.usuario_id).to.equal(1)); });",
-              "pm.test('orden ascendente por id', () => { for (let i=1;i<j.data.length;i++) pm.expect(j.data[i].id).to.be.above(j.data[i-1].id); });"
+              "pm.test('todas pertenecen al comprador 1', () => { j.data.forEach(o => pm.expect(Number(o.usuario_id)).to.equal(1)); });",
+              "pm.test('orden ascendente por id', () => { for (let i=1;i<j.data.length;i++) pm.expect(Number(j.data[i].id)).to.be.above(Number(j.data[i-1].id)); });"
             ]
           }
         }
@@ -193,7 +193,7 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('status 400', () => pm.response.to.have.status(400));",
-              "pm.test('VALIDATION_ERROR', () => pm.expect(pm.response.json().error || pm.response.json().code).to.match(/VALIDATION_ERROR/i));"
+              "pm.test('VALIDATION_ERROR', () => { const err = pm.response.json().error || {}; pm.expect(err.code).to.equal('VALIDATION_ERROR'); });"
             ]
           }
         }
@@ -294,7 +294,7 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('status 400', () => pm.response.to.have.status(400));",
-              "pm.test('VALIDATION_ERROR', () => pm.expect(pm.response.json().error || pm.response.json().code).to.match(/VALIDATION_ERROR/i));"
+              "pm.test('VALIDATION_ERROR', () => { const err = pm.response.json().error || {}; pm.expect(err.code).to.equal('VALIDATION_ERROR'); });"
             ]
           }
         }
@@ -342,7 +342,7 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('status 400', () => pm.response.to.have.status(400));",
-              "pm.test('VALIDATION_ERROR', () => pm.expect(pm.response.json().error || pm.response.json().code).to.match(/VALIDATION_ERROR/i));"
+              "pm.test('VALIDATION_ERROR', () => { const err = pm.response.json().error || {}; pm.expect(err.code).to.equal('VALIDATION_ERROR'); });"
             ]
           }
         }
@@ -390,7 +390,7 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('status 400', () => pm.response.to.have.status(400));",
-              "pm.test('VALIDATION_ERROR', () => pm.expect(pm.response.json().error || pm.response.json().code).to.match(/VALIDATION_ERROR/i));"
+              "pm.test('VALIDATION_ERROR', () => { const err = pm.response.json().error || {}; pm.expect(err.code).to.equal('VALIDATION_ERROR'); });"
             ]
           }
         }
@@ -438,7 +438,7 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('status 400', () => pm.response.to.have.status(400));",
-              "pm.test('VALIDATION_ERROR', () => pm.expect(pm.response.json().error || pm.response.json().code).to.match(/VALIDATION_ERROR/i));"
+              "pm.test('VALIDATION_ERROR', () => { const err = pm.response.json().error || {}; pm.expect(err.code).to.equal('VALIDATION_ERROR'); });"
             ]
           }
         }
@@ -481,7 +481,7 @@
               "const j = pm.response.json();",
               "pm.test('tiene items', () => pm.expect(j.data.items.length).to.be.above(0));",
               "pm.test('suma subtotales = monto', () => { const sum=j.data.items.reduce((a,i)=>a+Number(i.subtotal),0); pm.expect(sum).to.equal(Number(j.data.monto)); });",
-              "pm.test('items orden asc', () => { for (let i=1;i<j.data.items.length;i++) pm.expect(j.data.items[i].id).to.be.above(j.data.items[i-1].id); });"
+              "pm.test('items orden asc', () => { for (let i=1;i<j.data.items.length;i++) pm.expect(Number(j.data.items[i].id)).to.be.above(Number(j.data.items[i-1].id)); });"
             ]
           }
         }
@@ -561,7 +561,7 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('status 400', () => pm.response.to.have.status(400));",
-              "pm.test('VALIDATION_ERROR', () => pm.expect(pm.response.json().error || pm.response.json().code).to.match(/VALIDATION_ERROR/i));"
+              "pm.test('VALIDATION_ERROR', () => { const err = pm.response.json().error || {}; pm.expect(err.code).to.equal('VALIDATION_ERROR'); });"
             ]
           }
         }
@@ -662,7 +662,7 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('status 400', () => pm.response.to.have.status(400));",
-              "pm.test('VALIDATION_ERROR', () => pm.expect(pm.response.json().error || pm.response.json().code).to.match(/VALIDATION_ERROR/i));"
+              "pm.test('VALIDATION_ERROR', () => { const err = pm.response.json().error || {}; pm.expect(err.code).to.equal('VALIDATION_ERROR'); });"
             ]
           }
         }
