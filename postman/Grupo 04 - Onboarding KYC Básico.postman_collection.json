@@ -1,9 +1,10 @@
 {
   "info": {
-    "_postman_id": "9525b1fe-9b82-4829-a259-6913a833a2bd",
+    "_postman_id": "29fd8010-3363-4b65-848e-a2e6710db7b5",
     "name": "Grupo 04 - Onboarding KYC Básico",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "42134457"
+    "_exporter_id": "57441331",
+    "_collection_link": "https://go.postman.co/collection/57441331-29fd8010-3363-4b65-848e-a2e6710db7b5?source=collection_link"
   },
   "item": [
     {
@@ -64,6 +65,132 @@
             "api",
             "v1",
             "usuarios"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Consulta exitosa del listado de usuarios registrados",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code es 200', function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "pm.test('La respuesta contiene el listado de usuarios', function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData.data).to.be.an('array');\r",
+              "});\r",
+              "\r",
+              "pm.test('Response time is less than 3000ms', function () {\r",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "usuarios"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Consulta exitosa de usuarios con estado KYC pendiente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code es 200', function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "pm.test('La respuesta contiene usuarios con KYC pendiente', function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData.data).to.be.an('array');\r",
+              "});\r",
+              "\r",
+              "pm.test('Response time is less than 3000ms', function () {\r",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sql\": \"SELECT id, nombre, documento_tipo, documento_numero, kyc_estado FROM usuarios WHERE kyc_estado = $1\",\n  \"params\": [\n    \"pendiente\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sql/select",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "sql",
+            "select"
           ]
         }
       },
