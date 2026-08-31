@@ -40,6 +40,9 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 | Negativo | Registro rechazado por correo electrónico inválido | POST /api/v1/usuarios | 400 Bad Request y error VALIDATION_ERROR |
 | Negativo | Registro rechazado por correo electrónico ya registrado | POST /api/v1/usuarios | 409 Conflict y error CONFLICT |
 | Negativo | Registro rechazado por campos obligatorios incompletos | POST /api/v1/usuarios | 400 Bad Request y error VALIDATION_ERROR |
+| Happy Path | Consulta exitosa del listado de usuarios registrados | GET /api/v1/usuarios | 200 OK y se obtiene el listado de usuarios |
+| Happy Path | Consulta exitosa de usuarios con estado KYC pendiente | POST /api/v1/sql/select | 200 OK y se obtiene el listado de usuarios con KYC pendiente |
+
 
 ### Validaciones adicionales
 
