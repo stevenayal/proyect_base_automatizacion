@@ -279,3 +279,69 @@ pm.test("El monto pagado coincide con el monto de la factura", function () {
 pm.test("La factura pagada es la que vencia hoy (segun la busqueda del pre-request)", function () {
     pm.expect(pm.collectionVariables.get("ID_tabla")).to.not.eql(0);
 });
+
+## Scenario: Pago exitoso de factura de ANDE - creación de factura
+  Given el usuario completa los datos de una factura pendiente para el proveedor ANDE
+  When el usuario envía el registro de la factura al sistema
+  Then el sistema crea la factura correctamente
+  And el estado inicial de la factura es "pendiente"
+
+Postman: https://aiquaa-sandbox-api.vercel.app/api/v1/facturas
+
+
+pm.test('Código de estado es 201 Created', function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test('La respuesta contiene el objeto data', function () {
+    var datosRespuesta = pm.response.json();
+    pm.expect(datosRespuesta.data).to.exist;
+});
+
+pm.test('El proveedor de la factura es ANDE', function () {
+    var datosRespuesta = pm.response.json();
+    pm.expect(datosRespuesta.data.proveedor).to.eql('ANDE');
+});
+
+pm.test('El estado inicial es pendiente', function () {
+    var datosRespuesta = pm.response.json();
+    pm.expect(datosRespuesta.data.estado).to.eql('pendiente');
+});
+
+pm.test('Se genera un id para la factura', function () {
+    var datosRespuesta = pm.response.json();
+    pm.expect(datosRespuesta.data.id).to.exist;
+});
+
+pm.test('El monto coincide con lo enviado', function () {
+    var datosRespuesta = pm.response.json();
+    pm.expect(datosRespuesta.data.monto).to.eql("1000.00");
+});
+
+pm.test('El tiempo de respuesta es menor a 3000ms', function () {
+    pm.expect(pm.response.responseTime).to.be.below(3000);
+});
+
+## Scenario: Intento de pago de factura con monto invalido
+    Given el usuario posee una factura pendiente de pago
+    When el usuario intenta registrar un pago con un monto invalido o menor o igual a cero
+    Then el sistema rechaza la transaccion con un código de error de validacion
+    And el estado de la factura se mantiene como pendiente
+
+Postman: POST {{baseUrl}}/api/v1/facturas/{{ID_tabla}}/pagar
+Body: {
+  "metodoPago": "tarjeta",
+  "monto": -5000
+}
+
+Test: 
+// Validar que la API rechace la petición por validación (400 Bad Request)
+pm.test("La API responde con código 400 Bad Request", function () {
+    pm.response.to.have.status(400);
+});
+
+// Validar estructura del error
+pm.test("El código de error indica solicitud inválida", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.error.code).to.eql("INVALID_INPUT");
+});

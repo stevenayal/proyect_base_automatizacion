@@ -1,11 +1,10 @@
 {
   "info": {
-    "_postman_id": "3fd97eba-f5b7-4109-84e0-a04ac332492f",
+    "_postman_id": "4241ff08-3e6d-4100-b23c-ab5bac9a352f",
     "name": "Grupo 3 - Pago de Servicios",
     "description": "# Tarea 2.0 - Grupal - Coleccion de Postman + Variables + Validaciones",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "22097273",
-    "_collection_link": "https://go.postman.co/collection/22097273-3fd97eba-f5b7-4109-84e0-a04ac332492f?source=collection_link"
+    "_exporter_id": "27146971"
   },
   "item": [
     {
@@ -989,6 +988,192 @@
           "raw": "{{baseUrl}}/api/v1/facturas/{{ID_tabla}}/pagar",
           "host": [
             "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "facturas",
+            "{{ID_tabla}}",
+            "pagar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Pago de una factura de ESSAP inexistente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Validar que la API responda con 404 Not Found\r\npm.test(\"La API rechaza la solicitud con código 404 Not Found\", function () {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\n// Validar el código de error interno de la API\r\npm.test(\"Respuesta no encontrado(NOT_FOUND)\", function () {\r\n    var jsonData = pm.response.json();\r\n    pm.expect(jsonData.error.code).to.eql(\"NOT_FOUND\");\r\n});\r\n\r\n// Validar que el mensaje confirme que la factura no fue encontrada\r\npm.test(\"El mensaje indica que la factura no existe \", function () {\r\n    var jsonData = pm.response.json();\r\n    pm.expect(jsonData.error.message).to.eql(\"Factura no encontrada o ya pagada.\");\r\n});"
+            ]
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// 1. Obtener UsuarioID desde el entorno\nvar rawUsuarioId = pm.environment.get(\"UsuarioID\");\nvar usuarioIdNum = parseInt(rawUsuarioId, 10);\n\nif (isNaN(usuarioIdNum)) {\n    console.warn(\"UsuarioID no está configurado en el entorno o es inválido. Usando valor por defecto: 1\");\n    usuarioIdNum = 1;\n}\n\n// 2. Construir la consulta SQL\nconst queryBody = {\n    sql: \"SELECT COALESCE(MAX(id), 0) + 1000 AS id_inexistente FROM facturas\"\n};\n\n// 3. Obtener baseUrl y apiKey\nvar baseUrl = pm.collectionVariables.get(\"baseUrl\") || pm.environment.get(\"baseUrl\");\nvar apiKey = pm.collectionVariables.get(\"apiKey\") || pm.environment.get(\"apiKey\");\n\n// 4. Ejecutar la petición SQL previa (con x-api-key)\npm.sendRequest({\n    url: baseUrl + \"/api/v1/sql/select\",\n    method: 'POST',\n    header: {\n        'Content-Type': 'application/json',\n        'x-api-key': apiKey\n    },\n    body: {\n        mode: 'raw',\n        raw: JSON.stringify(queryBody)\n    }\n}, function (err, res) {\n    if (err) {\n        console.error(\"Error al ejecutar Pre-request SQL:\", err);\n        pm.collectionVariables.set(\"ID_tabla\", 999999);\n        return;\n    }\n\n    var responseData = res.json();\n\n    // 5. Validar la respuesta y extraer el ID\n    if (responseData && responseData.data && responseData.data.length > 0) {\n        var rawId = responseData.data[0].id;\n        var idNumerico = parseInt(rawId, 10);\n\n        if (!isNaN(idNumerico)) {\n            pm.collectionVariables.set(\"ID_tabla\", idNumerico);\n            console.log(\"✓ ID_tabla asignado con éxito:\", idNumerico);\n        } else {\n            console.error(\"El id retornado no es interpretable como número:\", rawId);\n            pm.collectionVariables.set(\"ID_tabla\", 999999);\n        }\n    } else {\n        console.warn(\"No se encontraron facturas pendientes/vencidas de ESSAP para el usuario:\", usuarioIdNum);\n        console.warn(\"Respuesta SQL:\", JSON.stringify(responseData));\n        pm.collectionVariables.set(\"ID_tabla\", 999999);\n    }\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"metodoPago\": \"tarjeta\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://aiquaa-sandbox-api.vercel.app/api/v1/facturas/{{ID_tabla}}/pagar",
+          "protocol": "https",
+          "host": [
+            "aiquaa-sandbox-api",
+            "vercel",
+            "app"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "facturas",
+            "{{ID_tabla}}",
+            "pagar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Factura de ESSAP ya pagada anteriormente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Validar que la API responda con 404 Not Found\r\npm.test(\"La API rechaza la solicitud con código 404 Not Found\", function () {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\n// Validar el código de error interno de la API\r\npm.test(\"Respuesta no encontrado(NOT_FOUND)\", function () {\r\n    var jsonData = pm.response.json();\r\n    pm.expect(jsonData.error.code).to.eql(\"NOT_FOUND\");\r\n});\r\n\r\n// Validar que el mensaje confirme que la factura no fue encontrada o ya está pagada\r\npm.test(\"El mensaje indica que la factura no existe o ya se encuentra pagada\", function () {\r\n    var jsonData = pm.response.json();\r\n    pm.expect(jsonData.error.message).to.eql(\"Factura no encontrada o ya pagada.\");\r\n});"
+            ]
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// 1. Obtener UsuarioID desde el entorno\r\nvar rawUsuarioId = pm.environment.get(\"UsuarioID\");\r\nvar usuarioIdNum = parseInt(rawUsuarioId, 10);\r\n\r\nif (isNaN(usuarioIdNum)) {\r\n    console.warn(\"UsuarioID no está configurado en el entorno o es inválido. Usando valor por defecto: 1\");\r\n    usuarioIdNum = 1;\r\n}\r\n\r\n// 2. Construir la consulta SQL\r\nconst queryBody = {\r\n    sql: \"SELECT id FROM facturas WHERE proveedor = $1 AND estado = $2 AND usuario_id = $3 LIMIT 1\",\r\n    params: [\"ESSAP\", \"pagada\", usuarioIdNum]\r\n};\r\n\r\n// 3. Obtener baseUrl y apiKey\r\nvar baseUrl = pm.collectionVariables.get(\"baseUrl\") || pm.environment.get(\"baseUrl\");\r\nvar apiKey = pm.collectionVariables.get(\"apiKey\") || pm.environment.get(\"apiKey\");\r\n\r\n// 4. Ejecutar la petición SQL previa (con x-api-key)\r\npm.sendRequest({\r\n    url: baseUrl + \"/api/v1/sql/select\",\r\n    method: 'POST',\r\n    header: {\r\n        'Content-Type': 'application/json',\r\n        'x-api-key': apiKey\r\n    },\r\n    body: {\r\n        mode: 'raw',\r\n        raw: JSON.stringify(queryBody)\r\n    }\r\n}, function (err, res) {\r\n    if (err) {\r\n        console.error(\"Error al ejecutar Pre-request SQL:\", err);\r\n        pm.collectionVariables.set(\"ID_tabla\", 0);\r\n        return;\r\n    }\r\n\r\n    var responseData = res.json();\r\n\r\n    // 5. Validar la respuesta y extraer el ID\r\n    if (responseData && responseData.data && responseData.data.length > 0) {\r\n        var rawId = responseData.data[0].id;\r\n        var idNumerico = parseInt(rawId, 10);\r\n\r\n        if (!isNaN(idNumerico)) {\r\n            pm.collectionVariables.set(\"ID_tabla\", idNumerico);\r\n            console.log(\"✓ ID_tabla asignado con éxito:\", idNumerico);\r\n        } else {\r\n            console.error(\"El id retornado no es interpretable como número:\", rawId);\r\n            pm.collectionVariables.set(\"ID_tabla\", 0);\r\n        }\r\n    } else {\r\n        console.warn(\"No se encontraron facturas pendientes/vencidas de ESSAP para el usuario:\", usuarioIdNum);\r\n        console.warn(\"Respuesta SQL:\", JSON.stringify(responseData));\r\n        pm.collectionVariables.set(\"ID_tabla\", 0);\r\n    }\r\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"metodoPago\": \"tarjeta\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://aiquaa-sandbox-api.vercel.app/api/v1/facturas/{{ID_tabla}}/pagar",
+          "protocol": "https",
+          "host": [
+            "aiquaa-sandbox-api",
+            "vercel",
+            "app"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "facturas",
+            "{{ID_tabla}}",
+            "pagar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Pago exitoso de factura de ESSAP",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// 1. Obtener UsuarioID desde el entorno\nvar rawUsuarioId = pm.environment.get(\"UsuarioID\");\nvar usuarioIdNum = parseInt(rawUsuarioId, 10);\n\nif (isNaN(usuarioIdNum)) {\n    console.warn(\"UsuarioID no está configurado en el entorno o es inválido. Usando valor por defecto: 1\");\n    usuarioIdNum = 1;\n}\n\n// 2. Construir la consulta SQL\nconst queryBody = {\n    sql: \"SELECT id FROM facturas WHERE proveedor = $1 AND estado IN ($2, $3) AND usuario_id = $4 LIMIT 1\",\n    params: [\"ESSAP\", \"pendiente\", \"vencida\", usuarioIdNum]\n};\n\n// 3. Obtener baseUrl y apiKey\nvar baseUrl = pm.collectionVariables.get(\"baseUrl\") || pm.environment.get(\"baseUrl\");\nvar apiKey = pm.collectionVariables.get(\"apiKey\") || pm.environment.get(\"apiKey\");\n\n// 4. Ejecutar la petición SQL previa (con x-api-key)\npm.sendRequest({\n    url: baseUrl + \"/api/v1/sql/select\",\n    method: 'POST',\n    header: {\n        'Content-Type': 'application/json',\n        'x-api-key': apiKey\n    },\n    body: {\n        mode: 'raw',\n        raw: JSON.stringify(queryBody)\n    }\n}, function (err, res) {\n    if (err) {\n        console.error(\"Error al ejecutar Pre-request SQL:\", err);\n        pm.collectionVariables.set(\"ID_tabla\", 0);\n        return;\n    }\n\n    var responseData = res.json();\n\n    // 5. Validar la respuesta y extraer el ID\n    if (responseData && responseData.data && responseData.data.length > 0) {\n        var rawId = responseData.data[0].id;\n        var idNumerico = parseInt(rawId, 10);\n\n        if (!isNaN(idNumerico)) {\n            pm.collectionVariables.set(\"ID_tabla\", idNumerico);\n            console.log(\"✓ ID_tabla asignado con éxito:\", idNumerico);\n        } else {\n            console.error(\"El id retornado no es interpretable como número:\", rawId);\n            pm.collectionVariables.set(\"ID_tabla\", 1);\n        }\n    } else {\n        console.warn(\"No se encontraron facturas pendientes/vencidas de ESSAP para el usuario:\", usuarioIdNum);\n        console.warn(\"Respuesta SQL:\", JSON.stringify(responseData));\n        pm.collectionVariables.set(\"ID_tabla\", 1);\n    }\n});"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Validar que la API responda200 OK\r\npm.test(\"Pago confirmado correctamente\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// Validar que factura cambia a estado pagada\r\npm.test(\"El estado de la factura se actualizó a pagada\", function () {\r\n    var jsonData = pm.response.json();\r\n    pm.expect(jsonData.data.factura.estado).to.eql(\"pagada\");\r\n});\r\n\r\n// Validar que el pago fue procesado correctamente\r\npm.test(\"Se generó el comprobante de pago en estado 'procesado'\", function () {\r\n    var jsonData = pm.response.json();\r\n    pm.expect(jsonData.data.pago.estado).to.eql(\"procesado\");\r\n});\r\n\r\n// Validar consistencia de datos entre Factura y Pago\r\npm.test(\"El monto pagado coincide con el monto de la factura\", function () {\r\n    var jsonData = pm.response.json();\r\n    pm.expect(jsonData.data.pago.monto).to.eql(jsonData.data.factura.monto);\r\n    pm.expect(jsonData.data.pago.factura_id).to.eql(jsonData.data.factura.id);\r\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"metodoPago\": \"tarjeta\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://aiquaa-sandbox-api.vercel.app/api/v1/facturas/{{ID_tabla}}/pagar",
+          "protocol": "https",
+          "host": [
+            "aiquaa-sandbox-api",
+            "vercel",
+            "app"
           ],
           "path": [
             "api",
