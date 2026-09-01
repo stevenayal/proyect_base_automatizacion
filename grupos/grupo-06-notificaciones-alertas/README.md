@@ -106,7 +106,7 @@ La API limita a **30 requests por minuto**; al excederlo responde `429 RATE_LIMI
 
 ## Auditoría de la propuesta generada por IA
 
-La propuesta inicial generada con inteligencia artificial fue utilizada como punto de partida y posteriormente revisada por el equipo. Durante la auditoría se identificaron y applied las siguientes correcciones:
+La propuesta inicial generada con inteligencia artificial fue utilizada como punto de partida y posteriormente revisada por el equipo. Durante la auditoría se identificaron y aplicaron las siguientes correcciones:
 
 1. **Precondiciones más específicas:** se incorporaron condiciones verificables, como las preferencias del usuario, el estado del token, la validez del número telefónico y la configuración del horario silencioso.
 
