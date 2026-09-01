@@ -70,7 +70,7 @@ Actualmente se contemplan nueve escenarios:
 5. Envío de SMS después de una transferencia exitosa.
 6. Gestión de un número telefónico inválido.
 7. Envío por múltiples canales según las preferencias del usuario.
-8. Envío de email como canal principal.
+8. Uso del email como canal de respaldo cuando el push no puede entregarse.
 9. Envío de email como canal principal cuando está habilitado.
 
 ## API testing — Colección Postman y trazabilidad BDD → API
