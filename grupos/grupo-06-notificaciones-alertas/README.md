@@ -46,6 +46,7 @@ Validar que el sistema genere y gestione correctamente las notificaciones asocia
 * Envío de notificaciones mediante SMS.
 * Gestión de un número telefónico inválido.
 * Envío por múltiples canales según las preferencias del usuario.
+* Envío de email como canal principal cuando está habilitado.
 
 ### Cobertura excluida
 
@@ -60,16 +61,48 @@ Validar que el sistema genere y gestione correctamente las notificaciones asocia
 
 Los escenarios se encuentran definidos en `features/notificaciones-alertas.feature`.
 
-Actualmente se contemplan ocho escenarios:
+Actualmente se contemplan nueve escenarios:
 
 1. Envío push después de una transferencia exitosa.
 2. No envío cuando el usuario tiene desactivado el canal push.
-3. Prevención de notificaciones duplicadas.
-4. Uso de email como canal de respaldo.
-5. Entrega diferida durante el horario silencioso.
-6. Envío de SMS después de una transferencia exitosa.
-7. Gestión de un número telefónico inválido.
-8. Envío por múltiples canales según las preferencias del usuario.
+3. Envío diferido por horario no molestar (almacenamiento en cola).
+4. Envío de notificación duplicada cuando la transferencia reintenta con mismo ID.
+5. Envío de SMS después de una transferencia exitosa.
+6. Gestión de un número telefónico inválido.
+7. Envío por múltiples canales según las preferencias del usuario.
+8. Uso del email como canal de respaldo cuando el push no puede entregarse.
+9. Envío de email como canal principal cuando está habilitado.
+
+## API testing — Colección Postman y trazabilidad BDD → API
+
+**Sitio bajo prueba:** AIQUAA Sandbox API — `https://aiquaa-sandbox-api.vercel.app`
+
+| Artefacto | Ruta |
+| --------- | ---- |
+| Colección Postman | [`postman/grupo-06-notificaciones-alertas.postman_collection.json`](../../postman/grupo-06-notificaciones-alertas.postman_collection.json) |
+| Environment | [`postman/grupo-06-aiquaa.postman_environment.json`](../../postman/grupo-06-aiquaa.postman_environment.json) |
+| Matriz de trazabilidad | [`docs/trazabilidad-bdd-api.md`](docs/trazabilidad-bdd-api.md) |
+| Evidencia de ejecución | [`evidence/newman-grupo-06-run.txt`](evidence/newman-grupo-06-run.txt) |
+
+### Cobertura
+* **8 de 9** escenarios BDD mapeados a endpoints (pendiente: "Envío de email como canal principal", agregado al `.feature` sin request asociado aún en Postman).
+* **5 de 5** endpoints del Grupo 6 cubiertos: `GET`, `POST`, `PUT /{id}`, `PATCH /{id}/leer`, `DELETE /{id}`.
+* **11 carpetas**: 1 de setup, 8 de escenarios y 2 transversales (contrato `404` y seguridad `401`).
+* **38 requests** base (45 cuando hay datos residuales que limpiar).
+* Última ejecución verificada: **341 assertions, 0 fallidas**, exit code 0.
+* Scripts defensivos: verificado que correr la suite **sin** API key produce 90 assertions fallidas legibles y **0 `TypeError`**.
+* Códigos ejercitados: `200`, `201`, `204`, `400`, `401`, `404`; `409` y `429` contemplados.
+Cada carpeta lleva el identificador del escenario y su tag (`S1 @happy_path`, `S3 @edge_case`, …), y su descripción cita el `Given/When/Then` que valida.
+
+### Variables
+La colección se ejecuta íntegramente con variables: `baseUrl`, `usuarioId`, `maxResponseTime`, `idInexistente`, `prefijoDatosPrueba`, un identificador y un monto por transferencia (`trxHappyPush`, `montoHappyPush`, …) y variables de encadenamiento que guardan los `id` creados (`notifIdPush`, `notifIdRespaldo`, `notifIdDuplicado1/2`, `notifIdDiferida`) para reutilizarlos en los `GET`, `PUT`, `PATCH` y `DELETE` posteriores.
+
+### Suite re-ejecutable
+El sandbox de AIQUAA es compartido y persistente. La carpeta `00 Setup` descarta las notificaciones residuales de corridas previas antes de empezar, de modo que los conteos exactos de S2, S3, S4 y S8 sean deterministas. No toca los datos semilla del laboratorio.
+
+### Ejecución
+La API exige `x-api-key` en los cinco endpoints; sin ella toda petición responde `401 UNAUTHORIZED`. El laboratorio usa una API key demo compartida (prefijo `sbx_demo_`), la misma de las ramas de los grupos 01, 02, 03, 05 y 07. **El environment la deja vacía a propósito** y se inyecta al ejecutar, para no versionar credenciales.
+La API limita a **30 requests por minuto**; al excederlo responde `429 RATE_LIMITED`. Como la suite hace 38-45 requests, hay que ejecutarla siempre con `--delay-request 2500`.
 
 ## Auditoría de la propuesta generada por IA
 
@@ -107,7 +140,7 @@ Ruta prevista para la evidencia:
 * [x] Escenarios BDD redactados.
 * [x] Propuesta generada por IA auditada.
 * [x] Integrantes registrados.
-* [ ] Evidencia de setup cargada.
+* [x] Evidencia de setup cargada.
 * [ ] Revisión final del grupo.
 * [ ] Pull Request grupal hacia `main`.
 
@@ -117,8 +150,8 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 
 * [x] Análisis y alcance.
 * [x] BDD en `features/`.
-* [ ] API — colección Postman/Newman.
+* [x] API — colección Postman/Newman.
 * [ ] UI — pruebas en `tests/e2e/` con Playwright.
-* [ ] Evidencias en `evidence/`.
+* [x] Evidencias en `evidence/`.
 * [ ] CI/CD verde.
 * [ ] Pull Request hacia `main`.
