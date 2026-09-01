@@ -31,7 +31,7 @@ Feature: Pagos de Servicios
       Then el sistema muestra el comprobante de pago exitoso
     
 
-  # TODO: Scenario: caso negativo
+  # TODO: Scenario: caso negativos
   
     Scenario: Pago de una factura de ANDE inexistente
       Given que el usuario ingresa un identificador de factura que no existe en el sistema
