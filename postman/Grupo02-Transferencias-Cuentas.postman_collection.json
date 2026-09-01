@@ -1,0 +1,426 @@
+{
+  "info": {
+    "_postman_id": "4fddb3b0-d29b-4714-a462-d1804a6d4c94",
+    "name": "Grupo 02 - Transferencias entre Cuentas",
+    "description": "Colección API para el módulo de Transferencias entre Cuentas (Grupo 02). Mapea los escenarios BDD de features/transferencias-cuentas.feature a los endpoints de la aiquaa Sandbox API. Ver trazabilidad BDD -> API en docs/TRAZABILIDAD-BDD-API.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "33454173"
+  },
+  "item": [
+    {
+      "name": "Setup - Cuentas",
+      "item": [
+        {
+          "name": "Listar cuentas disponibles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('La respuesta contiene un arreglo de cuentas en data', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Response time is less than 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cuentas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cuentas"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Requests auxiliares para obtener/preparar las cuentas usadas en los escenarios."
+    },
+    {
+      "name": "Escenario 1 - Happy Path (Transferencia exitosa)",
+      "item": [
+        {
+          "name": "POST transferencia exitosa entre cuentas activas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code indica creacion exitosa (200 o 201)', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test('La respuesta incluye un id de transferencia', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('id');",
+                  "    pm.collectionVariables.set('transferenciaId', jsonData.data.id);",
+                  "});",
+                  "",
+                  "pm.test('El monto transferido coincide con lo solicitado', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(parseFloat(jsonData.data.monto)).to.eql(parseFloat(pm.collectionVariables.get('montoValido')));",
+                  "});",
+                  "",
+                  "pm.test('Response time is less than 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaOrigenId\": {{cuentaOrigenId}},\n  \"cuentaDestinoId\": {{cuentaDestinoId}},\n  \"monto\": {{montoValido}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transferencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transferencias"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET verificar transferencia creada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('La transferencia consultada corresponde al id creado', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.id).to.eql(pm.collectionVariables.get('transferenciaId'));",
+                  "});",
+                  "",
+                  "pm.test('La transferencia esta activa y no fue rechazada', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.activo).to.eql(true);",
+                  "    pm.expect(jsonData.data.estado).to.not.eql('rechazada');",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transferencias/{{transferenciaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transferencias",
+                "{{transferenciaId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Mapea el Scenario 'Realizar una transferencia interna exitosa' del feature transferencias-cuentas.feature."
+    },
+    {
+      "name": "Escenario 2 - Negativo (Saldo insuficiente)",
+      "item": [
+        {
+          "name": "POST transferencia con monto mayor al saldo disponible",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code indica error de validacion (400 o 422)', function () {",
+                  "    pm.expect([400, 422]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test('El mensaje de error menciona saldo insuficiente', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var mensaje = JSON.stringify(jsonData).toLowerCase();",
+                  "    pm.expect(mensaje).to.include('saldo');",
+                  "});",
+                  "",
+                  "pm.test('Response time is less than 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuenta_origen_id\": \"{{cuentaOrigenId}}\",\n  \"cuenta_destino_id\": \"{{cuentaDestinoId}}\",\n  \"monto\": {{montoMayorAlSaldo}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transferencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transferencias"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Mapea el Scenario 'Transferencia rechazada por saldo insuficiente'."
+    },
+    {
+      "name": "Escenario 3 - Edge Case (Monto exacto del saldo)",
+      "item": [
+        {
+          "name": "POST transferencia por el 100% del saldo disponible",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code indica creacion exitosa (200 o 201)', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test('El saldo resultante de la cuenta origen es 0', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.saldo_origen_resultante !== undefined) {",
+                  "        pm.expect(jsonData.saldo_origen_resultante).to.eql(0);",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Response time is less than 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuenta_origen_id\": \"{{cuentaOrigenId}}\",\n  \"cuenta_destino_id\": \"{{cuentaDestinoId}}\",\n  \"monto\": {{montoValido}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transferencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transferencias"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Mapea el Scenario 'Transferencia por el monto exacto del saldo disponible'."
+    },
+    {
+      "name": "Escenario 4 - Negativo (Cuenta destino bloqueada)",
+      "item": [
+        {
+          "name": "POST transferencia hacia cuenta bloqueada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code indica error (400, 403 o 422)', function () {",
+                  "    pm.expect([400, 403, 422]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test('El mensaje de error menciona cuenta bloqueada', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var mensaje = JSON.stringify(jsonData).toLowerCase();",
+                  "    pm.expect(mensaje).to.include('bloquead');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuenta_origen_id\": \"{{cuentaOrigenId}}\",\n  \"cuenta_destino_id\": \"{{cuentaBloqueadaId}}\",\n  \"monto\": {{montoValido}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transferencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transferencias"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Mapea el Scenario 'Rechazar una transferencia hacia una cuenta bloqueada'."
+    }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "x-api-key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://aiquaa-sandbox-api.vercel.app"
+    },
+    {
+      "key": "apiKey",
+      "value": "QUxMIFlPVVIgQkFTRSBBUkUgQkVMT05HIFRPIFVT"
+    },
+    {
+      "key": "cuentaOrigenId",
+      "value": ""
+    },
+    {
+      "key": "cuentaDestinoId",
+      "value": ""
+    },
+    {
+      "key": "cuentaBloqueadaId",
+      "value": ""
+    },
+    {
+      "key": "transferenciaId",
+      "value": ""
+    },
+    {
+      "key": "montoValido",
+      "value": "500000"
+    },
+    {
+      "key": "montoMayorAlSaldo",
+      "value": "999999999"
+    }
+  ]
+}
