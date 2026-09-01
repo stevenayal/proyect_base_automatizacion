@@ -46,7 +46,7 @@ Validar que el sistema genere y gestione correctamente las notificaciones asocia
 * Envío de notificaciones mediante SMS.
 * Gestión de un número telefónico inválido.
 * Envío por múltiples canales según las preferencias del usuario.
-* Envío de notificaciones por email como canal principal cuando está habilitado.
+* Envío de email como canal principal cuando está habilitado.
 
 ### Cobertura excluida
 
@@ -65,13 +65,13 @@ Actualmente se contemplan nueve escenarios:
 
 1. Envío push después de una transferencia exitosa.
 2. No envío cuando el usuario tiene desactivado el canal push.
-3. Prevención de notificaciones duplicadas.
-4. Uso de email como canal de respaldo.
-5. Entrega diferida durante el horario silencioso.
-6. Envío de SMS después de una transferencia exitosa.
-7. Gestión de un número telefónico inválido.
-8. Envío por múltiples canales según las preferencias del usuario.
-9. Envío de email como canal principal.
+3. Envío diferido por horario no molestar (almacenamiento en cola).
+4. Envío de notificación duplicada cuando la transferencia reintenta con mismo ID.
+5. Envío de SMS después de una transferencia exitosa.
+6. Gestión de un número telefónico inválido.
+7. Envío por múltiples canales según las preferencias del usuario.
+8. Envío de email como canal principal.
+9. Envío de email como canal principal cuando está habilitado.
 
 ## API testing — Colección Postman y trazabilidad BDD → API
 
@@ -85,60 +85,28 @@ Actualmente se contemplan nueve escenarios:
 | Evidencia de ejecución | [`evidence/newman-grupo-06-run.txt`](evidence/newman-grupo-06-run.txt) |
 
 ### Cobertura
-
-* **8 de 8** escenarios BDD mapeados a endpoints (la consigna exige al menos 3).
+* **8 de 9** escenarios BDD mapeados a endpoints (pendiente: "Envío de email como canal principal", agregado al `.feature` sin request asociado aún en Postman).
 * **5 de 5** endpoints del Grupo 6 cubiertos: `GET`, `POST`, `PUT /{id}`, `PATCH /{id}/leer`, `DELETE /{id}`.
 * **11 carpetas**: 1 de setup, 8 de escenarios y 2 transversales (contrato `404` y seguridad `401`).
-* **32 requests** base (39 cuando hay datos residuales que limpiar).
-* Última ejecución verificada: **292 assertions, 0 fallidas**, exit code 0.
+* **38 requests** base (45 cuando hay datos residuales que limpiar).
+* Última ejecución verificada: **341 assertions, 0 fallidas**, exit code 0.
 * Scripts defensivos: verificado que correr la suite **sin** API key produce 90 assertions fallidas legibles y **0 `TypeError`**.
 * Códigos ejercitados: `200`, `201`, `204`, `400`, `401`, `404`; `409` y `429` contemplados.
-
 Cada carpeta lleva el identificador del escenario y su tag (`S1 @happy_path`, `S3 @edge_case`, …), y su descripción cita el `Given/When/Then` que valida.
 
 ### Variables
-
 La colección se ejecuta íntegramente con variables: `baseUrl`, `usuarioId`, `maxResponseTime`, `idInexistente`, `prefijoDatosPrueba`, un identificador y un monto por transferencia (`trxHappyPush`, `montoHappyPush`, …) y variables de encadenamiento que guardan los `id` creados (`notifIdPush`, `notifIdRespaldo`, `notifIdDuplicado1/2`, `notifIdDiferida`) para reutilizarlos en los `GET`, `PUT`, `PATCH` y `DELETE` posteriores.
 
 ### Suite re-ejecutable
-
 El sandbox de AIQUAA es compartido y persistente. La carpeta `00 Setup` descarta las notificaciones residuales de corridas previas antes de empezar, de modo que los conteos exactos de S2, S3, S4 y S8 sean deterministas. No toca los datos semilla del laboratorio.
 
 ### Ejecución
-
 La API exige `x-api-key` en los cinco endpoints; sin ella toda petición responde `401 UNAUTHORIZED`. El laboratorio usa una API key demo compartida (prefijo `sbx_demo_`), la misma de las ramas de los grupos 01, 02, 03, 05 y 07. **El environment la deja vacía a propósito** y se inyecta al ejecutar, para no versionar credenciales.
-
-La API limita a **30 requests por minuto**; al excederlo responde `429 RATE_LIMITED`. Como la suite hace 32-39 requests, hay que ejecutarla siempre con `--delay-request 2500`.
-
-```bash
-# Suite completa (desde la raíz del repositorio)
-npx newman run postman/grupo-06-notificaciones-alertas.postman_collection.json \
-  -e postman/grupo-06-aiquaa.postman_environment.json \
-  --env-var "apiKey=LA_API_KEY" \
-  --delay-request 2500
-
-# Carpetas que validan el 401 (no requieren API key ni delay)
-npx newman run postman/grupo-06-notificaciones-alertas.postman_collection.json \
-  -e postman/grupo-06-aiquaa.postman_environment.json \
-  --folder "SEG @negative - Seguridad y contrato de errores"
-```
-
-> Las carpetas comparten variables y `00 Setup` usa `postman.setNextRequest`, así que la colección debe correrse completa o por carpetas enteras, nunca request por request.
->
-> El reporte JSON de Newman **incluye el valor de la API key**: sanitizarlo antes de versionarlo. La evidencia guardada ya está sanitizada.
-
-### Hallazgos abiertos
-
-| ID | Severidad | Descripción |
-| -- | --------- | ----------- |
-| **HG06-01** | Media | El alta no es idempotente: reprocesar el mismo evento (`TRX-003`) genera un segundo registro en lugar de `409 CONFLICT`. El escenario S3 exige un único registro por evento. |
-| **HG06-02** | Baja | La respuesta no respeta el contrato publicado: `id` y `usuario_id` se devuelven como `string` aunque el OpenAPI los declara `integer`, y aparece un campo `activo` no documentado. |
-
-Los desvíos entre lo que pide el BDD y lo que expone la API (preferencias de canal, número de teléfono, programación de entrega y estado del token) están documentados como **D-01 a D-04** en la matriz de trazabilidad.
+La API limita a **30 requests por minuto**; al excederlo responde `429 RATE_LIMITED`. Como la suite hace 38-45 requests, hay que ejecutarla siempre con `--delay-request 2500`.
 
 ## Auditoría de la propuesta generada por IA
 
-La propuesta inicial generada con inteligencia artificial fue utilizada como punto de partida y posteriormente revisada por el equipo. Durante la auditoría se identificaron y aplicaron las siguientes correcciones:
+La propuesta inicial generada con inteligencia artificial fue utilizada como punto de partida y posteriormente revisada por el equipo. Durante la auditoría se identificaron y applied las siguientes correcciones:
 
 1. **Precondiciones más específicas:** se incorporaron condiciones verificables, como las preferencias del usuario, el estado del token, la validez del número telefónico y la configuración del horario silencioso.
 
@@ -173,7 +141,6 @@ Ruta prevista para la evidencia:
 * [x] Propuesta generada por IA auditada.
 * [x] Integrantes registrados.
 * [x] Evidencia de setup cargada.
-* [x] Colección Postman con trazabilidad BDD → API.
 * [ ] Revisión final del grupo.
 * [ ] Pull Request grupal hacia `main`.
 
@@ -183,8 +150,8 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 
 * [x] Análisis y alcance.
 * [x] BDD en `features/`.
-* [x] API — colección Postman/Newman con trazabilidad BDD → API.
+* [x] API — colección Postman/Newman.
 * [ ] UI — pruebas en `tests/e2e/` con Playwright.
-* [x] Evidencias en `evidence/` (setup + salida de Newman).
+* [x] Evidencias en `evidence/`.
 * [ ] CI/CD verde.
 * [ ] Pull Request hacia `main`.
