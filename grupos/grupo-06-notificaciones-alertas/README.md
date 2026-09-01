@@ -46,6 +46,7 @@ Validar que el sistema genere y gestione correctamente las notificaciones asocia
 * Envío de notificaciones mediante SMS.
 * Gestión de un número telefónico inválido.
 * Envío por múltiples canales según las preferencias del usuario.
+* Envío de notificaciones por email como canal principal cuando está habilitado.
 
 ### Cobertura excluida
 
@@ -60,7 +61,7 @@ Validar que el sistema genere y gestione correctamente las notificaciones asocia
 
 Los escenarios se encuentran definidos en `features/notificaciones-alertas.feature`.
 
-Actualmente se contemplan ocho escenarios:
+Actualmente se contemplan nueve escenarios:
 
 1. Envío push después de una transferencia exitosa.
 2. No envío cuando el usuario tiene desactivado el canal push.
@@ -70,6 +71,7 @@ Actualmente se contemplan ocho escenarios:
 6. Envío de SMS después de una transferencia exitosa.
 7. Gestión de un número telefónico inválido.
 8. Envío por múltiples canales según las preferencias del usuario.
+9. Envío de email como canal principal.
 
 ## API testing — Colección Postman y trazabilidad BDD → API
 
