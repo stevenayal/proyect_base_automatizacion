@@ -747,37 +747,97 @@
       "response": []
     },
     {
-      "name": "Pago de factura de telefonia con numero de linea invalido",
+      "name": "Pago de factura de telefonia COPACO con numero de linea invalido",
       "event": [
         {
           "listen": "prerequest",
           "script": {
-            "type": "text/javascript",
             "exec": [
-              "const queryBody = {\n    sql: \"SELECT COALESCE(MAX(id), 0) + 1000 AS id_inexistente FROM facturas WHERE proveedor = 'TELEFONIA'\"\n};\n\nvar baseUrl = pm.collectionVariables.get(\"baseUrl\") || pm.environment.get(\"baseUrl\");\nvar apiKey = pm.collectionVariables.get(\"apiKey\") || pm.environment.get(\"apiKey\");\n\npm.sendRequest({\n    url: baseUrl + \"/api/v1/sql/select\",\n    method: 'POST',\n    header: {\n        'Content-Type': 'application/json',\n        'x-api-key': apiKey\n    },\n    body: {\n        mode: 'raw',\n        raw: JSON.stringify(queryBody)\n    }\n}, function (err, res) {\n    if (err) {\n        console.error(\"Error al ejecutar Pre-request SQL:\", err);\n        pm.collectionVariables.set(\"ID_tabla\", 999999);\n        return;\n    }\n    var responseData = res.json();\n    if (responseData && responseData.data && responseData.data.length > 0) {\n        var idNumerico = parseInt(responseData.data[0].id_inexistente, 10);\n        pm.collectionVariables.set(\"ID_tabla\", isNaN(idNumerico) ? 999999 : idNumerico);\n    } else {\n        pm.collectionVariables.set(\"ID_tabla\", 999999);\n    }\n});"
-            ]
+              "const queryBody = {",
+              "    sql: \"SELECT COALESCE(MAX(id), 0) + 1000 AS id_inexistente FROM facturas WHERE proveedor = 'COPACO'\"",
+              "};",
+              "",
+              "var baseUrl = pm.collectionVariables.get(\"baseUrl\") || pm.environment.get(\"baseUrl\");",
+              "var apiKey = pm.collectionVariables.get(\"apiKey\") || pm.environment.get(\"apiKey\");",
+              "",
+              "pm.sendRequest({",
+              "    url: baseUrl + \"/api/v1/sql/select\",",
+              "    method: 'POST',",
+              "    header: {",
+              "        'Content-Type': 'application/json',",
+              "        'x-api-key': apiKey",
+              "    },",
+              "    body: {",
+              "        mode: 'raw',",
+              "        raw: JSON.stringify(queryBody)",
+              "    }",
+              "}, function (err, res) {",
+              "    if (err) {",
+              "        console.error(\"Error al ejecutar Pre-request SQL:\", err);",
+              "        pm.collectionVariables.set(\"ID_tabla\", 999999);",
+              "        return;",
+              "    }",
+              "    var responseData = res.json();",
+              "    if (responseData && responseData.data && responseData.data.length > 0) {",
+              "        var idNumerico = parseInt(responseData.data[0].id_inexistente, 10);",
+              "        pm.collectionVariables.set(\"ID_tabla\", isNaN(idNumerico) ? 999999 : idNumerico);",
+              "    } else {",
+              "        pm.collectionVariables.set(\"ID_tabla\", 999999);",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
           }
         },
         {
           "listen": "test",
           "script": {
-            "type": "text/javascript",
             "exec": [
-              "pm.test(\"La API responde con 404 Not Found al consultar la linea invalida\", function () {\n    pm.response.to.have.status(404);\n});\n\npm.test(\"El codigo de error indica que no se encontro la factura/linea\", function () {\n    var jsonData = pm.response.json();\n    pm.expect(jsonData.error.code).to.eql(\"NOT_FOUND\");\n});\n\npm.test(\"El sistema no permite continuar con el pago (no hay factura sobre la cual pagar)\", function () {\n    var jsonData = pm.response.json();\n    pm.expect(jsonData.error).to.exist;\n});"
-            ]
+              "pm.test(\"La API responde con 404 Not Found al consultar la linea invalida\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "pm.test(\"El codigo de error indica que no se encontro la factura/linea\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error.code).to.eql(\"NOT_FOUND\");",
+              "});",
+              "",
+              "pm.test(\"El sistema no permite continuar con el pago (no hay factura sobre la cual pagar)\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error).to.exist;",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
           }
         }
       ],
       "request": {
-        "method": "GET",
+        "method": "POST",
         "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
           {
             "key": "x-api-key",
             "value": "{{apiKey}}"
           }
         ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"metodoPago\": \"tarjeta\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
         "url": {
-          "raw": "{{baseUrl}}/api/v1/facturas/{{ID_tabla}}",
+          "raw": "{{baseUrl}}/api/v1/facturas/{{ID_tabla}}/pagar",
           "host": [
             "{{baseUrl}}"
           ],
@@ -785,10 +845,11 @@
             "api",
             "v1",
             "facturas",
-            "{{ID_tabla}}"
+            "{{ID_tabla}}",
+            "pagar"
           ]
         },
-        "description": "Mapea 'Pago de factura de telefonia con numero de linea invalido': el pre-request busca (via /api/v1/sql/select) una factura de TELEFONIA con un numero de linea que no existe; al no encontrar ninguna, ID_tabla queda en 0 y la consulta GET /facturas/0 debe responder 404, confirmando que no se encontro la linea y que no se puede continuar con el pago."
+        "description": "Mapea 'Pago de factura de telefonia con numero de linea invalido' (proveedor COPACO): el pre-request genera un ID_tabla garantizado inexistente (MAX(id)+1000 filtrando por proveedor='COPACO'), y luego se intenta pagar esa factura inexistente con POST /facturas/{{ID_tabla}}/pagar. La API responde 404 NOT_FOUND, confirmando que no existe esa linea/factura y que no se puede continuar con el pago."
       },
       "response": []
     },
@@ -849,6 +910,94 @@
           ]
         },
         "description": "Mapea 'Pago de factura de telefonia el mismo dia del vencimiento': el pre-request busca (via /api/v1/sql/select) una factura de TELEFONIA pendiente/vencida cuyo fecha_vencimiento = CURRENT_DATE, y luego se paga con POST /facturas/{{ID_tabla}}/pagar, replicando el patron de 'Pago exitoso de factura de ANDE'."
+      },
+      "response": []
+    },
+    {
+      "name": "Pago de factura con monto invalido",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var rawUsuarioId = pm.environment.get(\"UsuarioID\");",
+              "var usuarioIdNum = parseInt(rawUsuarioId, 10) || 1;",
+              "",
+              "const queryBody = {",
+              "    sql: \"SELECT id FROM facturas WHERE estado = $1 AND usuario_id = $2 LIMIT 1\",",
+              "    params: [\"pendiente\", usuarioIdNum]",
+              "};",
+              "",
+              "var baseUrl = pm.collectionVariables.get(\"baseUrl\") || pm.environment.get(\"baseUrl\");",
+              "var apiKey = pm.collectionVariables.get(\"apiKey\") || pm.environment.get(\"apiKey\");",
+              "",
+              "pm.sendRequest({",
+              "    url: baseUrl + \"/api/v1/sql/select\",",
+              "    method: 'POST',",
+              "    header: { 'Content-Type': 'application/json', 'x-api-key': apiKey },",
+              "    body: { mode: 'raw', raw: JSON.stringify(queryBody) }",
+              "}, function (err, res) {",
+              "    if (!err && res.json() && res.json().data && res.json().data.length > 0) {",
+              "        pm.collectionVariables.set(\"ID_tabla\", res.json().data[0].id);",
+              "    } else {",
+              "        pm.collectionVariables.set(\"ID_tabla\", 1);",
+              "    }",
+              "});"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"La API responde con código 400 Bad Request\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"El código de error indica solicitud inválida\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error.code).to.eql(\"INVALID_INPUT\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"metodoPago\": \"tarjeta\",\n  \"monto\": -5000\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/facturas/{{ID_tabla}}/pagar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "facturas",
+            "{{ID_tabla}}",
+            "pagar"
+          ]
+        }
       },
       "response": []
     }
