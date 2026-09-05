@@ -784,6 +784,217 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "05 - Aporte Oscar Benitez - BDD pendientes",
+      "item": [
+        {
+          "name": "05a - Recuperacion exitosa con correo registrado",
+          "description": "Aporte de Oscar Benitez. Obtiene un usuario registrado por SQL, ejecuta forgot-password y valida la nueva fila en sesiones.",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"oscarRecuperacionesAntes\", 0);",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT id, email FROM usuarios WHERE activo = $1 ORDER BY id LIMIT 1\",",
+                  "  [true]",
+                  "), function (err, res) {",
+                  "  pm.test(\"Pre-request Oscar: se obtuvo un usuario registrado\", function () {",
+                  "    pm.expect(err).to.not.exist;",
+                  "    pm.expect(res.code).to.eql(200);",
+                  "    pm.expect(res.json().rowCount).to.eql(1);",
+                  "  });",
+                  "  if (err || res.code !== 200 || res.json().rowCount !== 1) { return; }",
+                  "  var usuario = res.json().data[0];",
+                  "  pm.collectionVariables.set(\"oscarUsuarioId\", usuario.id);",
+                  "  pm.collectionVariables.set(\"oscarEmail\", usuario.email);",
+                  "  pm.sendRequest(utils.bodySqlRest(",
+                  "    \"SELECT COUNT(*) AS total FROM sesiones WHERE usuario_id = $1 AND tipo_evento = $2\",",
+                  "    [usuario.id, \"password_reset_solicitado\"]",
+                  "  ), function (countErr, countRes) {",
+                  "    pm.test(\"Pre-request Oscar: se conto la bitacora antes de recuperar\", function () {",
+                  "      pm.expect(countErr).to.not.exist;",
+                  "      pm.expect(countRes.code).to.eql(200);",
+                  "    });",
+                  "    if (!countErr && countRes.code === 200) {",
+                  "      pm.collectionVariables.set(\"oscarRecuperacionesAntes\", parseInt(countRes.json().data[0].total, 10));",
+                  "    }",
+                  "  });",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Oscar: recuperacion registrada devuelve HTTP 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Oscar: respuesta contiene el evento de recuperacion esperado\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.data).to.have.property(\"id\");",
+                  "  pm.expect(json.data.usuario_id).to.eql(parseInt(pm.collectionVariables.get(\"oscarUsuarioId\"), 10));",
+                  "  pm.expect(json.data.tipo_evento).to.eql(\"password_reset_solicitado\");",
+                  "  pm.expect(json.data.exitoso).to.eql(true);",
+                  "});",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM sesiones WHERE usuario_id = $1 AND tipo_evento = $2\",",
+                  "  [parseInt(pm.collectionVariables.get(\"oscarUsuarioId\"), 10), \"password_reset_solicitado\"]",
+                  "), function (err, res) {",
+                  "  pm.test(\"Post-response Oscar: consulta SQL de recuperacion responde 200\", function () {",
+                  "    pm.expect(err).to.not.exist;",
+                  "    pm.expect(res.code).to.eql(200);",
+                  "  });",
+                  "  if (err || res.code !== 200) { return; }",
+                  "  var despues = parseInt(res.json().data[0].total, 10);",
+                  "  pm.test(\"Post-response Oscar: la recuperacion agrego una fila en sesiones\", function () {",
+                  "    pm.expect(despues).to.eql(parseInt(pm.collectionVariables.get(\"oscarRecuperacionesAntes\"), 10) + 1);",
+                  "  });",
+                  "});",
+                  "pm.test(\"Oscar: tiempo de respuesta menor a 3000 ms\", function () {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{oscarEmail}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05b - Login rechazado con email obligatorio vacio",
+          "description": "Aporte de Oscar Benitez. Mapea el escenario BDD de campos obligatorios vacios y comprueba por SQL que el rechazo no crea eventos de login.",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"oscarLoginsAntes\", 0);",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM sesiones WHERE tipo_evento = $1\",",
+                  "  [\"login\"]",
+                  "), function (err, res) {",
+                  "  pm.test(\"Pre-request Oscar: se conto la bitacora antes del login vacio\", function () {",
+                  "    pm.expect(err).to.not.exist;",
+                  "    pm.expect(res.code).to.eql(200);",
+                  "  });",
+                  "  if (!err && res.code === 200) {",
+                  "    pm.collectionVariables.set(\"oscarLoginsAntes\", parseInt(res.json().data[0].total, 10));",
+                  "  }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Oscar: login sin email devuelve HTTP 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test(\"Oscar: la API informa VALIDATION_ERROR para email obligatorio\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.error.code).to.eql(\"VALIDATION_ERROR\");",
+                  "  pm.expect(JSON.stringify(json.error).toLowerCase()).to.include(\"email\");",
+                  "});",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM sesiones WHERE tipo_evento = $1\",",
+                  "  [\"login\"]",
+                  "), function (err, res) {",
+                  "  pm.test(\"Post-response Oscar: consulta SQL de login responde 200\", function () {",
+                  "    pm.expect(err).to.not.exist;",
+                  "    pm.expect(res.code).to.eql(200);",
+                  "  });",
+                  "  if (err || res.code !== 200) { return; }",
+                  "  var despues = parseInt(res.json().data[0].total, 10);",
+                  "  pm.test(\"Post-response Oscar: el rechazo no modifico sesiones\", function () {",
+                  "    pm.expect(despues).to.eql(parseInt(pm.collectionVariables.get(\"oscarLoginsAntes\"), 10));",
+                  "  });",
+                  "});",
+                  "pm.test(\"Oscar: tiempo de respuesta menor a 3000 ms\", function () {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }
