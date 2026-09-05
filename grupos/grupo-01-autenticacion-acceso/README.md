@@ -160,11 +160,12 @@ npx -y newman run postman/C_GRUPO_01_AUTENTICACION_ACCESO.json \
   --reporter-junit-export grupos/grupo-01-autenticacion-acceso/evidence/semana-03/newman-junit.xml
 ```
 
-### Resultado de la ejecución (Semana 03)
+### Resultado de la ejecución base (Semana 03)
 
 - **Requests:** 18 · **Assertions:** 31 · **Fallidas:** 0 → ✅ **PASS**
 - Detalle completo en [`evidence/semana-03/RESUMEN-EJECUCION.md`](evidence/semana-03/RESUMEN-EJECUCION.md).
 - Archivos de evidencia: `newman-report.json`, `newman-junit.xml`, `RESUMEN-EJECUCION.md`.
+- Estas métricas corresponden a la ejecución anterior al aporte de Oscar Benítez. La colección ampliada contiene 12 escenarios y genera 24 requests efectivos; se deben regenerar los reportes antes de cerrar el PR.
 
 ### Cobertura de escenarios
 
@@ -180,6 +181,15 @@ npx -y newman run postman/C_GRUPO_01_AUTENTICACION_ACCESO.json \
 | 8 | Login sin API key | 401 | Unauthorized + tiempo |
 | 9 | Crear sesión (E2E SQL) | 201 | POST `/sesiones` + BD `COUNT` aumenta |
 | 10 | Crear sesión usuario inexistente | 400 | FK rechazada + BD sin cambios (`COUNT`) |
+| 11 | Recuperación exitosa con correo registrado — **Oscar Benítez** | 200 | Usuario dinámico por SQL + POST `/auth/forgot-password` + BD `COUNT` aumenta exactamente en 1 |
+| 12 | Login con email obligatorio vacío — **Oscar Benítez** | 400 | `VALIDATION_ERROR` + BD sin cambios (`COUNT`) |
+
+### Aporte de Oscar Benítez — Semana 03
+
+- Automatización de recuperación exitosa con un correo registrado obtenido dinámicamente desde `usuarios`.
+- Automatización del rechazo de login sin el campo obligatorio `email`.
+- Validación SQL posterior sobre `sesiones`: el caso exitoso inserta exactamente una fila y el caso negativo no modifica la tabla.
+- Los escenarios están en `05 - Aporte Oscar Benitez - BDD pendientes` dentro de la colección consolidada.
 
 ### Notas
 
