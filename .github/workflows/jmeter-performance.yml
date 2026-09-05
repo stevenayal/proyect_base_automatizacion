@@ -26,7 +26,7 @@ on:
           URL publica de un dashboard de monitoreo (Grafana, etc.) a capturar como
           evidencia post-ejecucion; dejar vacio para omitir la captura.
         required: false
-        default: ""
+        default: https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958
 
 permissions:
   contents: read
