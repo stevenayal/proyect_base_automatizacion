@@ -8,6 +8,8 @@
 - Marcos Trinidad ---> (completar email)
 - Rafael Estigarribia ---> (rafaer93@gmail.com)
 - Emilio Oheler ---> (ohelerhernan@gmail.com)
+- Matias Murto ---> (matiasmurto1@gmail.com)
+- Ivan Bolaños ---> (ivanbolanos92@gmail.com)
 
 ## Alcance
 
@@ -39,9 +41,21 @@
 Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 
 - [x] Análisis y alcance
-- [x] BDD — `features/` (happy path caso negativo, y ed case cubiertos)
-- [ ] API — colección Postman/Newman
+- [x] BDD — `features/` (happy path caso negativo, y edge case cubiertos)
+- [x] API — colección Postman/Newman
 - [ ] UI — `tests/e2e/` con Playwright
 - [ ] Evidencias en `evidence/`
 - [ ] CI/CD verde
 - [ ] PR a `main` usando la plantilla del repo
+
+## Trazabilidad BDD -> API (AIQUAA)
+
+| Escenario BDD | Tipo | Endpoint AIQUAA / Postman | Método | Datos Entrada | Validaciones / Assertions |
+| :--- | :--- | :--- | :---: | :--- | :--- |
+| **Ver datos tarjeta** | Happy Path | `https://aiquaa-sandbox-api.vercel.app/api/v1/tarjetas/:id` | `GET` | `id` de la tarjeta | Status 200, `data` presente, contiene `id`, `numero_enmascarado`, `tipo`, `marca`, `estado`. |
+| **Bloqueo temporal por tarjeta perdida** | Happy Path | `https://aiquaa-sandbox-api.vercel.app/api/v1/tarjetas/:id/bloquear` | `PATCH` | `id` de la tarjeta | Status 200, `estado` = `"bloqueada"`, contiene `id`, `usuario_id`, `tipo`, `marca`, `numero_enmascarado`, `estado`, `activo`. |
+| **Desbloqueo exitoso de tarjeta bloqueada** | Happy Path | `https://aiquaa-sandbox-api.vercel.app/api/v1/tarjetas/:id/activar` | `PATCH` | `id` de la tarjeta | Status 200, `data` presente, `estado` = `"activa"`. |
+
+## Variables de Entorno Utilizadas
+
+* **`Api-Key`**: clave de autenticación (`x-api-key`) para las peticiones a la sandbox de AIQUAA.
