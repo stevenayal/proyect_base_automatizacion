@@ -80,7 +80,7 @@ El PR grupal [#58](https://github.com/stevenayal/proyect_base_automatizacion/pul
 | Semana | Entregable | Artefactos | Resultado verificado |
 | --- | --- | --- | --- |
 | **Semana 1** | Analisis, alcance y BDD | `features/notificaciones-alertas.feature`, este README, `evidence/setup-grupo-06.png` | 9 escenarios en Gherkin (happy path, alternativos, negativos y edge cases) |
-| **Semana 2** | API testing base y trazabilidad BDD → API | `postman/grupo-06-notificaciones-alertas.postman_collection.json`, `postman/grupo-06-aiquaa.postman_environment.json`, [`docs/trazabilidad-bdd-api.md`](docs/trazabilidad-bdd-api.md), [`evidence/newman-grupo-06-run.txt`](evidence/newman-grupo-06-run.txt) | 11 carpetas, 38 requests (44 ejecutados), **341 assertions, 0 fallidas** |
+| **Semana 2** | API testing base y trazabilidad BDD → API | `postman/grupo-06-notificaciones-alertas.postman_collection.json`, `postman/grupo-06-aiquaa.postman_environment.json`, [`docs/trazabilidad-bdd-api.md`](docs/trazabilidad-bdd-api.md), [`evidence/newman-grupo-06-run.txt`](evidence/newman-grupo-06-run.txt) | 11 carpetas, 38 requests, **292 assertions, 0 fallidas** |
 | **Semana 3** | Consultas SQL, assertions reales y evidencia | Coleccion extendida, [`docs/trazabilidad-rf-sql.md`](docs/trazabilidad-rf-sql.md), [`evidence/semana-03/`](evidence/semana-03/) | 15 carpetas, 52 requests, **455 assertions, 0 fallidas**, 11 de ellas contra la base de datos |
 
 ### Que agrego cada semana
