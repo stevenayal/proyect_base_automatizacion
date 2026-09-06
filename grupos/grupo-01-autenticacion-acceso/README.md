@@ -209,3 +209,12 @@ npx -y newman run postman/C_GRUPO_01_AUTENTICACION_ACCESO.json \
   encadenado al usuario capturado por CP 01 (mismo usuario que pidió el reset es el que lo 
   completa), validación en `qa_training.sesiones` de que el evento `password_reset_completado` 
   quedó persistido. Incluye fallback a usuario aleatorio si se corre de forma independiente.
+
+**Resultado de la ejecución (Newman):**
+
+- **Requests:** 6 (incluye 4 llamadas auxiliares a `/sql/select` para pre/post-request)
+- **Test-scripts:** 2 · **Prerequest-scripts:** 2 · **Assertions:** 6
+- **Fallidas:** 0 → ✅ **PASS**
+- **Duración total:** 2.4s
+- Evidencia: [`evidence/semana-03/newman-report-david.json`](evidence/semana-03/newman-report-david.json) 
+  y [`evidence/semana-03/newman-junit-david.xml`](evidence/semana-03/newman-junit-david.xml)
