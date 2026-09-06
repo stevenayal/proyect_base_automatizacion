@@ -124,28 +124,13 @@ def method_pill(method):
     )
 
 
-def status_badge(passed, failed):
+def status_info(passed, failed):
     if failed > 0:
-        text, col, bg = "FALLIDO", RED_FAIL, RED_BG
+        return "FALLIDO", RED_FAIL, RED_BG
     elif passed > 0:
-        text, col, bg = "APROBADO", GREEN_PASS, GREEN_BG
+        return "APROBADO", GREEN_PASS, GREEN_BG
     else:
-        text, col, bg = "OMITIDO", YELLOW_SKIP, GRAY_LIGHT
-    return Table(
-        [[Paragraph(
-            f'<font color="{col.hexval()}"><b>{text}</b></font>',
-            ParagraphStyle("b", fontName="Helvetica-Bold", fontSize=9,
-                           textColor=col, alignment=TA_CENTER)
-        )]],
-        colWidths=[22*mm],
-        style=TableStyle([
-            ("BACKGROUND",    (0,0), (-1,-1), bg),
-            ("TOPPADDING",    (0,0), (-1,-1), 2),
-            ("BOTTOMPADDING", (0,0), (-1,-1), 2),
-            ("LEFTPADDING",   (0,0), (-1,-1), 6),
-            ("RIGHTPADDING",  (0,0), (-1,-1), 6),
-        ])
-    )
+        return "OMITIDO", YELLOW_SKIP, GRAY_LIGHT
 
 
 def truncate_body(text, max_chars=600):
@@ -154,11 +139,56 @@ def truncate_body(text, max_chars=600):
     return text[:max_chars] + f"\n... [{len(text)-max_chars} caracteres omitidos]"
 
 
+def deep_parse_json(value):
+    """Parsea recursivamente strings que a su vez son JSON (comun en
+    campos tipo error.details que la API serializa como string escapado)
+    para que salgan indentados en vez de una sola linea con \\n literales."""
+    if isinstance(value, str):
+        s = value.strip()
+        if s[:1] in ("{", "["):
+            try:
+                return deep_parse_json(json.loads(s))
+            except Exception:
+                pass
+        return value
+    if isinstance(value, dict):
+        return {k: deep_parse_json(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [deep_parse_json(v) for v in value]
+    return value
+
+
 def safe_json(raw):
     try:
-        return json.dumps(json.loads(raw), indent=2, ensure_ascii=False)
+        return json.dumps(deep_parse_json(json.loads(raw)), indent=2, ensure_ascii=False)
     except Exception:
         return raw
+
+
+def build_url(url_obj):
+    """Reconstruye la URL completa. El export json de Newman no siempre
+    trae url.raw -- solo protocol/host[]/path[]/query[] sueltos."""
+    if not url_obj:
+        return ""
+    if not isinstance(url_obj, dict):
+        return str(url_obj)
+    if url_obj.get("raw"):
+        return url_obj["raw"]
+
+    protocol = url_obj.get("protocol", "")
+    host = ".".join(str(h) for h in url_obj.get("host", []))
+    path = "/".join(str(p) for p in url_obj.get("path", []))
+
+    url = f"{protocol}://{host}" if protocol and host else host
+    if path:
+        url += f"/{path}"
+
+    query = [q for q in url_obj.get("query", []) if not q.get("disabled")]
+    if query:
+        qs = "&".join(f"{q.get('key', '')}={q.get('value', '')}" for q in query)
+        url += f"?{qs}"
+
+    return url
 
 
 # ─── Parser Newman ────────────────────────────────────────────────────────────
@@ -170,6 +200,7 @@ def parse_newman_results(data):
 
     total_assert  = stats.get("assertions", {}).get("total", 0)
     failed_assert = stats.get("assertions", {}).get("failed", 0)
+    now = datetime.now()
 
     summary = {
         "collection_name": info.get("name", "N/A"),
@@ -178,7 +209,8 @@ def parse_newman_results(data):
         "failed_tests":    failed_assert,
         "passed_tests":    total_assert - failed_assert,
         "duration_ms":     timings.get("completed", 0) - timings.get("started", 0),
-        "timestamp":       datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "fecha":           now.strftime("%d/%m/%Y"),
+        "hora":            now.strftime("%H:%M:%S"),
     }
 
     executions = []
@@ -188,14 +220,15 @@ def parse_newman_results(data):
         resp    = ex.get("response", {})
         asserts = ex.get("assertions", [])
 
-        url_obj = req.get("url", {})
-        url = url_obj.get("raw", "") if isinstance(url_obj, dict) else str(url_obj)
+        url = build_url(req.get("url", {}))
 
         resp_body = ""
         if resp:
             raw = resp.get("body", "") or resp.get("stream", {})
             if isinstance(raw, dict):
                 raw = raw.get("data", b"")
+            if isinstance(raw, list):
+                raw = bytes(raw)
             if isinstance(raw, (bytes, bytearray)):
                 try:
                     raw = raw.decode("utf-8")
@@ -287,7 +320,7 @@ class ReportCanvas:
 
 
 # ─── Portada ──────────────────────────────────────────────────────────────────
-def build_cover(summary, logo_postman, logo_aiquaa, styles, api_version=None, repo_url=None, banner=None, author=None):
+def build_cover(summary, logo_postman, logo_aiquaa, styles, api_version=None, repo_url=None, banner=None, author=None, run_url=None):
     story = []
     w_content = PAGE_W - 2 * MARGIN
 
@@ -380,9 +413,12 @@ def build_cover(summary, logo_postman, logo_aiquaa, styles, api_version=None, re
     result_col = GREEN_PASS if failed == 0 else RED_FAIL
     result_txt = "APROBADO" if failed == 0 else "FALLIDO"
 
+    dur_display = f"{dur/1000:,.2f} s ({dur:,} ms)" if dur >= 1000 else f"{dur} ms"
+
     meta = [
-        ["Fecha / hora",  summary["timestamp"]],
-        ["Duración",      f"{dur:,} ms"],
+        ["Fecha",             summary["fecha"]],
+        ["Hora",              summary["hora"]],
+        ["Tiempo de ejecución", dur_display],
         ["Resultado",
          f'<font color="{result_col.hexval()}"><b>{result_txt}</b></font>'],
     ]
@@ -392,10 +428,15 @@ def build_cover(summary, logo_postman, logo_aiquaa, styles, api_version=None, re
             ver_display = f'<font color="#0D1B40"><u>{api_version}</u></font>'
         else:
             ver_display = api_version
-        meta.insert(2, ["Versión / release", ver_display])
+        meta.insert(3, ["Versión / release", ver_display])
+    if author:
+        meta.append(["Ejecutado por", author])
     if repo_url:
         meta.append(["Repositorio",
                      f'<font color="#0D1B40"><u>{repo_url}</u></font>'])
+    if run_url:
+        meta.append(["Ejecución CI",
+                     f'<font color="#0D1B40"><u>{run_url}</u></font>'])
     meta_table = Table(
         [[Paragraph(r[0], styles["cover_meta_key"]),
           Paragraph(r[1], styles["cover_meta_val"])] for r in meta],
@@ -439,18 +480,25 @@ def build_results(executions, styles):
         block = []
 
         # Encabezado
+        badge_text, badge_col, badge_bg = status_info(passed, failed)
+        badge_style = ParagraphStyle(
+            "badge", fontName="Helvetica-Bold", fontSize=9,
+            textColor=badge_col, alignment=TA_CENTER, leading=11,
+        )
         header = Table(
             [[method_pill(ex["method"]),
               Paragraph(f'<b>{i}. {ex["name"]}</b>', styles["req_name"]),
-              status_badge(passed, failed)]],
-            colWidths=[16*mm, w_content - 42*mm, 24*mm],
+              Paragraph(badge_text, badge_style)]],
+            colWidths=[16*mm, w_content - 46*mm, 30*mm],
             style=TableStyle([
                 ("VALIGN",        (0,0), (-1,-1), "MIDDLE"),
+                ("ALIGN",         (2,0), (2,0), "CENTER"),
                 ("LEFTPADDING",   (0,0), (-1,-1), 4),
                 ("RIGHTPADDING",  (0,0), (-1,-1), 4),
                 ("TOPPADDING",    (0,0), (-1,-1), 6),
                 ("BOTTOMPADDING", (0,0), (-1,-1), 6),
-                ("BACKGROUND",    (0,0), (-1,-1), GRAY_LIGHT),
+                ("BACKGROUND",    (0,0), (1,0), GRAY_LIGHT),
+                ("BACKGROUND",    (2,0), (2,0), badge_bg),
                 ("BOX",           (0,0), (-1,-1), 0.5, GRAY_BORDER),
             ])
         )
@@ -503,7 +551,7 @@ def build_results(executions, styles):
 def generate_report(results_path, output_path,
                     logo_aiquaa=None, logo_postman=None,
                     api_version=None, repo_url=None,
-                    banner=None, author=None):
+                    banner=None, author=None, run_url=None):
     with open(results_path, encoding="utf-8") as f:
         data = json.load(f)
 
@@ -522,7 +570,7 @@ def generate_report(results_path, output_path,
 
     story  = build_cover(summary, logo_postman, logo_aiquaa, styles,
                      api_version=api_version, repo_url=repo_url,
-                     banner=banner, author=author)
+                     banner=banner, author=author, run_url=run_url)
     story += build_results(executions, styles)
 
     doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
@@ -561,6 +609,9 @@ if __name__ == "__main__":
     parser.add_argument("--author",
                         default=None,
                         help="Nombre y/o email del creador de la automatización (opcional)")
+    parser.add_argument("--run-url",
+                        default=None,
+                        help="URL de la ejecución de CI que genero este informe (opcional)")
     args = parser.parse_args()
 
     # Derivar nombre de salida desde la colección si no se pasó --output
@@ -584,4 +635,5 @@ if __name__ == "__main__":
         repo_url=args.repo_url,
         banner=args.banner,
         author=args.author,
+        run_url=args.run_url,
     )
