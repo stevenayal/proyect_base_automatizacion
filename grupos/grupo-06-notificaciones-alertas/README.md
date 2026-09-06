@@ -73,25 +73,6 @@ Actualmente se contemplan nueve escenarios:
 8. Uso del email como canal de respaldo cuando el push no puede entregarse.
 9. Envío de email como canal principal cuando está habilitado.
 
-## Entregables por semana
-
-El PR grupal [#58](https://github.com/stevenayal/proyect_base_automatizacion/pull/58) acumula el trabajo de varias semanas sobre la misma rama, porque GitHub admite un unico PR abierto por par rama-origen → rama-destino. Esta tabla separa que se entrego en cada una.
-
-| Semana | Entregable | Artefactos | Resultado verificado |
-| --- | --- | --- | --- |
-| **Semana 1** | Analisis, alcance y BDD | `features/notificaciones-alertas.feature`, este README, `evidence/setup-grupo-06.png` | 9 escenarios en Gherkin (happy path, alternativos, negativos y edge cases) |
-| **Semana 2** | API testing base y trazabilidad BDD → API | `postman/grupo-06-notificaciones-alertas.postman_collection.json`, `postman/grupo-06-aiquaa.postman_environment.json`, [`docs/trazabilidad-bdd-api.md`](docs/trazabilidad-bdd-api.md), [`evidence/newman-grupo-06-run.txt`](evidence/newman-grupo-06-run.txt) | 11 carpetas, 38 requests, **292 assertions, 0 fallidas** |
-| **Semana 3** | Consultas SQL, assertions reales y evidencia | Coleccion extendida, [`docs/trazabilidad-rf-sql.md`](docs/trazabilidad-rf-sql.md), [`evidence/semana-03/`](evidence/semana-03/) | 15 carpetas, 52 requests, **455 assertions, 0 fallidas**, 11 de ellas contra la base de datos |
-
-### Que agrego cada semana
-
-**Semana 2 — cobertura de la API.** Se construyo la coleccion desde cero sobre el sandbox de AIQUAA: una carpeta por escenario BDD, variables para todos los datos de prueba, encadenamiento de los `id` creados entre requests y una carpeta `00 Setup` que descarta datos residuales para que la suite sea re-ejecutable. Se detectaron dos hallazgos (HG06-01 y HG06-02).
-
-**Semana 3 — verificacion en base de datos.** Se extendio la coleccion (no se reescribio) con 11 assertions que consultan Postgres via `POST /api/v1/sql/select`, se incorporaron los criterios de aceptacion del documento de requerimientos funcionales v1.0 que faltaban, y se cerro el ultimo escenario BDD sin request asociado. Ademas:
-
-* **HG06-01 se cerro como no-defecto**: el documento declara la ausencia de control de duplicados como comportamiento esperado, asi que el desvio estaba en nuestro escenario BDD S3, no en la API.
-* **HG06-03, nuevo**: `PATCH /{id}/leer` no filtra por `activo` y marca como leida una notificacion dada de baja. Solo el SQL lo evidencia.
-
 ## API testing — Colección Postman y trazabilidad BDD → API
 
 **Sitio bajo prueba:** AIQUAA Sandbox API — `https://aiquaa-sandbox-api.vercel.app`
