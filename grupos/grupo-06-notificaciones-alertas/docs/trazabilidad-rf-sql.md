@@ -133,7 +133,7 @@ Duración esperada: ~5 minutos. Con un delay menor la corrida choca contra `429 
 | Carpetas | 11 | **15** |
 | Requests en la colección | 38 | **52** |
 | Requests ejecutados (incluye SQL) | 39 | **69** (58 REST + 11 SQL) |
-| Assertions | 292 | **455** |
+| Assertions | 341 | **455** |
 | Assertions contra base de datos | 0 | **11** |
 | Endpoints cubiertos | 5 | **6 de 6** (RF-G6-01 a 06) |
 | Escenarios BDD con request asociado | 8 de 9 | **9 de 9** |
