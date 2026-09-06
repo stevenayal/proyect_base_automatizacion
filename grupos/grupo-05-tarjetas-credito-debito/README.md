@@ -59,3 +59,14 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 ## Variables de Entorno Utilizadas
 
 * **`Api-Key`**: clave de autenticación (`x-api-key`) para las peticiones a la sandbox de AIQUAA.
+
+## Validación SQL dinámica (pre-request + post-response)
+
+Carpeta `E2E - Flujos con validacion SQL` en la colección Postman, sobre `PATCH /api/v1/tarjetas/:id/bloquear` y `/activar` (columna `estado` de la tabla `tarjetas`). Sigue el patrón de [`docs/TAREA-SQL-REST-DINAMICO.md`](../../docs/TAREA-SQL-REST-DINAMICO.md) y de la skill `postman-newman` (`skills/postman-newman-skill/skills/postman-newman/references/sql-prerequest-pattern.md`).
+
+- Pre-request Script de la colección: helper `utils.bodySqlRest(sql, params)` (consulta `/api/v1/sql/select`) declarado una sola vez, y default `tarjetaId = 1`.
+- **Bloquear tarjeta (UPDATE + validación SQL)**: pre-request confirma en la BD que la tarjeta id=1 está `activa`; post-response relee la BD y confirma `estado = 'bloqueada'`.
+- **Activar tarjeta (UPDATE + validación SQL)**: cierra el ciclo — confirma `bloqueada` antes, `activa` después. La corrida completa deja la BD en el mismo estado en que empezó (repetible).
+- **Bloquear tarjeta - id inexistente (validación negativa)**: sobreescribe `tarjetaId` a `999999`; la API responde 404 y un `COUNT(*)` antes/después confirma que no se modificó ninguna fila.
+
+Evidencia de la corrida (Newman): [`evidence/grupo05-newman-sql-e2e.txt`](../../evidence/grupo05-newman-sql-e2e.txt) — 9 requests, 8/8 assertions OK.
