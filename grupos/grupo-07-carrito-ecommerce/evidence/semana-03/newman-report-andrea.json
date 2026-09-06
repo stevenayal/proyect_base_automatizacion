@@ -1,0 +1,2854 @@
+{
+  "collection": {
+    "_": {
+      "postman_id": "cc9a0356-2d6b-4d56-afb4-85b688357301",
+      "exporter_id": "39786135"
+    },
+    "item": [
+      {
+        "id": "139cd02c-b5bd-4166-ab12-0864b66ba653",
+        "name": "Eliminar producto de carrito - Andrea",
+        "item": [
+          {
+            "id": "e81e89e4-6bbd-4e8f-ba1e-789eb23b58a4",
+            "name": "1-Crear Orden",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "v1",
+                  "ordenes"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "x-api-key",
+                  "value": "{{apiKey}}"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\r\n  \"usuarioId\": {{usuarioId}},\r\n  \"items\": [\r\n    { \"producto\": \"Cable HDMI\", \"cantidad\": 1, \"precioUnitario\": 50000 }\r\n  ]\r\n}",
+                "options": {
+                  "raw": {
+                    "language": "json"
+                  }
+                }
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "8fd8025c-931f-4dc1-8f10-bc07ddd92258",
+                  "type": "text/javascript",
+                  "packages": {},
+                  "exec": [
+                    "pm.test('Status es 201', function () {\r",
+                    "    pm.response.to.have.status(201);\r",
+                    "});\r",
+                    "pm.test('Guardo el id de la orden a eliminar', function () {\r",
+                    "    var d = pm.response.json().data;\r",
+                    "    pm.collectionVariables.set('eliminarId', String(d.id));\r",
+                    "});"
+                  ],
+                  "_lastExecutionId": "aedcadbe-a29e-4b7b-bf4c-6491967479dd"
+                }
+              }
+            ]
+          },
+          {
+            "id": "b7b90056-b0f7-4a6d-87fb-34df4639f128",
+            "name": "2-Dar de Baja",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "v1",
+                  "ordenes",
+                  "{{eliminarId}}"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "x-api-key",
+                  "value": "{{apiKey}}"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "DELETE"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "prerequest",
+                "script": {
+                  "id": "024f0cb5-842f-47ed-b2a0-cc12d8fe75a0",
+                  "type": "text/javascript",
+                  "packages": {},
+                  "exec": [
+                    "var id = pm.collectionVariables.get(\"eliminarId\");",
+                    "pm.sendRequest(utils.bodySqlRest(",
+                    "  \"SELECT id, activo FROM ordenes WHERE id = $1\",",
+                    "  [id]",
+                    "), function (err, res) {",
+                    "  if (err) { console.error(\"Pre-request SQL fallo:\", err); return; }",
+                    "  var row = res.json().data[0];",
+                    "  pm.test(\"Precondicion BD: la orden existe y esta activa\", function () {",
+                    "    pm.expect(row).to.not.be.undefined;",
+                    "    pm.expect(String(row.activo)).to.eql(\"true\");",
+                    "  });",
+                    "});"
+                  ],
+                  "_lastExecutionId": "fc2d1b56-cbbf-4d85-9d52-3da69c487cdb"
+                }
+              },
+              {
+                "listen": "test",
+                "script": {
+                  "id": "b3e5cd19-2d06-4368-9ab8-c2d72ce54e9c",
+                  "type": "text/javascript",
+                  "packages": {},
+                  "exec": [
+                    "pm.test('Status es 204', function () {\r",
+                    "    pm.response.to.have.status(204);\r",
+                    "});",
+                    "var id = pm.collectionVariables.get(\"eliminarId\");",
+                    "pm.sendRequest(utils.bodySqlRest(",
+                    "  \"SELECT id, activo FROM ordenes WHERE id = $1\",",
+                    "  [id]",
+                    "), function (err, res) {",
+                    "  if (err) { throw err; }",
+                    "  var row = res.json().data[0];",
+                    "  pm.test(\"La BD confirma que la orden quedo inactiva (activo = false)\", function () {",
+                    "    pm.expect(String(row.activo)).to.eql(\"false\");",
+                    "  });",
+                    "});"
+                  ],
+                  "_lastExecutionId": "df0bcbb3-84e1-4562-8f26-3e373d631a8a"
+                }
+              }
+            ]
+          },
+          {
+            "id": "8510073d-ea20-4a1e-95f5-4e8cb0523fda",
+            "name": "3-Verificar Baja",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "v1",
+                  "ordenes",
+                  "{{eliminarId}}"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "x-api-key",
+                  "value": "{{apiKey}}"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "b5257efa-bce0-463d-98a4-32c133bc30eb",
+                  "type": "text/javascript",
+                  "packages": {},
+                  "exec": [
+                    "pm.test('Status es 404 (orden dada de baja)', function () {\r",
+                    "    pm.response.to.have.status(404);\r",
+                    "});"
+                  ],
+                  "_lastExecutionId": "9dd9b7d2-eb55-4c18-99d6-ba96e7e5828b"
+                }
+              }
+            ]
+          },
+          {
+            "id": "ee7589c4-9dba-46fa-91c8-ebb631155159",
+            "name": "4-Orden inexistente (404, BD sin cambios)",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "v1",
+                  "ordenes",
+                  "999999"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "x-api-key",
+                  "value": "{{apiKey}}"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "DELETE"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "prerequest",
+                "script": {
+                  "id": "89883442-6db5-41f4-adf7-09727d539c8e",
+                  "type": "text/javascript",
+                  "packages": {},
+                  "exec": [
+                    "pm.sendRequest(utils.bodySqlRest(",
+                    "  \"SELECT COUNT(*) AS total FROM ordenes\"",
+                    "), function (err, res) {",
+                    "  if (err) { console.error(\"Pre-request SQL fallo:\", err); return; }",
+                    "  pm.variables.set(\"totalAntes\", res.json().data[0].total);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "fd8a0f71-ce4d-4849-8615-37d400723e23"
+                }
+              },
+              {
+                "listen": "test",
+                "script": {
+                  "id": "3ac164b5-ae36-4384-8955-5594651fb8e3",
+                  "type": "text/javascript",
+                  "packages": {},
+                  "exec": [
+                    "pm.test('Status es 404 (orden inexistente)', function () {",
+                    "    pm.response.to.have.status(404);",
+                    "});",
+                    "pm.sendRequest(utils.bodySqlRest(",
+                    "  \"SELECT COUNT(*) AS total FROM ordenes\"",
+                    "), function (err, res) {",
+                    "  if (err) { throw err; }",
+                    "  var totalDespues = res.json().data[0].total;",
+                    "  pm.test(\"La BD no registro ni borro nada (COUNT igual)\", function () {",
+                    "    pm.expect(Number(totalDespues)).to.eql(Number(pm.variables.get(\"totalAntes\")));",
+                    "  });",
+                    "});"
+                  ],
+                  "_lastExecutionId": "7e35a224-1082-41a1-bc92-af557bb72671"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      }
+    ],
+    "event": [
+      {
+        "listen": "prerequest",
+        "script": {
+          "id": "6c77acfe-8644-46e8-a179-2ac17439cf66",
+          "type": "text/javascript",
+          "packages": {},
+          "exec": [
+            "if (typeof utils === \"undefined\") {",
+            "  utils = { bodySqlRest: function (sql, params) {",
+            "    return {",
+            "      url: pm.collectionVariables.get(\"baseUrl\") + \"/api/v1/sql/select\",",
+            "      method: \"POST\",",
+            "      header: { \"Content-Type\": \"application/json\",",
+            "                \"x-api-key\": pm.collectionVariables.get(\"apiKey\") },",
+            "      body: { mode: \"raw\", raw: JSON.stringify({ sql: sql, params: params || [] }) }",
+            "    };",
+            "  }};",
+            "}",
+            "pm.collectionVariables.set(\"usuarioId\", 3);"
+          ],
+          "_lastExecutionId": "98fe7cfa-5103-4a03-b134-9b52a69e8b8d"
+        }
+      },
+      {
+        "listen": "test",
+        "script": {
+          "id": "b2e5dcfc-9103-4d77-9ad9-d2d3403e2efd",
+          "type": "text/javascript",
+          "packages": {},
+          "exec": [
+            ""
+          ],
+          "_lastExecutionId": "d31b1dfc-839f-49d2-9c91-1e29c2af00e3"
+        }
+      }
+    ],
+    "variable": [
+      {
+        "type": "any",
+        "value": "https://aiquaa-sandbox-api.vercel.app",
+        "key": "baseUrl"
+      },
+      {
+        "type": "any",
+        "value": "sbx_demo_f581ca21e68a347288c94d71",
+        "key": "apiKey"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "eliminarId"
+      },
+      {
+        "type": "any",
+        "value": "3",
+        "key": "usuarioId"
+      }
+    ],
+    "info": {
+      "_postman_id": "cc9a0356-2d6b-4d56-afb4-85b688357301",
+      "name": "grupo 07 - carrito / e-commerce (Andrea Escurra)",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "id": "432c0e61-764b-40b8-808b-81f5216e30df",
+    "values": []
+  },
+  "globals": {
+    "id": "f9a9ebbf-c843-4a6a-9f5a-7176eec8db8c",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 14,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 369.125,
+      "responseMin": 284,
+      "responseMax": 562,
+      "responseSd": 79.98505719820422,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1788723000038,
+      "completed": 1788723006735
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 4,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "309f990c-122f-48ef-9bdb-a69521d81087",
+          "httpRequestId": "b92638ef-db40-4dee-b1b6-68b3121466b4"
+        },
+        "item": {
+          "id": "e81e89e4-6bbd-4e8f-ba1e-789eb23b58a4",
+          "name": "1-Crear Orden",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "ordenes"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"usuarioId\": {{usuarioId}},\r\n  \"items\": [\r\n    { \"producto\": \"Cable HDMI\", \"cantidad\": 1, \"precioUnitario\": 50000 }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "8fd8025c-931f-4dc1-8f10-bc07ddd92258",
+                "type": "text/javascript",
+                "packages": {},
+                "exec": [
+                  "pm.test('Status es 201', function () {\r",
+                  "    pm.response.to.have.status(201);\r",
+                  "});\r",
+                  "pm.test('Guardo el id de la orden a eliminar', function () {\r",
+                  "    var d = pm.response.json().data;\r",
+                  "    pm.collectionVariables.set('eliminarId', String(d.id));\r",
+                  "});"
+                ],
+                "_lastExecutionId": "aedcadbe-a29e-4b7b-bf4c-6491967479dd"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api",
+              "v1",
+              "ordenes"
+            ],
+            "host": [
+              "aiquaa-sandbox-api",
+              "vercel",
+              "app"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "x-api-key",
+              "value": "sbx_demo_f581ca21e68a347288c94d71"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "b09ad206-4f0b-43e4-9f88-3c3255d1163b",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "aiquaa-sandbox-api.vercel.app",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "116",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\r\n  \"usuarioId\": 3,\r\n  \"items\": [\r\n    { \"producto\": \"Cable HDMI\", \"cantidad\": 1, \"precioUnitario\": 50000 }\r\n  ]\r\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "response": {
+          "id": "03f291d2-4a18-4d6f-8241-e77127f30799",
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 06 Sep 2026 19:30:00 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "Vercel"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains; preload"
+            },
+            {
+              "key": "X-Matched-Path",
+              "value": "/api/v1/ordenes"
+            },
+            {
+              "key": "X-Vercel-Cache",
+              "value": "MISS"
+            },
+            {
+              "key": "X-Vercel-Id",
+              "value": "gru1::iad1::jpp7c-1788723000279-cb3d177a5231"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              100,
+              97,
+              116,
+              97,
+              34,
+              58,
+              123,
+              34,
+              105,
+              100,
+              34,
+              58,
+              34,
+              49,
+              49,
+              56,
+              34,
+              44,
+              34,
+              117,
+              115,
+              117,
+              97,
+              114,
+              105,
+              111,
+              95,
+              105,
+              100,
+              34,
+              58,
+              34,
+              51,
+              34,
+              44,
+              34,
+              112,
+              114,
+              111,
+              100,
+              117,
+              99,
+              116,
+              111,
+              34,
+              58,
+              34,
+              67,
+              97,
+              98,
+              108,
+              101,
+              32,
+              72,
+              68,
+              77,
+              73,
+              34,
+              44,
+              34,
+              109,
+              111,
+              110,
+              116,
+              111,
+              34,
+              58,
+              34,
+              53,
+              48,
+              48,
+              48,
+              48,
+              46,
+              48,
+              48,
+              34,
+              44,
+              34,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              34,
+              58,
+              34,
+              112,
+              101,
+              110,
+              100,
+              105,
+              101,
+              110,
+              116,
+              101,
+              34,
+              44,
+              34,
+              99,
+              114,
+              101,
+              97,
+              116,
+              101,
+              100,
+              95,
+              97,
+              116,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              54,
+              84,
+              49,
+              57,
+              58,
+              51,
+              48,
+              58,
+              48,
+              48,
+              46,
+              53,
+              48,
+              57,
+              90,
+              34,
+              44,
+              34,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              116,
+              114,
+              117,
+              101,
+              44,
+              34,
+              105,
+              116,
+              101,
+              109,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              105,
+              100,
+              34,
+              58,
+              34,
+              49,
+              50,
+              54,
+              34,
+              44,
+              34,
+              111,
+              114,
+              100,
+              101,
+              110,
+              95,
+              105,
+              100,
+              34,
+              58,
+              34,
+              49,
+              49,
+              56,
+              34,
+              44,
+              34,
+              112,
+              114,
+              111,
+              100,
+              117,
+              99,
+              116,
+              111,
+              34,
+              58,
+              34,
+              67,
+              97,
+              98,
+              108,
+              101,
+              32,
+              72,
+              68,
+              77,
+              73,
+              34,
+              44,
+              34,
+              99,
+              97,
+              110,
+              116,
+              105,
+              100,
+              97,
+              100,
+              34,
+              58,
+              49,
+              44,
+              34,
+              112,
+              114,
+              101,
+              99,
+              105,
+              111,
+              95,
+              117,
+              110,
+              105,
+              116,
+              97,
+              114,
+              105,
+              111,
+              34,
+              58,
+              34,
+              53,
+              48,
+              48,
+              48,
+              48,
+              46,
+              48,
+              48,
+              34,
+              44,
+              34,
+              115,
+              117,
+              98,
+              116,
+              111,
+              116,
+              97,
+              108,
+              34,
+              58,
+              34,
+              53,
+              48,
+              48,
+              48,
+              48,
+              46,
+              48,
+              48,
+              34,
+              44,
+              34,
+              99,
+              114,
+              101,
+              97,
+              116,
+              101,
+              100,
+              95,
+              97,
+              116,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              54,
+              84,
+              49,
+              57,
+              58,
+              51,
+              48,
+              58,
+              48,
+              48,
+              46,
+              53,
+              48,
+              57,
+              90,
+              34,
+              125,
+              93,
+              125,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 562,
+          "responseSize": 324
+        },
+        "id": "e81e89e4-6bbd-4e8f-ba1e-789eb23b58a4",
+        "assertions": [
+          {
+            "assertion": "Status es 201",
+            "skipped": false
+          },
+          {
+            "assertion": "Guardo el id de la orden a eliminar",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "b7beb1ed-db98-4af6-a21d-c1c3f0203935",
+          "length": 4,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "33add8f5-1416-4a2e-bcf8-a569376b1d28",
+          "scriptId": "b3e5cd19-2d06-4368-9ab8-c2d72ce54e9c",
+          "execution": "df0bcbb3-84e1-4562-8f26-3e373d631a8a"
+        },
+        "item": {
+          "id": "b7b90056-b0f7-4a6d-87fb-34df4639f128",
+          "name": "2-Dar de Baja",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "ordenes",
+                "{{eliminarId}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "024f0cb5-842f-47ed-b2a0-cc12d8fe75a0",
+                "type": "text/javascript",
+                "packages": {},
+                "exec": [
+                  "var id = pm.collectionVariables.get(\"eliminarId\");",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT id, activo FROM ordenes WHERE id = $1\",",
+                  "  [id]",
+                  "), function (err, res) {",
+                  "  if (err) { console.error(\"Pre-request SQL fallo:\", err); return; }",
+                  "  var row = res.json().data[0];",
+                  "  pm.test(\"Precondicion BD: la orden existe y esta activa\", function () {",
+                  "    pm.expect(row).to.not.be.undefined;",
+                  "    pm.expect(String(row.activo)).to.eql(\"true\");",
+                  "  });",
+                  "});"
+                ],
+                "_lastExecutionId": "fc2d1b56-cbbf-4d85-9d52-3da69c487cdb"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "b3e5cd19-2d06-4368-9ab8-c2d72ce54e9c",
+                "type": "text/javascript",
+                "packages": {},
+                "exec": [
+                  "pm.test('Status es 204', function () {\r",
+                  "    pm.response.to.have.status(204);\r",
+                  "});",
+                  "var id = pm.collectionVariables.get(\"eliminarId\");",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT id, activo FROM ordenes WHERE id = $1\",",
+                  "  [id]",
+                  "), function (err, res) {",
+                  "  if (err) { throw err; }",
+                  "  var row = res.json().data[0];",
+                  "  pm.test(\"La BD confirma que la orden quedo inactiva (activo = false)\", function () {",
+                  "    pm.expect(String(row.activo)).to.eql(\"false\");",
+                  "  });",
+                  "});"
+                ],
+                "_lastExecutionId": "df0bcbb3-84e1-4562-8f26-3e373d631a8a"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api",
+              "v1",
+              "sql",
+              "select"
+            ],
+            "host": [
+              "aiquaa-sandbox-api",
+              "vercel",
+              "app"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "x-api-key",
+              "value": "sbx_demo_f581ca21e68a347288c94d71"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "9af80a45-163f-4ea7-94fe-83fac7f5f1e8",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "aiquaa-sandbox-api.vercel.app",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "71",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"sql\":\"SELECT id, activo FROM ordenes WHERE id = $1\",\"params\":[\"118\"]}"
+          }
+        },
+        "response": {
+          "id": "a0974e55-b61d-4569-a155-e39ef1a8d4f6",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Content-Encoding",
+              "value": "br"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 06 Sep 2026 19:30:02 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "Vercel"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains; preload"
+            },
+            {
+              "key": "X-Matched-Path",
+              "value": "/api/v1/sql/select"
+            },
+            {
+              "key": "X-Vercel-Cache",
+              "value": "MISS"
+            },
+            {
+              "key": "X-Vercel-Id",
+              "value": "gru1::iad1::rnwkh-1788723002320-1246eff9acf5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              100,
+              97,
+              116,
+              97,
+              34,
+              58,
+              91,
+              123,
+              34,
+              105,
+              100,
+              34,
+              58,
+              34,
+              49,
+              49,
+              56,
+              34,
+              44,
+              34,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125,
+              93,
+              44,
+              34,
+              114,
+              111,
+              119,
+              67,
+              111,
+              117,
+              110,
+              116,
+              34,
+              58,
+              49,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 386,
+          "responseSize": 51
+        },
+        "id": "0a7d7a48-77f0-4cda-9575-700733598859",
+        "assertions": [
+          {
+            "assertion": "Precondicion BD: la orden existe y esta activa",
+            "skipped": false
+          },
+          {
+            "assertion": "Status es 204",
+            "skipped": false
+          },
+          {
+            "assertion": "La BD confirma que la orden quedo inactiva (activo = false)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "b7beb1ed-db98-4af6-a21d-c1c3f0203935",
+          "length": 4,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "33add8f5-1416-4a2e-bcf8-a569376b1d28",
+          "scriptId": "b3e5cd19-2d06-4368-9ab8-c2d72ce54e9c",
+          "execution": "df0bcbb3-84e1-4562-8f26-3e373d631a8a"
+        },
+        "item": {
+          "id": "b7b90056-b0f7-4a6d-87fb-34df4639f128",
+          "name": "2-Dar de Baja",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "ordenes",
+                "{{eliminarId}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "024f0cb5-842f-47ed-b2a0-cc12d8fe75a0",
+                "type": "text/javascript",
+                "packages": {},
+                "exec": [
+                  "var id = pm.collectionVariables.get(\"eliminarId\");",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT id, activo FROM ordenes WHERE id = $1\",",
+                  "  [id]",
+                  "), function (err, res) {",
+                  "  if (err) { console.error(\"Pre-request SQL fallo:\", err); return; }",
+                  "  var row = res.json().data[0];",
+                  "  pm.test(\"Precondicion BD: la orden existe y esta activa\", function () {",
+                  "    pm.expect(row).to.not.be.undefined;",
+                  "    pm.expect(String(row.activo)).to.eql(\"true\");",
+                  "  });",
+                  "});"
+                ],
+                "_lastExecutionId": "fc2d1b56-cbbf-4d85-9d52-3da69c487cdb"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "b3e5cd19-2d06-4368-9ab8-c2d72ce54e9c",
+                "type": "text/javascript",
+                "packages": {},
+                "exec": [
+                  "pm.test('Status es 204', function () {\r",
+                  "    pm.response.to.have.status(204);\r",
+                  "});",
+                  "var id = pm.collectionVariables.get(\"eliminarId\");",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT id, activo FROM ordenes WHERE id = $1\",",
+                  "  [id]",
+                  "), function (err, res) {",
+                  "  if (err) { throw err; }",
+                  "  var row = res.json().data[0];",
+                  "  pm.test(\"La BD confirma que la orden quedo inactiva (activo = false)\", function () {",
+                  "    pm.expect(String(row.activo)).to.eql(\"false\");",
+                  "  });",
+                  "});"
+                ],
+                "_lastExecutionId": "df0bcbb3-84e1-4562-8f26-3e373d631a8a"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api",
+              "v1",
+              "sql",
+              "select"
+            ],
+            "host": [
+              "aiquaa-sandbox-api",
+              "vercel",
+              "app"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "x-api-key",
+              "value": "sbx_demo_f581ca21e68a347288c94d71"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "9af80a45-163f-4ea7-94fe-83fac7f5f1e8",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "aiquaa-sandbox-api.vercel.app",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "71",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"sql\":\"SELECT id, activo FROM ordenes WHERE id = $1\",\"params\":[\"118\"]}"
+          }
+        },
+        "response": {
+          "id": "a0974e55-b61d-4569-a155-e39ef1a8d4f6",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Content-Encoding",
+              "value": "br"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 06 Sep 2026 19:30:02 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "Vercel"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains; preload"
+            },
+            {
+              "key": "X-Matched-Path",
+              "value": "/api/v1/sql/select"
+            },
+            {
+              "key": "X-Vercel-Cache",
+              "value": "MISS"
+            },
+            {
+              "key": "X-Vercel-Id",
+              "value": "gru1::iad1::rnwkh-1788723002320-1246eff9acf5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              100,
+              97,
+              116,
+              97,
+              34,
+              58,
+              91,
+              123,
+              34,
+              105,
+              100,
+              34,
+              58,
+              34,
+              49,
+              49,
+              56,
+              34,
+              44,
+              34,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125,
+              93,
+              44,
+              34,
+              114,
+              111,
+              119,
+              67,
+              111,
+              117,
+              110,
+              116,
+              34,
+              58,
+              49,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 386,
+          "responseSize": 51
+        },
+        "id": "0a7d7a48-77f0-4cda-9575-700733598859",
+        "assertions": [
+          {
+            "assertion": "Precondicion BD: la orden existe y esta activa",
+            "skipped": false
+          },
+          {
+            "assertion": "Status es 204",
+            "skipped": false
+          },
+          {
+            "assertion": "La BD confirma que la orden quedo inactiva (activo = false)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "b7beb1ed-db98-4af6-a21d-c1c3f0203935",
+          "length": 4,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "33add8f5-1416-4a2e-bcf8-a569376b1d28",
+          "scriptId": "b3e5cd19-2d06-4368-9ab8-c2d72ce54e9c",
+          "execution": "df0bcbb3-84e1-4562-8f26-3e373d631a8a"
+        },
+        "item": {
+          "id": "b7b90056-b0f7-4a6d-87fb-34df4639f128",
+          "name": "2-Dar de Baja",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "ordenes",
+                "{{eliminarId}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "024f0cb5-842f-47ed-b2a0-cc12d8fe75a0",
+                "type": "text/javascript",
+                "packages": {},
+                "exec": [
+                  "var id = pm.collectionVariables.get(\"eliminarId\");",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT id, activo FROM ordenes WHERE id = $1\",",
+                  "  [id]",
+                  "), function (err, res) {",
+                  "  if (err) { console.error(\"Pre-request SQL fallo:\", err); return; }",
+                  "  var row = res.json().data[0];",
+                  "  pm.test(\"Precondicion BD: la orden existe y esta activa\", function () {",
+                  "    pm.expect(row).to.not.be.undefined;",
+                  "    pm.expect(String(row.activo)).to.eql(\"true\");",
+                  "  });",
+                  "});"
+                ],
+                "_lastExecutionId": "fc2d1b56-cbbf-4d85-9d52-3da69c487cdb"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "b3e5cd19-2d06-4368-9ab8-c2d72ce54e9c",
+                "type": "text/javascript",
+                "packages": {},
+                "exec": [
+                  "pm.test('Status es 204', function () {\r",
+                  "    pm.response.to.have.status(204);\r",
+                  "});",
+                  "var id = pm.collectionVariables.get(\"eliminarId\");",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT id, activo FROM ordenes WHERE id = $1\",",
+                  "  [id]",
+                  "), function (err, res) {",
+                  "  if (err) { throw err; }",
+                  "  var row = res.json().data[0];",
+                  "  pm.test(\"La BD confirma que la orden quedo inactiva (activo = false)\", function () {",
+                  "    pm.expect(String(row.activo)).to.eql(\"false\");",
+                  "  });",
+                  "});"
+                ],
+                "_lastExecutionId": "df0bcbb3-84e1-4562-8f26-3e373d631a8a"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api",
+              "v1",
+              "sql",
+              "select"
+            ],
+            "host": [
+              "aiquaa-sandbox-api",
+              "vercel",
+              "app"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "x-api-key",
+              "value": "sbx_demo_f581ca21e68a347288c94d71"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "9af80a45-163f-4ea7-94fe-83fac7f5f1e8",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "aiquaa-sandbox-api.vercel.app",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "71",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"sql\":\"SELECT id, activo FROM ordenes WHERE id = $1\",\"params\":[\"118\"]}"
+          }
+        },
+        "response": {
+          "id": "a0974e55-b61d-4569-a155-e39ef1a8d4f6",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Content-Encoding",
+              "value": "br"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 06 Sep 2026 19:30:02 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "Vercel"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains; preload"
+            },
+            {
+              "key": "X-Matched-Path",
+              "value": "/api/v1/sql/select"
+            },
+            {
+              "key": "X-Vercel-Cache",
+              "value": "MISS"
+            },
+            {
+              "key": "X-Vercel-Id",
+              "value": "gru1::iad1::rnwkh-1788723002320-1246eff9acf5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              100,
+              97,
+              116,
+              97,
+              34,
+              58,
+              91,
+              123,
+              34,
+              105,
+              100,
+              34,
+              58,
+              34,
+              49,
+              49,
+              56,
+              34,
+              44,
+              34,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125,
+              93,
+              44,
+              34,
+              114,
+              111,
+              119,
+              67,
+              111,
+              117,
+              110,
+              116,
+              34,
+              58,
+              49,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 386,
+          "responseSize": 51
+        },
+        "id": "0a7d7a48-77f0-4cda-9575-700733598859",
+        "assertions": [
+          {
+            "assertion": "Precondicion BD: la orden existe y esta activa",
+            "skipped": false
+          },
+          {
+            "assertion": "Status es 204",
+            "skipped": false
+          },
+          {
+            "assertion": "La BD confirma que la orden quedo inactiva (activo = false)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "da8c61b6-0ea3-4a1c-b289-1d25b6789680",
+          "length": 4,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "fe0ac2db-542e-45a8-836b-5a63bf22ec09"
+        },
+        "item": {
+          "id": "8510073d-ea20-4a1e-95f5-4e8cb0523fda",
+          "name": "3-Verificar Baja",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "ordenes",
+                "{{eliminarId}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "b5257efa-bce0-463d-98a4-32c133bc30eb",
+                "type": "text/javascript",
+                "packages": {},
+                "exec": [
+                  "pm.test('Status es 404 (orden dada de baja)', function () {\r",
+                  "    pm.response.to.have.status(404);\r",
+                  "});"
+                ],
+                "_lastExecutionId": "9dd9b7d2-eb55-4c18-99d6-ba96e7e5828b"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api",
+              "v1",
+              "ordenes",
+              "118"
+            ],
+            "host": [
+              "aiquaa-sandbox-api",
+              "vercel",
+              "app"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "x-api-key",
+              "value": "sbx_demo_f581ca21e68a347288c94d71"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "abed8c63-08dd-4e1d-bdc6-53fad1678e6e",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "aiquaa-sandbox-api.vercel.app",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "3cdaa306-4fc4-499a-ab70-8fc09ea8c0f6",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Age",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Content-Encoding",
+              "value": "br"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 06 Sep 2026 19:30:03 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "Vercel"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains; preload"
+            },
+            {
+              "key": "X-Matched-Path",
+              "value": "/api/v1/ordenes/[id]"
+            },
+            {
+              "key": "X-Vercel-Cache",
+              "value": "MISS"
+            },
+            {
+              "key": "X-Vercel-Id",
+              "value": "gru1::iad1::rnwkh-1788723003609-98b0ff02f9b3"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              34,
+              58,
+              123,
+              34,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              78,
+              79,
+              84,
+              95,
+              70,
+              79,
+              85,
+              78,
+              68,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              79,
+              114,
+              100,
+              101,
+              110,
+              32,
+              110,
+              111,
+              32,
+              101,
+              110,
+              99,
+              111,
+              110,
+              116,
+              114,
+              97,
+              100,
+              97,
+              46,
+              34,
+              125,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 332,
+          "responseSize": 63
+        },
+        "id": "8510073d-ea20-4a1e-95f5-4e8cb0523fda",
+        "assertions": [
+          {
+            "assertion": "Status es 404 (orden dada de baja)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "9518b283-7b48-445e-93a7-a741ea82dd76",
+          "length": 4,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "0d9c16a1-e138-442d-baaa-eed9d1badc93",
+          "scriptId": "3ac164b5-ae36-4384-8955-5594651fb8e3",
+          "execution": "7e35a224-1082-41a1-bc92-af557bb72671"
+        },
+        "item": {
+          "id": "ee7589c4-9dba-46fa-91c8-ebb631155159",
+          "name": "4-Orden inexistente (404, BD sin cambios)",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "ordenes",
+                "999999"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "89883442-6db5-41f4-adf7-09727d539c8e",
+                "type": "text/javascript",
+                "packages": {},
+                "exec": [
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM ordenes\"",
+                  "), function (err, res) {",
+                  "  if (err) { console.error(\"Pre-request SQL fallo:\", err); return; }",
+                  "  pm.variables.set(\"totalAntes\", res.json().data[0].total);",
+                  "});"
+                ],
+                "_lastExecutionId": "fd8a0f71-ce4d-4849-8615-37d400723e23"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "3ac164b5-ae36-4384-8955-5594651fb8e3",
+                "type": "text/javascript",
+                "packages": {},
+                "exec": [
+                  "pm.test('Status es 404 (orden inexistente)', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM ordenes\"",
+                  "), function (err, res) {",
+                  "  if (err) { throw err; }",
+                  "  var totalDespues = res.json().data[0].total;",
+                  "  pm.test(\"La BD no registro ni borro nada (COUNT igual)\", function () {",
+                  "    pm.expect(Number(totalDespues)).to.eql(Number(pm.variables.get(\"totalAntes\")));",
+                  "  });",
+                  "});"
+                ],
+                "_lastExecutionId": "7e35a224-1082-41a1-bc92-af557bb72671"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api",
+              "v1",
+              "sql",
+              "select"
+            ],
+            "host": [
+              "aiquaa-sandbox-api",
+              "vercel",
+              "app"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "x-api-key",
+              "value": "sbx_demo_f581ca21e68a347288c94d71"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "11e4d81a-e95f-4726-bf62-9f4c794cccff",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "aiquaa-sandbox-api.vercel.app",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "59",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"sql\":\"SELECT COUNT(*) AS total FROM ordenes\",\"params\":[]}"
+          }
+        },
+        "response": {
+          "id": "3d237935-2ad0-41d0-9d8b-446169aa95d0",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Content-Encoding",
+              "value": "br"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 06 Sep 2026 19:30:05 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "Vercel"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains; preload"
+            },
+            {
+              "key": "X-Matched-Path",
+              "value": "/api/v1/sql/select"
+            },
+            {
+              "key": "X-Vercel-Cache",
+              "value": "MISS"
+            },
+            {
+              "key": "X-Vercel-Id",
+              "value": "gru1::iad1::4zdqd-1788723005597-01f5b2d59284"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              100,
+              97,
+              116,
+              97,
+              34,
+              58,
+              91,
+              123,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              34,
+              58,
+              34,
+              55,
+              55,
+              34,
+              125,
+              93,
+              44,
+              34,
+              114,
+              111,
+              119,
+              67,
+              111,
+              117,
+              110,
+              116,
+              34,
+              58,
+              49,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 284,
+          "responseSize": 38
+        },
+        "id": "6ced028e-7006-4c24-9d97-d64899a87115",
+        "assertions": [
+          {
+            "assertion": "Status es 404 (orden inexistente)",
+            "skipped": false
+          },
+          {
+            "assertion": "La BD no registro ni borro nada (COUNT igual)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "9518b283-7b48-445e-93a7-a741ea82dd76",
+          "length": 4,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "0d9c16a1-e138-442d-baaa-eed9d1badc93",
+          "scriptId": "3ac164b5-ae36-4384-8955-5594651fb8e3",
+          "execution": "7e35a224-1082-41a1-bc92-af557bb72671"
+        },
+        "item": {
+          "id": "ee7589c4-9dba-46fa-91c8-ebb631155159",
+          "name": "4-Orden inexistente (404, BD sin cambios)",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "ordenes",
+                "999999"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "89883442-6db5-41f4-adf7-09727d539c8e",
+                "type": "text/javascript",
+                "packages": {},
+                "exec": [
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM ordenes\"",
+                  "), function (err, res) {",
+                  "  if (err) { console.error(\"Pre-request SQL fallo:\", err); return; }",
+                  "  pm.variables.set(\"totalAntes\", res.json().data[0].total);",
+                  "});"
+                ],
+                "_lastExecutionId": "fd8a0f71-ce4d-4849-8615-37d400723e23"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "3ac164b5-ae36-4384-8955-5594651fb8e3",
+                "type": "text/javascript",
+                "packages": {},
+                "exec": [
+                  "pm.test('Status es 404 (orden inexistente)', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM ordenes\"",
+                  "), function (err, res) {",
+                  "  if (err) { throw err; }",
+                  "  var totalDespues = res.json().data[0].total;",
+                  "  pm.test(\"La BD no registro ni borro nada (COUNT igual)\", function () {",
+                  "    pm.expect(Number(totalDespues)).to.eql(Number(pm.variables.get(\"totalAntes\")));",
+                  "  });",
+                  "});"
+                ],
+                "_lastExecutionId": "7e35a224-1082-41a1-bc92-af557bb72671"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api",
+              "v1",
+              "sql",
+              "select"
+            ],
+            "host": [
+              "aiquaa-sandbox-api",
+              "vercel",
+              "app"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "x-api-key",
+              "value": "sbx_demo_f581ca21e68a347288c94d71"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "11e4d81a-e95f-4726-bf62-9f4c794cccff",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "aiquaa-sandbox-api.vercel.app",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "59",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"sql\":\"SELECT COUNT(*) AS total FROM ordenes\",\"params\":[]}"
+          }
+        },
+        "response": {
+          "id": "3d237935-2ad0-41d0-9d8b-446169aa95d0",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Content-Encoding",
+              "value": "br"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 06 Sep 2026 19:30:05 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "Vercel"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains; preload"
+            },
+            {
+              "key": "X-Matched-Path",
+              "value": "/api/v1/sql/select"
+            },
+            {
+              "key": "X-Vercel-Cache",
+              "value": "MISS"
+            },
+            {
+              "key": "X-Vercel-Id",
+              "value": "gru1::iad1::4zdqd-1788723005597-01f5b2d59284"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              100,
+              97,
+              116,
+              97,
+              34,
+              58,
+              91,
+              123,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              34,
+              58,
+              34,
+              55,
+              55,
+              34,
+              125,
+              93,
+              44,
+              34,
+              114,
+              111,
+              119,
+              67,
+              111,
+              117,
+              110,
+              116,
+              34,
+              58,
+              49,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 284,
+          "responseSize": 38
+        },
+        "id": "6ced028e-7006-4c24-9d97-d64899a87115",
+        "assertions": [
+          {
+            "assertion": "Status es 404 (orden inexistente)",
+            "skipped": false
+          },
+          {
+            "assertion": "La BD no registro ni borro nada (COUNT igual)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "9518b283-7b48-445e-93a7-a741ea82dd76",
+          "length": 4,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "0d9c16a1-e138-442d-baaa-eed9d1badc93",
+          "scriptId": "3ac164b5-ae36-4384-8955-5594651fb8e3",
+          "execution": "7e35a224-1082-41a1-bc92-af557bb72671"
+        },
+        "item": {
+          "id": "ee7589c4-9dba-46fa-91c8-ebb631155159",
+          "name": "4-Orden inexistente (404, BD sin cambios)",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "ordenes",
+                "999999"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "89883442-6db5-41f4-adf7-09727d539c8e",
+                "type": "text/javascript",
+                "packages": {},
+                "exec": [
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM ordenes\"",
+                  "), function (err, res) {",
+                  "  if (err) { console.error(\"Pre-request SQL fallo:\", err); return; }",
+                  "  pm.variables.set(\"totalAntes\", res.json().data[0].total);",
+                  "});"
+                ],
+                "_lastExecutionId": "fd8a0f71-ce4d-4849-8615-37d400723e23"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "3ac164b5-ae36-4384-8955-5594651fb8e3",
+                "type": "text/javascript",
+                "packages": {},
+                "exec": [
+                  "pm.test('Status es 404 (orden inexistente)', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM ordenes\"",
+                  "), function (err, res) {",
+                  "  if (err) { throw err; }",
+                  "  var totalDespues = res.json().data[0].total;",
+                  "  pm.test(\"La BD no registro ni borro nada (COUNT igual)\", function () {",
+                  "    pm.expect(Number(totalDespues)).to.eql(Number(pm.variables.get(\"totalAntes\")));",
+                  "  });",
+                  "});"
+                ],
+                "_lastExecutionId": "7e35a224-1082-41a1-bc92-af557bb72671"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api",
+              "v1",
+              "sql",
+              "select"
+            ],
+            "host": [
+              "aiquaa-sandbox-api",
+              "vercel",
+              "app"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "x-api-key",
+              "value": "sbx_demo_f581ca21e68a347288c94d71"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "11e4d81a-e95f-4726-bf62-9f4c794cccff",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "aiquaa-sandbox-api.vercel.app",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "59",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"sql\":\"SELECT COUNT(*) AS total FROM ordenes\",\"params\":[]}"
+          }
+        },
+        "response": {
+          "id": "3d237935-2ad0-41d0-9d8b-446169aa95d0",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Content-Encoding",
+              "value": "br"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 06 Sep 2026 19:30:05 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "Vercel"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains; preload"
+            },
+            {
+              "key": "X-Matched-Path",
+              "value": "/api/v1/sql/select"
+            },
+            {
+              "key": "X-Vercel-Cache",
+              "value": "MISS"
+            },
+            {
+              "key": "X-Vercel-Id",
+              "value": "gru1::iad1::4zdqd-1788723005597-01f5b2d59284"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              100,
+              97,
+              116,
+              97,
+              34,
+              58,
+              91,
+              123,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              34,
+              58,
+              34,
+              55,
+              55,
+              34,
+              125,
+              93,
+              44,
+              34,
+              114,
+              111,
+              119,
+              67,
+              111,
+              117,
+              110,
+              116,
+              34,
+              58,
+              49,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 284,
+          "responseSize": 38
+        },
+        "id": "6ced028e-7006-4c24-9d97-d64899a87115",
+        "assertions": [
+          {
+            "assertion": "Status es 404 (orden inexistente)",
+            "skipped": false
+          },
+          {
+            "assertion": "La BD no registro ni borro nada (COUNT igual)",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 627
+    },
+    "failures": [],
+    "error": null
+  }
+}
