@@ -198,3 +198,14 @@ npx -y newman run postman/C_GRUPO_01_AUTENTICACION_ACCESO.json \
   bucle, ya que los `pm.sendRequest` de validación también consumen cuota.
 - Las rutas `/api/v1/labs/*` de la plantilla académica no están publicadas; esta colección apunta
   al endpoint real de autenticación/acceso del sandbox.
+  
+ ### Aporte de David Cristaldo — Semana 03
+
+- **CP 01 - Solicitar recuperación con correo registrado:** usuario activo obtenido 
+  dinámicamente por SQL (aleatorio), POST `/auth/forgot-password`, validación en 
+  `qa_training.sesiones` de que el evento `password_reset_solicitado` quedó persistido.
+
+- **CP 02 - Confirmar restablecimiento de contraseña (nuevo):** POST `/auth/reset-password`, 
+  encadenado al usuario capturado por CP 01 (mismo usuario que pidió el reset es el que lo 
+  completa), validación en `qa_training.sesiones` de que el evento `password_reset_completado` 
+  quedó persistido. Incluye fallback a usuario aleatorio si se corre de forma independiente.
