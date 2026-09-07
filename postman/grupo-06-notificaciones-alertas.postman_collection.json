@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "e77336c7-14c1-4343-9740-07ebf1ddb6ee",
+    "_postman_id": "b199c74d-0e48-4cdb-846d-e744463af033",
     "name": "Grupo 06 - Notificaciones y Alertas (AIQUAA)",
     "description": "Coleccion de API testing del Grupo 06 - Notificaciones y Alertas.\n\nSitio bajo prueba: AIQUAA Sandbox API (https://aiquaa-sandbox-api.vercel.app)\n\nEndpoints cubiertos (5):\n- GET    /api/v1/notificaciones            (query: usuarioId, leido)\n- POST   /api/v1/notificaciones            (body: usuarioId, canal, asunto, mensaje)\n- PUT    /api/v1/notificaciones/{id}       (body: canal, asunto, mensaje)\n- PATCH  /api/v1/notificaciones/{id}/leer\n- DELETE /api/v1/notificaciones/{id}       (soft-delete, 204 sin body)\n\nRegla de negocio documentada por AIQUAA y verificada por esta coleccion:\nleido y estado NO son reemplazables por PUT; leido sigue gobernado por PATCH /{id}/leer.\n\nSemana 03 — verificacion en base de datos:\nLas carpetas usan POST /api/v1/sql/select (solo SELECT, whitelist de tablas) para confirmar\nen la base lo que la respuesta HTTP no puede demostrar: persistencia real del alta, baja\nlogica frente a borrado fisico, invariantes de leido/estado y ausencia de escritura en los\ncasos rechazados. El helper utils.sqlSelect se declara en el pre-request de la coleccion.\n\nHallazgos abiertos:\n- HG06-01: reprocesar el mismo evento crea un segundo registro. CORREGIDO en la semana 03:\n  el documento de requerimientos lo declara comportamiento esperado (\"no hay control de\n  duplicados\"), asi que el desvio esta en el escenario BDD S3, no en la API.\n- HG06-03: PATCH /{id}/leer no filtra por activo, por lo que marca como leida una\n  notificacion dada de baja. Declarado como inconsistencia real en el propio documento.\n- HG06-02: id y usuario_id se devuelven como string aunque el OpenAPI los declara integer,\n  y la respuesta incluye un campo 'activo' no documentado.\n\nRequisito de ejecucion: definir la variable de entorno apiKey. Sin ella la API responde\n401 y los tests fallan con un mensaje explicito (no con un TypeError).\n\nTodos los scripts leen el cuerpo de forma defensiva: si la respuesta no es JSON o no trae\nel campo esperado, el test falla con una assertion legible en lugar de romper el script.\n\nCada carpeta corresponde a un escenario BDD de features/notificaciones-alertas.feature.\nMatriz de trazabilidad: grupos/grupo-06-notificaciones-alertas/docs/trazabilidad-bdd-api.md\n\nLa carpeta 00 Setup limpia los datos residuales de corridas previas para que la suite sea\nre-ejecutable. Usa postman.setNextRequest, por lo que requiere ejecucion como coleccion o\ncarpeta (Runner o Newman), no request por request.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
@@ -317,8 +317,7 @@
               ]
             },
             "description": "Cobertura de endpoint: GET /api/v1/notificaciones/{id}, ausente en la version anterior de la coleccion (solo se probaba el listado). Confirma que la notificacion creada para TRX-001 puede recuperarse individualmente por id."
-          },
-          "response": []
+          }
         },
         {
           "name": "GET Verificar push en el listado del usuario (TRX-001)",
@@ -1859,6 +1858,7 @@
     },
     {
       "name": "S9 @happy_path - Email como canal principal (TRX-010)",
+      "description": "BDD: 'Enviar una notificacion por email como canal principal despues de una transferencia exitosa'.\nMapeo: POST /api/v1/notificaciones con canal=email (RF-G6-02) + GET del listado (RF-G6-01) + verificacion en base.\nCierra el ultimo escenario del feature que no tenia request asociado.",
       "item": [
         {
           "name": "POST Crear notificacion email principal (TRX-010)",
@@ -1947,8 +1947,7 @@
               ]
             },
             "description": "Given el usuario tiene habilitadas las notificaciones por email como canal principal / When se confirma una transferencia exitosa de 850000 Gs con el identificador TRX-010."
-          },
-          "response": []
+          }
         },
         {
           "name": "GET Verificar el email principal en el listado (TRX-010)",
@@ -1998,14 +1997,13 @@
               ]
             },
             "description": "Then el sistema debe enviar una notificacion por email a la direccion registrada."
-          },
-          "response": []
+          }
         }
-      ],
-      "description": "BDD: 'Enviar una notificacion por email como canal principal despues de una transferencia exitosa'.\nMapeo: POST /api/v1/notificaciones con canal=email (RF-G6-02) + GET del listado (RF-G6-01) + verificacion en base.\nCierra el ultimo escenario del feature que no tenia request asociado."
+      ]
     },
     {
       "name": "RF-G6-01 @negative - Reglas del filtro y del listado",
+      "description": "Criterios de aceptacion de RF-G6-01 (documento de requerimientos v1.0):\n- El filtro leido acepta unicamente los textos true y false; leido=1 es 400 VALIDATION_ERROR.\n- usuarioId no numerico es 400 VALIDATION_ERROR.\n- Filtrar por un titular sin notificaciones devuelve 200 con data vacio.\n- El resultado se ordena por identificador ascendente y esta limitado a 100 registros.\nLa ultima regla se contrasta contra la base: el listado REST no expone el total real.",
       "item": [
         {
           "name": "GET leido=1 debe ser rechazado (no se coerciona a booleano)",
@@ -2064,8 +2062,7 @@
               ]
             },
             "description": "RF-G6-01: \"Al listar con leido=1, la respuesta es 400 VALIDATION_ERROR: el filtro no acepta otras formas del valor booleano\"."
-          },
-          "response": []
+          }
         },
         {
           "name": "GET usuarioId no numerico debe ser rechazado",
@@ -2115,8 +2112,7 @@
                 }
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "GET titular sin notificaciones devuelve data vacio",
@@ -2177,8 +2173,7 @@
               ]
             },
             "description": "RF-G6-01: \"Al filtrar por un titular sin notificaciones, la respuesta es 200 con data vacio\"."
-          },
-          "response": []
+          }
         },
         {
           "name": "GET el listado respeta orden ascendente y limite de 100",
@@ -2246,14 +2241,13 @@
               ]
             },
             "description": "RF-G6-01: \"El resultado se ordena por identificador ascendente y esta limitado a 100 registros\" y \"Sin filtros, devuelve las notificaciones de todos los titulares\"."
-          },
-          "response": []
+          }
         }
-      ],
-      "description": "Criterios de aceptacion de RF-G6-01 (documento de requerimientos v1.0):\n- El filtro leido acepta unicamente los textos true y false; leido=1 es 400 VALIDATION_ERROR.\n- usuarioId no numerico es 400 VALIDATION_ERROR.\n- Filtrar por un titular sin notificaciones devuelve 200 con data vacio.\n- El resultado se ordena por identificador ascendente y esta limitado a 100 registros.\nLa ultima regla se contrasta contra la base: el listado REST no expone el total real."
+      ]
     },
     {
       "name": "RF-G6-02 @negative - Validaciones de alta",
+      "description": "Criterios de aceptacion de RF-G6-02 no cubiertos en la semana 02:\n- Asunto vacio es 400 VALIDATION_ERROR (asunto y mensaje deben tener al menos un caracter).\n- Un destinatario inexistente falla por violacion de clave foranea y no registra nada.\nEl segundo caso se cierra con un COUNT sobre la base: el criterio exige comprobar que NO se inserto.",
       "item": [
         {
           "name": "POST asunto vacio debe ser rechazado",
@@ -2316,8 +2310,7 @@
               ]
             },
             "description": "RF-G6-02: \"Al crear con asunto vacio, la respuesta es 400 VALIDATION_ERROR\"."
-          },
-          "response": []
+          }
         },
         {
           "name": "POST destinatario inexistente no debe registrar nada",
@@ -2391,14 +2384,13 @@
               ]
             },
             "description": "RF-G6-02: \"Al crear para un usuarioId inexistente, la respuesta es 400 VALIDATION_ERROR y no se registra ninguna notificacion\"."
-          },
-          "response": []
+          }
         }
-      ],
-      "description": "Criterios de aceptacion de RF-G6-02 no cubiertos en la semana 02:\n- Asunto vacio es 400 VALIDATION_ERROR (asunto y mensaje deben tener al menos un caracter).\n- Un destinatario inexistente falla por violacion de clave foranea y no registra nada.\nEl segundo caso se cierra con un COUNT sobre la base: el criterio exige comprobar que NO se inserto."
+      ]
     },
     {
       "name": "HG06-03 @edge_case - PATCH /leer ignora la baja logica",
+      "description": "El documento de requerimientos declara esta inconsistencia como real y no intencional:\n\"PATCH .../leer no filtra por activo = true (...). Un recurso dado de baja con el nuevo DELETE\ndeja de aparecer en GET, pero sigue pudiendo leerse a traves de su accion dedicada — una\ninconsistencia real del sandbox, no un comportamiento a asumir como intencional\".\n\nLa carpeta la reproduce de punta a punta y la evidencia con SQL: la fila queda simultaneamente\ndada de baja (activo=false) y marcada como leida (leido=true), un estado que ningun listado\nde la API puede mostrar.",
       "item": [
         {
           "name": "POST Crear la notificacion que se dara de baja",
@@ -2456,8 +2448,7 @@
                 "notificaciones"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "DELETE Dar de baja la notificacion",
@@ -2489,8 +2480,7 @@
                 "{{notifIdBajaLeida}}"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "GET Tras la baja el detalle responde 404",
@@ -2530,8 +2520,7 @@
                 "{{notifIdBajaLeida}}"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "PATCH HG06-03: la notificacion dada de baja igual se deja marcar como leida",
@@ -2595,11 +2584,9 @@
                 "leer"
               ]
             }
-          },
-          "response": []
+          }
         }
-      ],
-      "description": "El documento de requerimientos declara esta inconsistencia como real y no intencional:\n\"PATCH .../leer no filtra por activo = true (...). Un recurso dado de baja con el nuevo DELETE\ndeja de aparecer en GET, pero sigue pudiendo leerse a traves de su accion dedicada — una\ninconsistencia real del sandbox, no un comportamiento a asumir como intencional\".\n\nLa carpeta la reproduce de punta a punta y la evidencia con SQL: la fila queda simultaneamente\ndada de baja (activo=false) y marcada como leida (leido=true), un estado que ningun listado\nde la API puede mostrar."
+      ]
     },
     {
       "name": "CONTRATO @negative - Recursos inexistentes (404)",
@@ -2748,8 +2735,7 @@
               ]
             },
             "description": "Cobertura de endpoint: GET /api/v1/notificaciones/{id} sobre un id inexistente. Completa la simetria con el 404 ya probado en PUT/PATCH/DELETE de esta misma carpeta."
-          },
-          "response": []
+          }
         },
         {
           "name": "DELETE Notificacion inexistente debe responder 404",
@@ -2845,8 +2831,7 @@
               ]
             },
             "description": "Reglas transversales: \"Un cuerpo que no parsea como JSON devuelve 400 VALIDATION_ERROR con el mensaje Invalid JSON body.\"."
-          },
-          "response": []
+          }
         },
         {
           "name": "PATCH Verbo no soportado en la coleccion debe responder 405",
@@ -2885,8 +2870,7 @@
               ]
             },
             "description": "Reglas transversales: \"Una ruta que no define el metodo HTTP usado responde 405 Method Not Allowed (...) y su cuerpo no sigue la envoltura {error} del resto de la API\"."
-          },
-          "response": []
+          }
         }
       ],
       "description": "Casos transversales de contrato: los tres endpoints por id deben responder 404 NOT_FOUND ante un identificador inexistente. Cubre el riesgo de procesamiento sobre notificaciones inexistentes del analisis de alcance del grupo."
@@ -3189,7 +3173,45 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const postRequest = {\r\n    url: pm.variables.get('baseUrl') + '/api/v1/notificaciones',\r\n    method: 'POST',\r\n    header: {\r\n        'Content-Type': 'application/json',\r\n        'x-api-key': pm.variables.get('apiKey')\r\n    },\r\n    body: {\r\n        mode: 'raw',\r\n        raw: JSON.stringify({\r\n            usuarioId: Number(pm.collectionVariables.get('usuarioId')),\r\n            canal: 'push',\r\n            asunto: 'Validacion SQL - PATCH leer',\r\n            mensaje: 'Fixture creada para validar el patron SQL sobre PATCH /leer.'\r\n        })\r\n    }\r\n};\r\n\r\npm.sendRequest(postRequest, (err, res) => {\r\n    if (err) {\r\n        console.error('No se pudo crear la notificacion fixture:', err);\r\n        return;\r\n    }\r\n    const id = res.json().data.id;\r\n    pm.collectionVariables.set('notifIdSql', id);\r\n\r\n    const sqlRequest = utils.bodySqlRest(\r\n        'SELECT id, leido FROM notificaciones WHERE id = $1',\r\n        [id]\r\n    );\r\n    pm.sendRequest(sqlRequest, (err2, res2) => {\r\n        if (err2) {\r\n            console.error('Pre-request SQL check fallo:', err2);\r\n            return;\r\n        }\r\n        const row = (res2.json().data || [])[0];\r\n        console.log('Precondicion - leido antes del PATCH:', row && row.leido);\r\n    });\r\n});"
+                  "const postRequest = {",
+                  "    url: pm.variables.get('baseUrl') + '/api/v1/notificaciones',",
+                  "    method: 'POST',",
+                  "    header: {",
+                  "        'Content-Type': 'application/json',",
+                  "        'x-api-key': pm.variables.get('apiKey')",
+                  "    },",
+                  "    body: {",
+                  "        mode: 'raw',",
+                  "        raw: JSON.stringify({",
+                  "            usuarioId: Number(pm.collectionVariables.get('usuarioId')),",
+                  "            canal: 'push',",
+                  "            asunto: 'Validacion SQL - PATCH leer',",
+                  "            mensaje: 'Fixture creada para validar el patron SQL sobre PATCH /leer.'",
+                  "        })",
+                  "    }",
+                  "};",
+                  "",
+                  "pm.sendRequest(postRequest, (err, res) => {",
+                  "    if (err) {",
+                  "        console.error('No se pudo crear la notificacion fixture:', err);",
+                  "        return;",
+                  "    }",
+                  "    const id = res.json().data.id;",
+                  "    pm.collectionVariables.set('notifIdSql', id);",
+                  "",
+                  "    const sqlRequest = utils.bodySqlRest(",
+                  "        'SELECT id, leido FROM notificaciones WHERE id = $1',",
+                  "        [id]",
+                  "    );",
+                  "    pm.sendRequest(sqlRequest, (err2, res2) => {",
+                  "        if (err2) {",
+                  "            console.error('Pre-request SQL check fallo:', err2);",
+                  "            return;",
+                  "        }",
+                  "        const row = (res2.json().data || [])[0];",
+                  "        console.log('Precondicion - leido antes del PATCH:', row && row.leido);",
+                  "    });",
+                  "});"
                 ]
               }
             },
@@ -3198,7 +3220,29 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200 - notificacion marcada como leida', () => {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\nconst body = pm.response.json();\r\npm.test('La respuesta confirma leido = true', () => {\r\n    pm.expect(body.data.leido).to.eql(true);\r\n});\r\n\r\nconst id = pm.collectionVariables.get('notifIdSql');\r\n\r\nconst sqlRequest = utils.bodySqlRest(\r\n    'SELECT id, leido FROM notificaciones WHERE id = $1',\r\n    [id]\r\n);\r\npm.sendRequest(sqlRequest, (err, res) => {\r\n    pm.test('La BD confirma leido = true tras el PATCH', () => {\r\n        if (err) throw err;\r\n        const row = res.json().data[0];\r\n        pm.expect(row, 'no se encontro la notificacion en la BD').to.not.be.undefined;\r\n        pm.expect(row.leido).to.eql(true);\r\n    });\r\n});"
+                  "pm.test('Status 200 - notificacion marcada como leida', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('La respuesta confirma leido = true', () => {",
+                  "    pm.expect(body.data.leido).to.eql(true);",
+                  "});",
+                  "",
+                  "const id = pm.collectionVariables.get('notifIdSql');",
+                  "",
+                  "const sqlRequest = utils.bodySqlRest(",
+                  "    'SELECT id, leido FROM notificaciones WHERE id = $1',",
+                  "    [id]",
+                  ");",
+                  "pm.sendRequest(sqlRequest, (err, res) => {",
+                  "    pm.test('La BD confirma leido = true tras el PATCH', () => {",
+                  "        if (err) throw err;",
+                  "        const row = res.json().data[0];",
+                  "        pm.expect(row, 'no se encontro la notificacion en la BD').to.not.be.undefined;",
+                  "        pm.expect(row.leido).to.eql(true);",
+                  "    });",
+                  "});"
                 ]
               }
             }
@@ -3230,7 +3274,16 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.collectionVariables.set('idInexistente', 99999999);\r\n\r\nconst sqlRequest = utils.bodySqlRest('SELECT COUNT(*) AS total FROM notificaciones WHERE leido = true');\r\npm.sendRequest(sqlRequest, (err, res) => {\r\n    if (err) {\r\n        console.error('Pre-request SQL check fallo:', err);\r\n        return;\r\n    }\r\n    pm.variables.set('totalLeidasAntes', res.json().data[0].total);\r\n});"
+                  "pm.collectionVariables.set('idInexistente', 99999999);",
+                  "",
+                  "const sqlRequest = utils.bodySqlRest('SELECT COUNT(*) AS total FROM notificaciones WHERE leido = true');",
+                  "pm.sendRequest(sqlRequest, (err, res) => {",
+                  "    if (err) {",
+                  "        console.error('Pre-request SQL check fallo:', err);",
+                  "        return;",
+                  "    }",
+                  "    pm.variables.set('totalLeidasAntes', res.json().data[0].total);",
+                  "});"
                 ]
               }
             },
@@ -3239,7 +3292,18 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 404 - recurso no encontrado', () => {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\nconst sqlRequest = utils.bodySqlRest('SELECT COUNT(*) AS total FROM notificaciones WHERE leido = true');\r\npm.sendRequest(sqlRequest, (err, res) => {\r\n    pm.test('La BD no registro ningun cambio (COUNT de leidas igual antes y despues)', () => {\r\n        if (err) throw err;\r\n        const totalDespues = res.json().data[0].total;\r\n        pm.expect(Number(totalDespues)).to.eql(Number(pm.variables.get('totalLeidasAntes')));\r\n    });\r\n});"
+                  "pm.test('Status 404 - recurso no encontrado', () => {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "const sqlRequest = utils.bodySqlRest('SELECT COUNT(*) AS total FROM notificaciones WHERE leido = true');",
+                  "pm.sendRequest(sqlRequest, (err, res) => {",
+                  "    pm.test('La BD no registro ningun cambio (COUNT de leidas igual antes y despues)', () => {",
+                  "        if (err) throw err;",
+                  "        const totalDespues = res.json().data[0].total;",
+                  "        pm.expect(Number(totalDespues)).to.eql(Number(pm.variables.get('totalLeidasAntes')));",
+                  "    });",
+                  "});"
                 ]
               }
             }
@@ -3503,39 +3567,48 @@
     },
     {
       "key": "sqlPath",
-      "value": "/api/v1/sql/select"
+      "value": "/api/v1/sql/select",
+      "type": "string"
     },
     {
       "key": "notifIdBajaLeida",
-      "value": ""
+      "value": "",
+      "type": "string"
     },
     {
       "key": "asuntoAltaInvalida",
-      "value": "TRX-008 alta que no debe persistir"
+      "value": "TRX-008 alta que no debe persistir",
+      "type": "string"
     },
     {
       "key": "usuarioIdInexistente",
-      "value": "999999"
+      "value": "999999",
+      "type": "string"
     },
     {
       "key": "limiteListado",
-      "value": "100"
+      "value": "100",
+      "type": "string"
     },
     {
       "key": "trxEmailPrincipal",
-      "value": "TRX-010"
+      "value": "TRX-010",
+      "type": "string"
     },
     {
       "key": "montoEmailPrincipal",
-      "value": "850000"
+      "value": "850000",
+      "type": "string"
     },
     {
       "key": "notifIdEmailPrincipal",
-      "value": ""
+      "value": "",
+      "type": "string"
     },
     {
       "key": "notifIdSql",
-      "value": ""
+      "value": "",
+      "type": "string"
     }
   ]
 }
