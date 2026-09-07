@@ -90,10 +90,10 @@ Actualmente se contemplan nueve escenarios:
 
 * **9 de 9** escenarios BDD mapeados a endpoints. La semana 03 cerró el último pendiente (`S9` — email como canal principal, TRX-010).
 * **6 de 6** requerimientos funcionales cubiertos: RF-G6-01 a RF-G6-06.
-* **15 carpetas**: 1 de setup, 9 de escenarios BDD, 2 de criterios de aceptación del requerimiento, 1 de hallazgo y 2 transversales.
-* **52 requests** en la colección; la última corrida ejecutó **69** (58 REST + 11 consultas SQL).
-* Última ejecución verificada: **455 assertions, 0 fallidas**, exit code 0, 5m 15s.
-* **11 assertions verifican directamente la base de datos** vía `POST /api/v1/sql/select`.
+* **16 carpetas**: 1 de setup, 9 de escenarios BDD, 2 de criterios de aceptación del requerimiento, 1 de hallazgo, 1 de validación SQL adicional sobre `PATCH /leer` (caso feliz + caso negativo) y 2 transversales.
+* **54 requests** en la colección; la última corrida ejecutó **76** (61 REST + 15 consultas SQL).
+* Última ejecución verificada: **470 assertions, 0 fallidas**, exit code 0, 5m 25s.
+* **13 assertions verifican directamente la base de datos** vía `POST /api/v1/sql/select`.
 * Scripts defensivos: correr la suite **sin** API key produce assertions fallidas legibles y **0 `TypeError`**.
 * Códigos ejercitados: `200`, `201`, `204`, `400`, `401`, `404`, `405`; `409` y `429` contemplados.
 Cada carpeta lleva el identificador del escenario y su tag (`S1 @happy_path`, `S3 @edge_case`, …), y su descripción cita el `Given/When/Then` que valida.
