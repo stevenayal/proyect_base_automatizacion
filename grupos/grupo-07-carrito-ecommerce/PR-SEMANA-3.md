@@ -26,6 +26,7 @@ el flujo exitoso comprueba ambas tablas y cantidad cero confirma el rechazo sin 
 - Environment vacío de secretos y runner Newman que genera evidencia reducida sin credenciales.
 - Trazabilidad a RF-G7-02 y a los escenarios BDD existentes; cuatro pruebas locales de protección.
 - Se conservan los 20 requests previos y los aportes individuales del equipo.
+- Se integran los avances de la rama compartida, incluidas las correcciones de assertions y la Tarea 3 de Andrea; el conflicto del README se resuelve conservando ambas secciones.
 
 ## Evidencias adjuntas
 

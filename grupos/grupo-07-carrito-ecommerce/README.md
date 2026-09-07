@@ -44,6 +44,29 @@ cd agente-ia
 BASE_URL=http://localhost:3001 API_KEY=TU_API_KEY node agent.mjs
 ```
 
+## CI: regresión Postman automática
+
+El workflow [`postman-grupo07-regression.yml`](../../.github/workflows/postman-grupo07-regression.yml)
+corre esta colección con Newman en GitHub Actions (push/PR a `main` que toquen la colección, o
+manual vía `workflow_dispatch`). Requiere configurar en el repo
+(Settings → Secrets and variables → Actions):
+
+- **Variable** `GRUPO07_BASE_URL` — URL del backend desplegado de `aiquaa-sandbox-api`
+  (ej. `https://aiquaa-sandbox-api.vercel.app`).
+- **Secret** `GRUPO07_API_KEY` — API key para el header `x-api-key`.
+
+El run sube un único artifact **`informe-regresion-grupo07`** con el PDF de resultados
+(`report.pdf`), generado con el reporter de
+[`skills/postman-newman-skill/reporter/newman_report.py`](../../skills/postman-newman-skill/reporter/newman_report.py)
+(reportlab + Pillow) a partir del `--reporter-json-export` de Newman: portada con banner/logos,
+estadísticas (peticiones/pruebas/aprobadas/fallidas) y detalle por request (método, URL, status,
+tiempo, cada `pm.test` con su resultado y el cuerpo de respuesta). Sin HTML ni XML intermedios en
+el artifact — solo el PDF.
+
+> **Nota:** la key de demo del sandbox tiene rate-limit propio (`429 RATE_LIMITED`); el workflow
+> usa `--delay-request 800` para evitarlo. Con una key dedicada del equipo (sin ese límite
+> compartido) la corrida debería ser estable y más rápida.
+
 ## Entregables (checklist ENTREGABLES.md)
 - [x] Análisis y alcance (este README + feature)
 - [x] BDD — `features/` (18 escenarios: happy path, negativo, edge case)
@@ -77,6 +100,8 @@ Colección Postman: `postman/grupo-07-juan-barreto-carrito-e-commerce.postman_co
 
 > **Nota (Andrea):** Mi trazabilidad cubre el caso de **eliminar producto de carrito**. Para poder eliminar, el flujo incluye como primer paso **agregar** una orden (precondición) y como último paso **consultar** para verificar la baja. Si otro/a compañero/a va a cubrir **solo** el escenario de "agregar producto", ese caso estará documentado aparte para no duplicar ni confundir responsabilidades.
 
+> **Nota (Tarea 3):** La validación de BD (SQL REST) aplica solo a los DELETE (caso feliz y negativo). `1-Crear Orden` es setup sin SQL porque el escenario de creación/checkout lo cubre otro integrante del grupo en la colección oficial; el pre-request de colección solo define el helper `utils`, no valida BD.
+
 | Paso | Acción BDD | Tipo | Endpoint | Método | Datos Entrada | Validaciones / Assertions |
 |---|---|---|---|---|---|---|
 | 1 | Agregar producto al carrito (precondición) | Setup | `{{baseUrl}}/api/v1/ordenes` | POST | `usuarioId: 3`, `items: [{ producto: "Cable HDMI", cantidad: 1, precioUnitario: 50000 }]` | Status **201**, guarda `eliminarId` |
@@ -88,6 +113,7 @@ Colección Postman: `postman/grupo-07-juan-barreto-carrito-e-commerce.postman_co
 - `baseUrl` → `https://aiquaa-sandbox-api.vercel.app`
 - `apiKey` → `sbx_demo_f581ca21e68a347288c94d71`
 - `eliminarId` → se setea automáticamente desde la respuesta del paso 1
+
 ## Semana 3 — Checkout con datos SQL dinámicos
 
 La carpeta **Semana 3 - SQL dinamico** de la colección grupal
@@ -183,3 +209,52 @@ Fuentes: `docs/TAREA-SQL-REST-DINAMICO.md`,
 `features/carrito-ecommerce.feature` del grupo, y contrato público de
 [checkout](https://github.com/stevenayal/aiquaa-sandbox-api/blob/main/app/api/v1/ordenes/route.ts)
 y [SQL REST](https://github.com/stevenayal/aiquaa-sandbox-api/blob/main/lib/handle-sql-request.ts).
+
+## Tarea 3 — Verificación de BD (SQL REST)
+
+> Tarea asincrónica grupal (semana 03): no creerle a la API solo por el status code — volver a
+> **consultar la base de datos** antes y después de cada operación de escritura para confirmar
+> que el cambio realmente quedó (o, en un caso negativo, que la BD no cambió).
+
+### Patrón
+
+Cada operación se valida **dos veces** contra la BD vía el endpoint de solo lectura
+`POST {{baseUrl}}/api/v1/sql/select` (header `x-api-key`):
+
+```
+ANTES   (Pre-request Script)  → leo la BD antes de tocar
+↓
+LA ACCIÓN  (POST / DELETE)
+↓
+DESPUÉS (Tests Script)        → vuelvo a la BD y confirmo
+```
+
+- Si la operación **debe cambiar** la BD (caso feliz) → después se confirma el cambio.
+- Si la operación **debe rechazarse** (caso negativo) → después se confirma que el `COUNT(*)` no cambió.
+
+### Implementación — flujo de Andrea (Eliminar producto de carrito)
+
+Colección: [`postman/grupo-07-andrea-escurra-carrito-e-commerce.postman_collection.json`](../../postman/grupo-07-andrea-escurra-carrito-e-commerce.postman_collection.json)
+
+| # | Request | Método | Status | Validación BD (SQL REST) |
+|---|---|---|---|---|
+| 1 | `1-Crear Orden` (setup, sin SQL) | POST `/api/v1/ordenes` | 201 | — (setup: guarda `eliminarId`; el POST lo cubre el integrante de checkout) |
+| 2 | `2-Dar de Baja` ⭐ caso feliz | DELETE `/api/v1/ordenes/{{eliminarId}}` | 204 | ANTES: `SELECT id, activo FROM ordenes WHERE id = $1` → `activo=true` · DESPUÉS: misma consulta → `activo=false` |
+| 3 | `3-Verificar Baja` | GET `/api/v1/ordenes/{{eliminarId}}` | 404 | Verificación vía API (NOT_FOUND) |
+| 4 | `4-Orden inexistente (404, BD sin cambios)` ⭐ caso negativo | DELETE `/api/v1/ordenes/999999` | 404 | ANTES: `SELECT COUNT(*) AS total FROM ordenes` · DESPUÉS: mismo COUNT igual (la BD no cambió) |
+
+### Manejo de variables
+
+- **Pre-request de colección** (una sola vez): define el helper `utils.bodySqlRest(sql, params)`
+  que arma la llamada a `/api/v1/sql/select`, y el valor por defecto `usuarioId = 3`.
+- `{{usuarioId}}` en el body del POST (`1-Crear Orden`) y `{{eliminarId}}` en la URL del DELETE.
+- `totalAntes` se guarda con `pm.variables.set(...)` en el pre-request del caso negativo.
+- **Pitfall respetado:** los valores que devuelve `/api/v1/sql/select` vienen como **string**;
+  se convierten con `Number(...)` / `String(...)` antes de comparar.
+
+### Evidencia
+
+`evidence/semana-03/` → `newman-report-andrea.json`, `newman-junit-andrea.xml` y
+`RESUMEN-EJECUCION-andrea.md` (corrida Newman 6.2.1 de Andrea Escurra: 8 requests, 8 assertions,
+0 fallos). Cada integrante agrega sus archivos con su prefijo (`*-juan.json`, `*-aramin.xml`,
+etc.) al entregar su escenario.

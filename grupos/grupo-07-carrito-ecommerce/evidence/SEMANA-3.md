@@ -24,6 +24,11 @@ AIQUAA: colección estructuralmente válida; [reporte](semana-3-aiquaa-validacio
 Las advertencias corresponden a escenarios que comparten método/URL y a variables locales
 generadas en runtime (`g7UsuarioId`, `g7Producto1/2`), no a errores de ejecución.
 
-Integridad: los 20 requests originales son iguales a HEAD; 25 scripts JavaScript compilan;
+Integridad de la corrida registrada: los 20 requests originales son iguales a `199f26d`; 25 scripts JavaScript compilan;
 `git diff --check` sin errores. Las colecciones individuales no fueron modificadas.
 No se ejecutaron la regresión completa, BDD ni UI. La orden 125 permanece como dato de prueba.
+
+Verificación de entrega: se integró `c5ad3a9` de la rama compartida, conservando las
+correcciones de assertions y el trabajo de Andrea. Los 20 requests de regresión coinciden
+con esa rama; los dos casos SQL de Semana 3 permanecen intactos y las cuatro pruebas
+locales de protección vuelven a pasar. No se repitió la corrida del sandbox.
