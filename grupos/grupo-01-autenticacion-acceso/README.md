@@ -184,6 +184,15 @@ npx -y newman run postman/C_GRUPO_01_AUTENTICACION_ACCESO.json \
 | 11 | Recuperación exitosa con correo registrado — **Oscar Benítez** | 200 | Usuario dinámico por SQL + POST `/auth/forgot-password` + BD `COUNT` aumenta exactamente en 1 |
 | 12 | Login con email obligatorio vacío — **Oscar Benítez** | 400 | `VALIDATION_ERROR` + BD sin cambios (`COUNT`) |
 
+### Aporte de Mariel Aquino — Semana 03
+
+- Colección Postman con tres escenarios de autenticación: login exitoso, recuperación con correo no registrado y cierre de sesión con token expirado.
+- Trazabilidad de los escenarios BDD hacia sus endpoints, métodos, datos de entrada y assertions esperadas.
+- Manejo de las variables `baseUrl`, `candidateId` y `sessionId` para la ejecución de la colección.
+- El aporte fue subido anticipadamente en el PR de Semana 02 mediante el commit `1f33f88`, aunque corresponde a los entregables API de Semana 03.
+- Colección: [`postman/grupo-01-autenticacion.postman_collection.json`](../../postman/grupo-01-autenticacion.postman_collection.json).
+- Constancia de entrega: [`evidence/semana-03/ENTREGA-MARIEL.md`](evidence/semana-03/ENTREGA-MARIEL.md).
+
 ### Aporte de Oscar Benítez — Semana 03
 
 - Automatización de recuperación exitosa con un correo registrado obtenido dinámicamente desde `usuarios`.
