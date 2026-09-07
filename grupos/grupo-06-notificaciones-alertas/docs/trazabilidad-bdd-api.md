@@ -7,7 +7,7 @@
 **Evidencia de ejecución:** [`evidence/newman-grupo-06-run.txt`](../evidence/newman-grupo-06-run.txt)
 **Sitio bajo prueba:** AIQUAA Sandbox API — `https://aiquaa-sandbox-api.vercel.app`
 
-> **Última ejecución verificada:** 39 requests · **292 assertions · 0 failed** · exit code 0.
+> **Última ejecución verificada:** 44 requests · **341 assertions · 0 failed** · exit code 0.
 
 ## 0. Robustez de los scripts
 
@@ -194,6 +194,6 @@ npx newman run postman/grupo-06-notificaciones-alertas.postman_collection.json \
 | Endpoints AIQUAA cubiertos | 5 de 5 |
 | Carpetas en la colección | 11 (1 de setup + 8 de escenarios + 2 transversales) |
 | Requests | 32 base, 39 con limpieza de residuales |
-| Assertions ejecutadas en la última corrida | **292, 0 fallidas** |
+| Assertions ejecutadas en la última corrida | **341, 0 fallidas** |
 | Códigos de respuesta ejercitados | `200`, `201`, `204`, `400`, `401`, `404` (`409` y `429` contemplados) |
 | Hallazgos abiertos | HG06-01 (media), HG06-02 (baja) |

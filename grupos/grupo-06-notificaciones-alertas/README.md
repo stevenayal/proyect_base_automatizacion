@@ -46,7 +46,7 @@ Validar que el sistema genere y gestione correctamente las notificaciones asocia
 * Envío de notificaciones mediante SMS.
 * Gestión de un número telefónico inválido.
 * Envío por múltiples canales según las preferencias del usuario.
-* Envío de notificaciones por email como canal principal cuando está habilitado.
+* Envío de email como canal principal cuando está habilitado.
 
 ### Cobertura excluida
 
@@ -65,13 +65,13 @@ Actualmente se contemplan nueve escenarios:
 
 1. Envío push después de una transferencia exitosa.
 2. No envío cuando el usuario tiene desactivado el canal push.
-3. Prevención de notificaciones duplicadas.
-4. Uso de email como canal de respaldo.
-5. Entrega diferida durante el horario silencioso.
-6. Envío de SMS después de una transferencia exitosa.
-7. Gestión de un número telefónico inválido.
-8. Envío por múltiples canales según las preferencias del usuario.
-9. Envío de email como canal principal.
+3. Envío diferido por horario no molestar (almacenamiento en cola).
+4. Envío de notificación duplicada cuando la transferencia reintenta con mismo ID.
+5. Envío de SMS después de una transferencia exitosa.
+6. Gestión de un número telefónico inválido.
+7. Envío por múltiples canales según las preferencias del usuario.
+8. Uso del email como canal de respaldo cuando el push no puede entregarse.
+9. Envío de email como canal principal cuando está habilitado.
 
 ## API testing — Colección Postman y trazabilidad BDD → API
 
@@ -81,42 +81,57 @@ Actualmente se contemplan nueve escenarios:
 | --------- | ---- |
 | Colección Postman | [`postman/grupo-06-notificaciones-alertas.postman_collection.json`](../../postman/grupo-06-notificaciones-alertas.postman_collection.json) |
 | Environment | [`postman/grupo-06-aiquaa.postman_environment.json`](../../postman/grupo-06-aiquaa.postman_environment.json) |
-| Matriz de trazabilidad | [`docs/trazabilidad-bdd-api.md`](docs/trazabilidad-bdd-api.md) |
-| Evidencia de ejecución | [`evidence/newman-grupo-06-run.txt`](evidence/newman-grupo-06-run.txt) |
-| Evidencia patrón SQL (semana 3) | [`evidence/semana-03/newman-S1-sql-pattern.txt`](evidence/semana-03/newman-S1-sql-pattern.txt) |
+| Trazabilidad BDD → API | [`docs/trazabilidad-bdd-api.md`](docs/trazabilidad-bdd-api.md) |
+| Trazabilidad RF → API → SQL (semana 03) | [`docs/trazabilidad-rf-sql.md`](docs/trazabilidad-rf-sql.md) |
+| Evidencia semana 02 | [`evidence/newman-grupo-06-run.txt`](evidence/newman-grupo-06-run.txt) |
+| Evidencia semana 03 | [`evidence/semana-03/`](evidence/semana-03/) |
 
 ### Cobertura
 
-* **8 de 8** escenarios BDD mapeados a endpoints (la consigna exige al menos 3).
-* **5 de 5** endpoints del Grupo 6 cubiertos: `GET`, `POST`, `PUT /{id}`, `PATCH /{id}/leer`, `DELETE /{id}`.
-* **11 carpetas**: 1 de setup, 8 de escenarios y 2 transversales (contrato `404` y seguridad `401`).
-* **32 requests** base (39 cuando hay datos residuales que limpiar).
-* Última ejecución verificada: **292 assertions, 0 fallidas**, exit code 0.
-* Scripts defensivos: verificado que correr la suite **sin** API key produce 90 assertions fallidas legibles y **0 `TypeError`**.
-* Códigos ejercitados: `200`, `201`, `204`, `400`, `401`, `404`; `409` y `429` contemplados.
-
+* **9 de 9** escenarios BDD mapeados a endpoints. La semana 03 cerró el último pendiente (`S9` — email como canal principal, TRX-010).
+* **6 de 6** requerimientos funcionales cubiertos: RF-G6-01 a RF-G6-06.
+* **16 carpetas**: 1 de setup, 9 de escenarios BDD, 2 de criterios de aceptación del requerimiento, 1 de hallazgo, 1 de validación SQL adicional sobre `PATCH /leer` (caso feliz + caso negativo) y 2 transversales.
+* **54 requests** en la colección; la última corrida ejecutó **76** (61 REST + 15 consultas SQL).
+* Última ejecución verificada: **470 assertions, 0 fallidas**, exit code 0, 5m 25s.
+* **13 assertions verifican directamente la base de datos** vía `POST /api/v1/sql/select`.
+* Scripts defensivos: correr la suite **sin** API key produce assertions fallidas legibles y **0 `TypeError`**.
+* Códigos ejercitados: `200`, `201`, `204`, `400`, `401`, `404`, `405`; `409` y `429` contemplados.
 Cada carpeta lleva el identificador del escenario y su tag (`S1 @happy_path`, `S3 @edge_case`, …), y su descripción cita el `Given/When/Then` que valida.
 
 ### Variables
-
 La colección se ejecuta íntegramente con variables: `baseUrl`, `usuarioId`, `maxResponseTime`, `idInexistente`, `prefijoDatosPrueba`, un identificador y un monto por transferencia (`trxHappyPush`, `montoHappyPush`, …) y variables de encadenamiento que guardan los `id` creados (`notifIdPush`, `notifIdRespaldo`, `notifIdDuplicado1/2`, `notifIdDiferida`) para reutilizarlos en los `GET`, `PUT`, `PATCH` y `DELETE` posteriores.
 
 ### Suite re-ejecutable
-
 El sandbox de AIQUAA es compartido y persistente. La carpeta `00 Setup` descarta las notificaciones residuales de corridas previas antes de empezar, de modo que los conteos exactos de S2, S3, S4 y S8 sean deterministas. No toca los datos semilla del laboratorio.
 
+### Semana 03 — Validación en base de datos (SQL)
+
+La colección consulta la base a través de **`POST /api/v1/sql/select`** (`{sql, params}` → `{data, rowCount}`), un endpoint de solo lectura con whitelist de tablas y parámetros posicionales `$1`. El helper `utils.sqlSelect` se declara **una sola vez** en el Pre-request Script de la colección, siguiendo el patrón de la skill `postman-newman` del repo.
+
+Se agregó SQL solo donde la respuesta HTTP **no alcanza para probar la regla**:
+
+| Regla del requerimiento | Qué agrega el SELECT |
+| --- | --- |
+| RF-G6-06: *"la fila permanece en la base, nunca se borra físicamente"* | Confirma que la fila existe con `activo=false`. Un borrado físico pasaría el test REST igual |
+| RF-G6-02: *"no se registra ninguna notificación"* | `COUNT(*)=0` tras el alta rechazada. El `400` no prueba que no se escribió |
+| RF-G6-03 y RF-G6-05: invariantes de `leido`/`estado` | Verifica la **fila persistida**, no el JSON que devolvió la API |
+| RF-G6-01: límite de 100 registros | Compara contra el total real: distingue "el límite se aplica" de "hay pocos datos" |
+
+> **Importante:** `utils` vive en memoria durante la corrida, no es una variable de Postman. La colección debe ejecutarse **completa o por carpetas** (Runner o Newman). Un request suelto no pasa por el pre-request y da `ReferenceError`.
+
+Detalle completo en [`docs/trazabilidad-rf-sql.md`](docs/trazabilidad-rf-sql.md).
+
 ### Ejecución
+La API exige `x-api-key` en los seis endpoints; sin ella toda petición responde `401 UNAUTHORIZED`. El laboratorio usa una API key demo compartida (prefijo `sbx_demo_`), la misma de las ramas de los grupos 01, 02, 03, 05 y 07. **El environment la deja vacía a propósito** y se inyecta al ejecutar, para no versionar credenciales.
 
-La API exige `x-api-key` en los cinco endpoints; sin ella toda petición responde `401 UNAUTHORIZED`. El laboratorio usa una API key demo compartida (prefijo `sbx_demo_`), la misma de las ramas de los grupos 01, 02, 03, 05 y 07. **El environment la deja vacía a propósito** y se inyecta al ejecutar, para no versionar credenciales.
-
-La API limita a **30 requests por minuto**; al excederlo responde `429 RATE_LIMITED`. Como la suite hace 32-39 requests, hay que ejecutarla siempre con `--delay-request 2500`.
+La API limita a **30 requests por minuto**; al excederlo responde `429 RATE_LIMITED`. Cada consulta SQL disparada desde un script cuenta contra esa misma cuota, por lo que desde la semana 03 la suite debe ejecutarse con **`--delay-request 5000`** (antes 2500). Con un delay menor la corrida choca contra el límite.
 
 ```bash
 # Suite completa (desde la raíz del repositorio)
 npx newman run postman/grupo-06-notificaciones-alertas.postman_collection.json \
   -e postman/grupo-06-aiquaa.postman_environment.json \
   --env-var "apiKey=LA_API_KEY" \
-  --delay-request 2500
+  --delay-request 5000
 
 # Carpetas que validan el 401 (no requieren API key ni delay)
 npx newman run postman/grupo-06-notificaciones-alertas.postman_collection.json \
@@ -186,8 +201,8 @@ Ruta prevista para la evidencia:
 * [x] Propuesta generada por IA auditada.
 * [x] Integrantes registrados.
 * [x] Evidencia de setup cargada.
-* [x] Colección Postman con trazabilidad BDD → API.
-* [x] Validación SQL directa (patrón pre/post-request) — semana 3.
+* [x] Colección Postman con trazabilidad BDD → API (semana 02).
+* [x] Consultas SQL, assertions reales y evidencia (semana 03).
 * [ ] Revisión final del grupo.
 * [ ] Pull Request grupal hacia `main`.
 
@@ -197,8 +212,8 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 
 * [x] Análisis y alcance.
 * [x] BDD en `features/`.
-* [x] API — colección Postman/Newman con trazabilidad BDD → API.
+* [x] API — colección Postman/Newman con validación SQL.
 * [ ] UI — pruebas en `tests/e2e/` con Playwright.
-* [x] Evidencias en `evidence/` (setup + salida de Newman).
+* [x] Evidencias en `evidence/` y `evidence/semana-03/`.
 * [ ] CI/CD verde.
 * [ ] Pull Request hacia `main`.
