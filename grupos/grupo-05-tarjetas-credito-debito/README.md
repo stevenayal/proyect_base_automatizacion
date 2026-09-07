@@ -33,8 +33,9 @@
 
 ## Escenarios entregados
 
-7 escenarios en [`features/tarjetas-credito-debito.feature`](features/tarjetas-credito-debito.feature):
-6 happy paths y 1 caso negativo (aumento de límite rechazado por OTP inválido).
+11 escenarios en [`features/tarjetas-credito-debito.feature`](features/tarjetas-credito-debito.feature):
+6 happy paths, 3 casos negativos (OTP inválido, PIN actual incorrecto, saldo insuficiente) y
+2 edge cases (compra igual al límite diario, desbloqueo denegado por motivo "ROBO").
 
 ## Entregables
 
@@ -44,7 +45,7 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 - [x] BDD — `features/` (happy path caso negativo, y edge case cubiertos)
 - [x] API — colección Postman/Newman
 - [ ] UI — `tests/e2e/` con Playwright
-- [ ] Evidencias en `evidence/`
+- [x] Evidencias en `evidence/semana-03/` (salida Newman de la corrida SQL)
 - [ ] CI/CD verde
 - [ ] PR a `main` usando la plantilla del repo
 
@@ -69,4 +70,4 @@ Carpeta `E2E - Flujos con validacion SQL` en la colección Postman, sobre `PATCH
 - **Activar tarjeta (UPDATE + validación SQL)**: cierra el ciclo — confirma `bloqueada` antes, `activa` después. La corrida completa deja la BD en el mismo estado en que empezó (repetible).
 - **Bloquear tarjeta - id inexistente (validación negativa)**: sobreescribe `tarjetaId` a `999999`; la API responde 404 y un `COUNT(*)` antes/después confirma que no se modificó ninguna fila.
 
-Evidencia de la corrida (Newman): [`evidence/grupo05-newman-sql-e2e.txt`](../../evidence/grupo05-newman-sql-e2e.txt) — 9 requests, 8/8 assertions OK.
+Evidencia de la corrida (Newman): [`evidence/semana-03/newman-sql-e2e.txt`](evidence/semana-03/newman-sql-e2e.txt) — 9 requests, 8/8 assertions OK.
