@@ -218,3 +218,17 @@ npx -y newman run postman/C_GRUPO_01_AUTENTICACION_ACCESO.json \
 - **Duración total:** 2.4s
 - Evidencia: [`evidence/semana-03/newman-report-david.json`](evidence/semana-03/newman-report-david.json) 
   y [`evidence/semana-03/newman-junit-david.xml`](evidence/semana-03/newman-junit-david.xml)
+  ### Aporte de Gloria Figueredo — Semana 03
+
+- **CP 01 - Login con campos obligatorios vacíos:** consulta SQL previa sobre `qa_training.sesiones`, ejecución del POST `/auth/login` con `email` vacío y validación de respuesta HTTP 400. La consulta SQL posterior verifica que el intento de login inválido no genere un nuevo registro en la base de datos.
+- **CP 02 - Login exitoso con usuario dinámico:** obtención dinámica de un usuario activo desde `qa_training.usuarios`, utilizando el `email` e `id` obtenidos desde la base de datos para ejecutar el POST `/auth/login`. Posteriormente se valida en `qa_training.sesiones` que el login haya quedado registrado.
+- Se utilizaron variables de colección para almacenar y reutilizar los datos obtenidos dinámicamente desde la base de datos.
+- Se incorporaron validaciones de API y base de datos mediante SQL REST `/api/v1/sql/select`.
+
+**Resultado de la ejecución (Newman):**
+
+- **Requests:** 6
+- **Test-scripts:** 2 · **Prerequest-scripts:** 2 · **Assertions:** 16
+- **Fallidas:** 0 → ✅ **PASS**
+- **Duración total:** 2s
+- Evidencia: [`evidence/semana-03/newman-report-gloria.json`](evidence/semana-03/newman-report-gloria.json) y [`evidence/semana-03/newman-junit-gloria.xml`](evidence/semana-03/newman-junit-gloria.xml)
