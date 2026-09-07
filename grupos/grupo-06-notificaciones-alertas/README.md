@@ -83,6 +83,7 @@ Actualmente se contemplan nueve escenarios:
 | Environment | [`postman/grupo-06-aiquaa.postman_environment.json`](../../postman/grupo-06-aiquaa.postman_environment.json) |
 | Matriz de trazabilidad | [`docs/trazabilidad-bdd-api.md`](docs/trazabilidad-bdd-api.md) |
 | Evidencia de ejecución | [`evidence/newman-grupo-06-run.txt`](evidence/newman-grupo-06-run.txt) |
+| Evidencia patrón SQL (semana 3) | [`evidence/semana-03/newman-S1-sql-pattern.txt`](evidence/semana-03/newman-S1-sql-pattern.txt) |
 
 ### Cobertura
 
@@ -126,6 +127,18 @@ npx newman run postman/grupo-06-notificaciones-alertas.postman_collection.json \
 > Las carpetas comparten variables y `00 Setup` usa `postman.setNextRequest`, así que la colección debe correrse completa o por carpetas enteras, nunca request por request.
 >
 > El reporte JSON de Newman **incluye el valor de la API key**: sanitizarlo antes de versionarlo. La evidencia guardada ya está sanitizada.
+
+### Validación SQL directa (patrón pre/post-request)
+
+Para el request `POST Crear notificacion push (TRX-001)` (carpeta `S1 @happy_path`) se agregó una segunda capa de validación que consulta la base de datos directamente vía `POST /api/v1/sql/select`, en lugar de confiar únicamente en la respuesta HTTP del endpoint bajo prueba.
+
+* **Qué valida:** después del `201 Created`, el Post-response script arma y envía (con `pm.sendRequest`) una consulta `SELECT id, usuario_id, canal, estado FROM qa_training.notificaciones WHERE id = '<id>'` usando el `id` devuelto por la API, y confirma que la fila existe con los mismos valores.
+* **Por qué:** un test que solo revisa el código de estado HTTP no detecta si el `INSERT` real falló silenciosamente o guardó datos incorrectos. Esta validación cierra ese hueco.
+* **Restricciones de la sandbox encontradas durante la implementación:**
+  * Solo se puede consultar el schema `qa_training` (`information_schema` está bloqueado).
+  * El mecanismo de `params` parametrizados (`$1`, `$2`, …) de `/sql/select` no resuelve bien el id devuelto por la API; se optó por interpolar el valor directamente en el string SQL para este caso puntual.
+  * `apiKey` y `baseUrl` viven en el Environment, no en Collection Variables: dentro de un `pm.sendRequest` hay que leerlos con `pm.variables.get(...)` (no `pm.collectionVariables.get(...)`) para que el header `x-api-key` viaje correctamente.
+* **Evidencia:** corrida completa de la carpeta S1 con el patrón aplicado — 37 assertions, 0 fallidas. Ver [`evidence/semana-03/newman-S1-sql-pattern.txt`](evidence/semana-03/newman-S1-sql-pattern.txt) y [`evidence/semana-03/sql-pattern-s1-38-38-passed.png`](evidence/semana-03/sql-pattern-s1-38-38-passed.png).
 
 ### Hallazgos abiertos
 
@@ -174,6 +187,7 @@ Ruta prevista para la evidencia:
 * [x] Integrantes registrados.
 * [x] Evidencia de setup cargada.
 * [x] Colección Postman con trazabilidad BDD → API.
+* [x] Validación SQL directa (patrón pre/post-request) — semana 3.
 * [ ] Revisión final del grupo.
 * [ ] Pull Request grupal hacia `main`.
 
