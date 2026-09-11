@@ -70,7 +70,7 @@ jobs:
           argumentos=(
             postman/C_GRUPO_01_AUTENTICACION_ACCESO.json
             --environment postman/E_GRUPO_01_AUTENTICACION.json
-            --delay-request 800
+            --delay-request 2000
             --reporters cli,json
             --reporter-json-export newman/results.json
           )
