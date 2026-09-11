@@ -93,7 +93,7 @@ jobs:
           --logo-postman skills/postman-newman-skill/reporter/assets/logo_postman_clean.png
           --repo-url "${{ github.server_url }}/${{ github.repository }}"
           --api-version "${{ github.sha }}"
-          --author "${{ github.triggering_actor }}"
+          --author "Grupo 01 - Autenticacion y Acceso"
           --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           --output newman/report.pdf
 
