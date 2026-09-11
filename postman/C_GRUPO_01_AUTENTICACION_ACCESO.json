@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "c1a2b3d4-e5f6-7890-abcd-111122223334",
-    "name": "Grupo 01 - Autenticacion y Acceso (Semana 03)",
-    "description": "Coleccion del Grupo 01 (Autenticacion y Acceso) - Semana 03. Aplica el patron SQL REST dinamico: prepara/valida datos en la BD (qa_training) antes y despues de cada operacion de autenticacion y acceso. Assertions reales sobre status 200/201/400/401/404, esquema JSON, tiempo de respuesta y tokens/identificadores devueltos.",
+    "name": "Grupo 01 - Autenticacion y Acceso (Coleccion consolidada)",
+    "description": "Coleccion consolidada del Grupo 01 para la entrega de GitHub Actions de Semana 04. Integra los escenarios grupales y los aportes de Gloria Figueredo, Mariset C. Lorente, David Cristaldo, Mariel Aquino y Oscar Benitez, adaptados al sandbox comun.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -993,6 +993,769 @@
             }
           },
           "response": []
+        }
+      ]
+    },
+    {
+      "name": "06 - Aportes individuales consolidados",
+      "item": [
+        {
+          "name": "Gloria Figueredo",
+          "item": [
+            {
+              "name": "CP 01 - Login con campos obligatorios vacíos (edge case)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status 400 por email obligatorio vacío\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test(\"La respuesta contiene error de validación\", function () {",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.error.code).to.eql(\"VALIDATION_ERROR\");",
+                      "});",
+                      "",
+                      "pm.test(\"El mensaje indica solicitud inválida\", function () {",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.error.message).to.eql(\"Invalid request.\");",
+                      "});",
+                      "",
+                      "pm.test(\"El detalle menciona el campo email\", function () {",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.error.details).to.include(\"email\");",
+                      "});",
+                      "",
+                      "pm.test(\"Tiempo de respuesta menor a 3000 ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});",
+                      "pm.sendRequest({",
+                      "    url: pm.variables.get(\"baseUrl\") + \"/api/v1/sql/select\",",
+                      "    method: \"POST\",",
+                      "    header: {",
+                      "        \"Content-Type\": \"application/json\",",
+                      "        \"x-api-key\": pm.variables.get(\"apiKey\")",
+                      "    },",
+                      "    body: {",
+                      "        mode: \"raw\",",
+                      "        raw: JSON.stringify({",
+                      "            sql: \"SELECT COUNT(*) AS total FROM qa_training.sesiones WHERE tipo_evento = $1\",",
+                      "            params: [\"login\"]",
+                      "        })",
+                      "    }",
+                      "}, function (err, res) {",
+                      "",
+                      "    pm.test(\"Post-response Gloria: consulta SQL responde 200\", function () {",
+                      "        pm.expect(err).to.not.exist;",
+                      "        pm.expect(res.code).to.eql(200);",
+                      "    });",
+                      "",
+                      "    if (err || res.code !== 200) {",
+                      "        return;",
+                      "    }",
+                      "",
+                      "    const body = res.json();",
+                      "    const loginsDespues = parseInt(body.data[0].total, 10);",
+                      "",
+                      "    pm.collectionVariables.set(\"gloriaLoginsDespues\", loginsDespues);",
+                      "",
+                      "    const loginsAntes = parseInt(",
+                      "    pm.collectionVariables.get(\"gloriaLoginsAntes\"),",
+                      "    10",
+                      "    );",
+                      "",
+                      "    pm.test(\"El login inválido no genera un nuevo registro en BD\", function () {",
+                      "        pm.expect(loginsDespues).to.eql(loginsAntes);",
+                      "    });",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "pm.collectionVariables.set(\"gloriaLoginsAntes\", 0);\r",
+                      "\r",
+                      "pm.sendRequest({\r",
+                      "    url: pm.variables.get(\"baseUrl\") + \"/api/v1/sql/select\",\r",
+                      "    method: \"POST\",\r",
+                      "    header: {\r",
+                      "        \"Content-Type\": \"application/json\",\r",
+                      "        \"x-api-key\": pm.variables.get(\"apiKey\")\r",
+                      "    },\r",
+                      "    body: {\r",
+                      "        mode: \"raw\",\r",
+                      "        raw: JSON.stringify({\r",
+                      "            sql: \"SELECT COUNT(*) AS total FROM qa_training.sesiones WHERE tipo_evento = $1\",\r",
+                      "            params: [\"login\"]\r",
+                      "        })\r",
+                      "    }\r",
+                      "}, function (err, res) {\r",
+                      "\r",
+                      "    pm.test(\"Pre-request Gloria: consulta SQL responde 200\", function () {\r",
+                      "        pm.expect(err).to.not.exist;\r",
+                      "        pm.expect(res.code).to.eql(200);\r",
+                      "    });\r",
+                      "\r",
+                      "    if (!err && res.code === 200) {\r",
+                      "        const json = res.json();\r",
+                      "\r",
+                      "        pm.collectionVariables.set(\r",
+                      "            \"gloriaLoginsAntes\",\r",
+                      "            parseInt(json.data[0].total, 10)\r",
+                      "        );\r",
+                      "    }\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{apiKey}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "CP 02 – Login exitoso con correo válido (Happy Path)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status 200 - Login exitoso\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "const jsonData = pm.response.json();",
+                      "",
+                      "pm.test(\"La respuesta contiene datos del usuario\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"data\");",
+                      "    pm.expect(jsonData.data).to.have.property(\"id\");",
+                      "    pm.expect(jsonData.data).to.have.property(\"email\");",
+                      "});",
+                      "",
+                      "pm.test(\"El email de respuesta coincide con el obtenido desde BD\", function () {",
+                      "    pm.expect(jsonData.data.email).to.eql(",
+                      "        pm.collectionVariables.get(\"gloriaEmailValido\")",
+                      "    );",
+                      "});",
+                      "",
+                      "pm.test(\"El usuario está activo\", function () {",
+                      "    pm.expect(jsonData.data.activo).to.eql(true);",
+                      "});",
+                      "",
+                      "pm.test(\"Tiempo de respuesta menor a 3000 ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                      "});",
+                      "pm.sendRequest({",
+                      "    url: pm.variables.get(\"baseUrl\") + \"/api/v1/sql/select\",",
+                      "    method: \"POST\",",
+                      "    header: {",
+                      "        \"Content-Type\": \"application/json\",",
+                      "        \"x-api-key\": pm.variables.get(\"apiKey\")",
+                      "    },",
+                      "    body: {",
+                      "        mode: \"raw\",",
+                      "        raw: JSON.stringify({",
+                      "            sql: \"SELECT COUNT(*) AS total FROM qa_training.sesiones WHERE usuario_id = $1 AND tipo_evento = $2\",",
+                      "            params: [",
+                      "                parseInt(pm.collectionVariables.get(\"gloriaUsuarioId\"), 10),",
+                      "                \"login\"",
+                      "            ]",
+                      "        })",
+                      "    }",
+                      "}, function (err, res) {",
+                      "",
+                      "    pm.test(\"Post-response Gloria: consulta SQL responde 200\", function () {",
+                      "        pm.expect(err).to.not.exist;",
+                      "        pm.expect(res.code).to.eql(200);",
+                      "    });",
+                      "",
+                      "    if (err || res.code !== 200) {",
+                      "        return;",
+                      "    }",
+                      "",
+                      "    const body = res.json();",
+                      "    const total = parseInt(body.data[0].total, 10);",
+                      "",
+                      "    pm.test(\"El login quedó registrado en la base de datos\", function () {",
+                      "        pm.expect(total).to.be.above(0);",
+                      "    });",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "pm.sendRequest({\r",
+                      "    url: pm.variables.get(\"baseUrl\") + \"/api/v1/sql/select\",\r",
+                      "    method: \"POST\",\r",
+                      "    header: {\r",
+                      "        \"Content-Type\": \"application/json\",\r",
+                      "        \"x-api-key\": pm.variables.get(\"apiKey\")\r",
+                      "    },\r",
+                      "    body: {\r",
+                      "        mode: \"raw\",\r",
+                      "        raw: JSON.stringify({\r",
+                      "            sql: \"SELECT id, email FROM qa_training.usuarios WHERE activo = $1 ORDER BY random() LIMIT 1\",\r",
+                      "            params: [true]\r",
+                      "        })\r",
+                      "    }\r",
+                      "}, function (err, res) {\r",
+                      "\r",
+                      "    pm.test(\"Pre-request Gloria: usuario activo obtenido desde BD\", function () {\r",
+                      "        pm.expect(err).to.not.exist;\r",
+                      "        pm.expect(res.code).to.eql(200);\r",
+                      "    });\r",
+                      "\r",
+                      "    if (err || res.code !== 200) {\r",
+                      "        console.error(\"Error consultando usuario activo:\", err);\r",
+                      "        return;\r",
+                      "    }\r",
+                      "\r",
+                      "    const body = res.json();\r",
+                      "\r",
+                      "    if (!body.data || body.data.length === 0) {\r",
+                      "        console.error(\"No se encontró usuario activo en BD\");\r",
+                      "        return;\r",
+                      "    }\r",
+                      "\r",
+                      "    const usuario = body.data[0];\r",
+                      "\r",
+                      "    pm.collectionVariables.set(\"gloriaEmailValido\", usuario.email);\r",
+                      "    pm.collectionVariables.set(\"gloriaUsuarioId\", usuario.id);\r",
+                      "\r",
+                      "    console.log(\"Email obtenido desde BD:\", usuario.email);\r",
+                      "    console.log(\"Usuario ID obtenido desde BD:\", usuario.id);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{apiKey}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{gloriaEmailValido}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Mariset C. Lorente",
+          "item": [
+            {
+              "name": "01- Login rechazado con credenciales inválidas",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Mariset: credenciales invalidas son rechazadas\", function () { pm.response.to.have.status(400); });",
+                      "pm.test(\"Mariset: respuesta JSON con VALIDATION_ERROR\", function () { var j = pm.response.json(); pm.expect(j.error.code).to.eql(\"VALIDATION_ERROR\"); });",
+                      "pm.test(\"Mariset: respuesta menor a 3000 ms\", function () { pm.expect(pm.response.responseTime).to.be.below(3000); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{apiKey}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"usuario.inexistente@example.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "02 - Login con correo válido ingresado con espacios",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Mariset: correo con espacios es rechazado\", function () { pm.response.to.have.status(400); });",
+                      "pm.test(\"Mariset: respuesta JSON con VALIDATION_ERROR\", function () { var j = pm.response.json(); pm.expect(j.error.code).to.eql(\"VALIDATION_ERROR\"); });",
+                      "pm.test(\"Mariset: respuesta menor a 3000 ms\", function () { pm.expect(pm.response.responseTime).to.be.below(3000); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{apiKey}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \" ana.torres@example.com \"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "03 - Login con usuario inactivo obtenido dinámicamente desde BD",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.sendRequest({\n    url: pm.variables.get(\"baseUrl\") + \"/api/v1/sql/select\",\n    method: \"POST\",\n    header: {\n        \"Content-Type\": \"application/json\",\n        \"x-api-key\": pm.variables.get(\"apiKey\")\n    },\n    body: {\n        mode: \"raw\",\n        raw: JSON.stringify({\n            sql: \"SELECT id, nombre, email, activo FROM usuarios WHERE activo = false ORDER BY id LIMIT 1\",\n            params: []\n        })\n    }\n}, function (err, res) {\n    if (err) {\n        console.log(\"Error consultando BD:\", err);\n        return;\n    }\n\n    const json = res.json();\n    console.log(\"Respuesta SQL:\", json);\n\n    const filas = json.data || [];\n\n    if (filas.length === 0) {\n        throw new Error(\"No se encontró ningún usuario activo en la BD\");\n    }\n\n    const usuario = filas[0];\n\n    pm.environment.set(\"emailBD\", usuario.email);\n    pm.environment.set(\"usuarioIdBD\", usuario.id);\n\n    console.log(\"Usuario obtenido desde BD:\", usuario.id, usuario.email);\n});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Usuario inactivo rechazado con status 400\", function () {\n    pm.response.to.have.status(400);\n});\n\npm.test(\"La respuesta es JSON\", function () {\n    pm.response.to.be.json;\n});\n\npm.test(\"El error corresponde a VALIDATION_ERROR\", function () {\n    const json = pm.response.json();\n\n    pm.expect(json).to.have.property(\"error\");\n    pm.expect(json.error).to.have.property(\"code\");\n    pm.expect(json.error.code).to.eql(\"VALIDATION_ERROR\");\n});\n\npm.test(\"Se utilizó un usuario obtenido dinámicamente desde BD\", function () {\n    const emailBD = pm.environment.get(\"emailBD\");\n    const usuarioIdBD = pm.environment.get(\"usuarioIdBD\");\n\n    pm.expect(emailBD).to.be.a(\"string\").and.not.empty;\n    pm.expect(usuarioIdBD).to.exist;\n});\n\nconsole.log(\"Email inactivo obtenido desde BD:\", pm.environment.get(\"emailBD\"));\nconsole.log(\"Usuario ID obtenido desde BD:\", pm.environment.get(\"usuarioIdBD\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{apiKey}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{emailBD}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "David Cristaldo",
+          "item": [
+            {
+              "name": "CP 01- Solicitar recuperación con correo registrado",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code es 200', function () {\r\n  pm.response.to.have.status(200);\r\n});\r\n\r\nconst respBody = pm.response.json();\r\nconst usuarioIdReal = respBody.data.usuario_id;\r\n\r\npm.test('La respuesta confirma tipo_evento password_reset_solicitado', function () {\r\n  pm.expect(respBody.data.tipo_evento).to.eql('password_reset_solicitado');\r\n});\r\n\r\nconst sqlBody = {\r\n  sql: \"SELECT COUNT(*) as total FROM qa_training.sesiones WHERE usuario_id = $1 AND tipo_evento = $2\",\r\n  params: [usuarioIdReal, 'password_reset_solicitado']\r\n};\r\n\r\npm.sendRequest({\r\n  url: pm.variables.get('baseUrl') + '/api/v1/sql/select',\r\n  method: 'POST',\r\n  header: { 'Content-Type': 'application/json', 'x-api-key': pm.variables.get('apiKey') },\r\n  body: { mode: 'raw', raw: JSON.stringify(sqlBody) }\r\n}, function (err, res) {\r\n  if (err) { console.error('Error en post-request:', err); return; }\r\n  const total = parseInt(res.json().data[0].total, 10);\r\n  console.log('usuario_id real (de la respuesta):', usuarioIdReal, '| eventos en BD:', total);\r\n\r\n  pm.test('El evento password_reset_solicitado quedó persistido en BD', function () {\r\n    pm.expect(total).to.be.above(0);\r\n  });\r\n});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const sqlBody = {\r\n  sql: \"SELECT id, email FROM qa_training.usuarios WHERE activo = $1 ORDER BY random() LIMIT 1\",\r\n  params: [true]\r\n};\r\n\r\npm.sendRequest({\r\n  url: pm.variables.get('baseUrl') + '/api/v1/sql/select',\r\n  method: 'POST',\r\n  header: { 'Content-Type': 'application/json', 'x-api-key': pm.variables.get('apiKey') },\r\n  body: { mode: 'raw', raw: JSON.stringify(sqlBody) }\r\n}, function (err, res) {\r\n  if (err) { console.error('Error en pre-request (usuario):', err); return; }\r\n  const body = res.json();\r\n  if (!body.data || body.data.length === 0) {\r\n    console.error('No se encontró usuario activo en qa_training.usuarios');\r\n    return;\r\n  }\r\n  const usuario = body.data[0];\r\n  pm.collectionVariables.set('emailRegistrado', usuario.email);\r\n  pm.collectionVariables.set('usuarioIdRegistrado', usuario.id);\r\n\r\n  const countBody = {\r\n    sql: \"SELECT COUNT(*) as total FROM qa_training.sesiones WHERE usuario_id = $1 AND tipo_evento = $2\",\r\n    params: [usuario.id, 'password_reset_solicitado']\r\n  };\r\n\r\n  pm.sendRequest({\r\n    url: pm.variables.get('baseUrl') + '/api/v1/sql/select',\r\n    method: 'POST',\r\n    header: { 'Content-Type': 'application/json', 'x-api-key': pm.variables.get('apiKey') },\r\n    body: { mode: 'raw', raw: JSON.stringify(countBody) }\r\n  }, function (err2, res2) {\r\n    if (err2) { console.error('Error en pre-request (baseline):', err2); return; }\r\n    const baseline = parseInt(res2.json().data[0].total, 10);\r\n    pm.collectionVariables.set('baselineCount', baseline);\r\n    console.log('Usuario:', usuario, '| baseline password_reset_solicitado:', baseline);\r\n  });\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{apiKey}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"email\": \"{{emailRegistrado}}\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "forgot-password"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "CP 02 - Confirmar restablecimiento de contraseña",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code es 200', function () {\r\n  pm.response.to.have.status(200);\r\n});\r\n\r\nconst respBody = pm.response.json();\r\nconst usuarioIdReal = respBody.data.usuario_id;\r\n\r\npm.test('La respuesta confirma tipo_evento password_reset_completado', function () {\r\n  pm.expect(respBody.data.tipo_evento).to.eql('password_reset_completado');\r\n});\r\n\r\nconst sqlBody = {\r\n  sql: \"SELECT COUNT(*) as total FROM qa_training.sesiones WHERE usuario_id = $1 AND tipo_evento = $2\",\r\n  params: [usuarioIdReal, 'password_reset_completado']\r\n};\r\n\r\npm.sendRequest({\r\n  url: pm.variables.get('baseUrl') + '/api/v1/sql/select',\r\n  method: 'POST',\r\n  header: { 'Content-Type': 'application/json', 'x-api-key': pm.variables.get('apiKey') },\r\n  body: { mode: 'raw', raw: JSON.stringify(sqlBody) }\r\n}, function (err, res) {\r\n  if (err) { console.error('Error en post-request:', err); return; }\r\n  const total = parseInt(res.json().data[0].total, 10);\r\n  console.log('usuario_id real (de la respuesta):', usuarioIdReal, '| eventos password_reset_completado en BD:', total);\r\n\r\n  pm.test('El evento password_reset_completado quedó persistido en BD', function () {\r\n    pm.expect(total).to.be.above(0);\r\n  });\r\n});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "let usuarioId = pm.collectionVariables.get('usuarioIdRegistrado');\r\n\r\nif (usuarioId) {\r\n  pm.collectionVariables.set('usuarioIdReset', usuarioId);\r\n  console.log('Reutilizando usuario de CP 01:', usuarioId);\r\n} else {\r\n  // Fallback: si CP 02 se corre solo, sin CP 01 antes, traemos uno nuevo\r\n  const sqlBody = {\r\n    sql: \"SELECT id, email FROM qa_training.usuarios WHERE activo = $1 ORDER BY random() LIMIT 1\",\r\n    params: [true]\r\n  };\r\n  pm.sendRequest({\r\n    url: pm.variables.get('baseUrl') + '/api/v1/sql/select',\r\n    method: 'POST',\r\n    header: { 'Content-Type': 'application/json', 'x-api-key': pm.variables.get('apiKey') },\r\n    body: { mode: 'raw', raw: JSON.stringify(sqlBody) }\r\n  }, function (err, res) {\r\n    if (err) { console.error('Error en pre-request:', err); return; }\r\n    const usuario = res.json().data[0];\r\n    pm.collectionVariables.set('usuarioIdReset', usuario.id);\r\n    console.log('Usuario nuevo (CP 02 corrido solo):', usuario);\r\n  });\r\n}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{apiKey}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"usuarioId\": {{usuarioIdReset}} }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/reset-password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "reset-password"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Mariel Aquino",
+          "item": [
+            {
+              "name": "01 - Login Exitoso (Happy Path)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Mariel: login exitoso devuelve 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Mariel: respuesta contiene usuario activo\", function () { var j = pm.response.json(); pm.expect(j.data.id).to.exist; pm.expect(j.data.email).to.eql(\"ana.torres@example.com\"); pm.expect(j.data.activo).to.eql(true); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{apiKey}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"ana.torres@example.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "02 - Recuperación Correo No Registrado (Caso Negativo)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Mariel: correo no registrado devuelve 404\", function () { pm.response.to.have.status(404); });",
+                      "pm.test(\"Mariel: respuesta contiene NOT_FOUND\", function () { var j = pm.response.json(); pm.expect(j.error.code).to.eql(\"NOT_FOUND\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{apiKey}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "forgot-password"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"no_registrado@ejemplo.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "03 - Cierre de sesion no autorizado (adaptado del token expirado)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Mariel: cierre no autorizado devuelve 401\", function () { pm.response.to.have.status(401); });",
+                      "pm.test(\"Mariel: respuesta contiene UNAUTHORIZED\", function () { var j = pm.response.json(); pm.expect(j.error.code).to.eql(\"UNAUTHORIZED\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer token_expirado_12345"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/logout",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "logout"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"usuarioId\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            }
+          ]
         }
       ]
     }
