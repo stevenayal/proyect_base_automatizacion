@@ -45,7 +45,7 @@
     },
     {
       "key": "apiKey",
-      "value": "sbx_demo_f581ca21e68a347288c94d71",
+      "value": "",
       "type": "string"
     },
     {
@@ -838,7 +838,7 @@
                   "pm.test(\"Oscar: respuesta contiene el evento de recuperacion esperado\", function () {",
                   "  var json = pm.response.json();",
                   "  pm.expect(json.data).to.have.property(\"id\");",
-                  "  pm.expect(json.data.usuario_id).to.eql(parseInt(pm.collectionVariables.get(\"oscarUsuarioId\"), 10));",
+                  "  pm.expect(parseInt(json.data.usuario_id, 10)).to.eql(parseInt(pm.collectionVariables.get(\"oscarUsuarioId\"), 10));",
                   "  pm.expect(json.data.tipo_evento).to.eql(\"password_reset_solicitado\");",
                   "  pm.expect(json.data.exitoso).to.eql(true);",
                   "});",
