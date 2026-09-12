@@ -2,7 +2,7 @@
   "name": "Grupo 01 - Autenticacion y Acceso (Semana 03)",
   "values": [
     { "key": "baseUrl", "value": "https://aiquaa-sandbox-api.vercel.app", "enabled": true },
-    { "key": "apiKey", "value": "sbx_demo_f581ca21e68a347288c94d71", "enabled": true },
+    { "key": "apiKey", "value": "", "enabled": true },
     { "key": "usuarioId", "value": "1", "enabled": true },
     { "key": "email", "value": "ana.torres@example.com", "enabled": true }
   ],
