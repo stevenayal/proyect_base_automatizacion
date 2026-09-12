@@ -1,0 +1,302 @@
+{
+  "info": {
+    "_postman_id": "6c5c9a2e-9950-4a25-b0de-f490ff81a682",
+    "name": "Grupo 01 - Autenticacion y Acceso - Oscar Benitez",
+    "description": "Coleccion Postman alineada a los escenarios BDD del Grupo 01. Valida acceso protegido sin sesion, login exitoso, acceso autenticado y login rechazado. Las credenciales y la clave publica de Supabase deben configurarse como variables locales; no se almacenan secretos en el repositorio.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - Recurso protegido sin sesion",
+      "description": "BDD: Redireccion al login al intentar acceder a un laboratorio protegido. A nivel API se valida que el servicio de identidad rechaza el acceso al perfil sin token de sesion.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"El acceso sin sesion es rechazado con 401\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "",
+              "pm.test(\"La respuesta de rechazo es JSON\", function () {",
+              "    pm.response.to.be.json;",
+              "    pm.expect(pm.response.json()).to.be.an(\"object\");",
+              "});",
+              "",
+              "pm.test(\"La respuesta informa un error de autenticacion\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.satisfy(function (body) {",
+              "        return Boolean(body.message || body.msg || body.error || body.error_description);",
+              "    });",
+              "});",
+              "",
+              "pm.test(\"Tiempo de respuesta menor a 3000 ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabaseAnonKey}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{supabaseUrl}}/auth/v1/user",
+          "host": [
+            "{{supabaseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "v1",
+            "user"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02 - Login exitoso y captura de token",
+      "description": "BDD: Login exitoso con credenciales validas. Captura access_token para los requests protegidos posteriores.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"El login exitoso devuelve 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"La respuesta contiene una sesion valida\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property(\"access_token\").that.is.a(\"string\").and.is.not.empty;",
+              "    pm.expect(jsonData).to.have.property(\"token_type\");",
+              "    pm.expect(jsonData.token_type.toLowerCase()).to.eql(\"bearer\");",
+              "    pm.expect(jsonData).to.have.property(\"user\").that.is.an(\"object\");",
+              "    pm.collectionVariables.set(\"accessToken\", jsonData.access_token);",
+              "});",
+              "",
+              "pm.test(\"El usuario autenticado coincide con el correo de prueba\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.user.email.toLowerCase()).to.eql(pm.collectionVariables.get(\"testEmail\").toLowerCase());",
+              "});",
+              "",
+              "pm.test(\"Tiempo de respuesta menor a 3000 ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabaseAnonKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"gotrue_meta_security\": {}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{supabaseUrl}}/auth/v1/token?grant_type=password",
+          "host": [
+            "{{supabaseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "v1",
+            "token"
+          ],
+          "query": [
+            {
+              "key": "grant_type",
+              "value": "password"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "03 - Acceso al recurso protegido con sesion",
+      "description": "BDD: Acceso al recurso solicitado despues de iniciar sesion. A nivel API se valida que el token obtenido permite consultar el perfil protegido.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"El recurso protegido permite el acceso con sesion\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"La respuesta contiene el usuario autenticado\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property(\"id\").that.is.a(\"string\").and.is.not.empty;",
+              "    pm.expect(jsonData).to.have.property(\"email\");",
+              "    pm.expect(jsonData.email.toLowerCase()).to.eql(pm.collectionVariables.get(\"testEmail\").toLowerCase());",
+              "});",
+              "",
+              "pm.test(\"Tiempo de respuesta menor a 3000 ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabaseAnonKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{supabaseUrl}}/auth/v1/user",
+          "host": [
+            "{{supabaseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "v1",
+            "user"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "04 - Login rechazado con credenciales invalidas",
+      "description": "BDD: Login rechazado con credenciales invalidas. Usa el correo de prueba y una contrasena incorrecta.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"El login con credenciales invalidas devuelve 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"La respuesta es JSON\", function () {",
+              "    pm.response.to.be.json;",
+              "});",
+              "",
+              "pm.test(\"La API informa credenciales invalidas\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property(\"error_code\", \"invalid_credentials\");",
+              "    pm.expect(jsonData).to.have.property(\"msg\").that.is.a(\"string\").and.is.not.empty;",
+              "});",
+              "",
+              "pm.test(\"Tiempo de respuesta menor a 3000 ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabaseAnonKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{invalidPassword}}\",\n  \"gotrue_meta_security\": {}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{supabaseUrl}}/auth/v1/token?grant_type=password",
+          "host": [
+            "{{supabaseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "v1",
+            "token"
+          ],
+          "query": [
+            {
+              "key": "grant_type",
+              "value": "password"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "supabaseUrl",
+      "value": "https://cbkctkpyxwbufvbwxogp.supabase.co",
+      "type": "string"
+    },
+    {
+      "key": "supabaseAnonKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invalidPassword",
+      "value": "contrasena-invalida-oscar",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
