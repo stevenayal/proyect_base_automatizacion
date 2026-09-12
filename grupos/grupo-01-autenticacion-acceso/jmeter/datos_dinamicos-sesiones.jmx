@@ -101,7 +101,7 @@
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">x-api-key</stringProp>
-                <stringProp name="Header.value">sbx_demo_f581ca21e68a347288c94d71</stringProp>
+                <stringProp name="Header.value">${__P(apiKey,)}</stringProp>
               </elementProp>
             </collectionProp>
           </HeaderManager>
