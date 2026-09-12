@@ -10,6 +10,7 @@
 - Mathias Olmedo - olmedomathias1208@gmail.com
 - Fabiola Fretes - fabiolafretes14@gmail.com
 - Natalia Valdez - nataliaval1912@gmail.com
+
 ## Alcance
 
 - TODO: objetivo del flujo automatizado
@@ -28,3 +29,24 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 - [ ] Evidencias en `evidence/`
 - [ ] CI/CD verde
 - [ ] PR a `main` usando la plantilla del repo
+
+## Trazabilidad BDD → API
+
+| Tipo | Escenario BDD | Endpoint AIQUAA | Resultado esperado |
+|---|---|---|---|
+| Happy Path | Registro exitoso de nuevo cliente con datos válidos | POST /api/v1/usuarios | 201 Created y se genera el ID del usuario |
+| Negativo | Registro rechazado por número de cédula inválido | POST /api/v1/usuarios | 400 Bad Request y error VALIDATION_ERROR |
+| Edge Case | Intento de registro con cédula ya existente en el sistema | POST /api/v1/usuarios | 409 Conflict y error CONFLICT |
+| Negativo | Registro rechazado por correo electrónico inválido | POST /api/v1/usuarios | 400 Bad Request y error VALIDATION_ERROR |
+| Negativo | Registro rechazado por correo electrónico ya registrado | POST /api/v1/usuarios | 409 Conflict y error CONFLICT |
+| Negativo | Registro rechazado por campos obligatorios incompletos | POST /api/v1/usuarios | 400 Bad Request y error VALIDATION_ERROR |
+| Happy Path | Consulta exitosa del listado de usuarios registrados | GET /api/v1/usuarios | 200 OK y se obtiene el listado de usuarios |
+| Happy Path | Consulta exitosa de usuarios con estado KYC pendiente | POST /api/v1/sql/select | 200 OK y se obtiene el listado de usuarios con KYC pendiente |
+
+
+### Validaciones adicionales
+
+- GET /api/v1/usuarios/{{usuarioId}} para consultar y validar el usuario creado.
+- PATCH /api/v1/usuarios/{{usuarioId}}/kyc para actualizar el estado KYC.
+- Consulta de usuarios con estado KYC pendiente.
+- Las validaciones de las respuestas se realizan mediante `pm.test()` y `pm.expect()` en Postman.
