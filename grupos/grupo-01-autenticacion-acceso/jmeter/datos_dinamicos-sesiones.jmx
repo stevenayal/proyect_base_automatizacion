@@ -2,7 +2,7 @@
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
     <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Grupo 01 - Rendimiento de Sesiones">
-      <stringProp name="TestPlan.comments">Plan grupal. CSV: Mariel Aquino. Estructura: Mariset C. Lorente. GET: Gloria Figueredo. Rendimiento y evidencias: Oscar Benitez. POST: pendiente de David Cristaldo.</stringProp>
+      <stringProp name="TestPlan.comments">Plan grupal. CSV: Mariel Aquino. Estructura: Mariset C. Lorente. GET: Gloria Figueredo. Rendimiento y evidencias: Oscar Benitez. POST: David Cristaldo.</stringProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="Variables del Grupo 01">
         <collectionProp name="Arguments.arguments">
           <elementProp name="csvPath" elementType="Argument">

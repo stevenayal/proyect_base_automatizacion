@@ -7,7 +7,7 @@ Plan grupal para probar el rendimiento de los endpoints de sesiones con datos di
 - **Mariel Aquino:** CSV `data/datos_sesiones_validado.csv`.
 - **Mariset C. Lorente:** estructura principal, configuración HTTP, variables, cabeceras, grupo de hilos, lectura del CSV y control del rate limit.
 - **Gloria Figueredo:** `GET /api/v1/sesiones` con `usuarioId` dinámico y assertions HTTP/JSON.
-- **David Cristaldo:** pendiente integrar `POST /api/v1/sesiones` y sus assertions.
+- **David Cristaldo:** `POST /api/v1/sesiones` con datos dinámicos y assertions HTTP/JSON.
 - **Oscar Benítez:** timeouts, pausa anti-429, límite de duración, resultados y guía de evidencias.
 
 ## Configuración incluida por Mariset
@@ -34,7 +34,7 @@ Plan grupal para probar el rendimiento de los endpoints de sesiones con datos di
 | `maxResponseMs` | `10000` | Duración máxima aceptada por la assertion global. |
 | `csvPath` | CSV del grupo | Ruta del archivo dinámico. |
 
-Ejemplo de validación del GET mientras el POST permanece pendiente:
+Ejemplo de ejecución del plan completo con GET y POST:
 
 ```bash
 jmeter -n \
