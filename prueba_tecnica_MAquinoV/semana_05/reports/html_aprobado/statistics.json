@@ -1,0 +1,34 @@
+{
+  "GET - Listar sesiones por usuario" : {
+    "transaction" : "GET - Listar sesiones por usuario",
+    "sampleCount" : 50,
+    "errorCount" : 0,
+    "errorPct" : 0.0,
+    "meanResTime" : 372.79999999999995,
+    "medianResTime" : 297.0,
+    "minResTime" : 257.0,
+    "maxResTime" : 1296.0,
+    "pct1ResTime" : 633.7999999999998,
+    "pct2ResTime" : 860.1499999999987,
+    "pct3ResTime" : 1296.0,
+    "throughput" : 0.34011291748860617,
+    "receivedKBytesPerSec" : 1.7795943409461943,
+    "sentKBytesPerSec" : 0.08801750306101626
+  },
+  "Total" : {
+    "transaction" : "Total",
+    "sampleCount" : 50,
+    "errorCount" : 0,
+    "errorPct" : 0.0,
+    "meanResTime" : 372.79999999999995,
+    "medianResTime" : 297.0,
+    "minResTime" : 257.0,
+    "maxResTime" : 1296.0,
+    "pct1ResTime" : 633.7999999999998,
+    "pct2ResTime" : 860.1499999999987,
+    "pct3ResTime" : 1296.0,
+    "throughput" : 0.34011291748860617,
+    "receivedKBytesPerSec" : 1.7795943409461943,
+    "sentKBytesPerSec" : 0.08801750306101626
+  }
+}
