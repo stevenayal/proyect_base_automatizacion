@@ -1,26 +1,28 @@
 import { test, expect } from '@playwright/test';
 
+async function elegirCursoDeAutomatizacion(page: import('@playwright/test').Page) {
+  await page.goto('/curso');
+  await page.getByRole('radio').first().check();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(page).toHaveURL(/\/auth\/login/);
+}
+
 test.describe('Smoke — AIQUAA', () => {
-  test('la página principal carga correctamente', async ({ page }) => {
-    const errors: string[] = [];
-    page.on('pageerror', (err) => errors.push(err.message));
+  test('la selección de curso se muestra correctamente', async ({ page }) => {
+    await page.goto('/curso');
 
-    await page.goto('/');
-
-    const title = await page.title();
-    expect(title.length).toBeGreaterThan(0);
-
-    expect(errors).toHaveLength(0);
+    await expect(page.getByRole('heading')).toBeVisible();
+    await expect(page.getByRole('button').first()).toBeVisible();
   });
 
-  test('la sección de laboratorios responde', async ({ page }) => {
-    await page.goto('/labs');
-    await expect(page).toHaveURL(/\/labs/);
+  test('un curso lleva al inicio de sesión', async ({ page }) => {
+    await elegirCursoDeAutomatizacion(page);
+    await expect(page.getByRole('textbox', { name: 'Email' })).toBeVisible();
   });
 
-  test('el login del laboratorio carga sin error', async ({ page }) => {
-    const response = await page.goto('/auth/login');
-    expect(response?.status()).toBeLessThan(400);
-    await expect(page.getByTestId('auth-login-form')).toBeVisible();
+  test('el inicio de sesión del laboratorio muestra el formulario', async ({ page }) => {
+    await elegirCursoDeAutomatizacion(page);
+    await expect(page.getByRole('textbox', { name: 'Email' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ingresar' })).toBeVisible();
   });
 });

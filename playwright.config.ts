@@ -14,7 +14,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.BASE_URL || 'https://aiquaa-sandbox-web.vercel.app/',
     trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
+    screenshot: 'on',
     video: 'retain-on-failure',
   },
 
