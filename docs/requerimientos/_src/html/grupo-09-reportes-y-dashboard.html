@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Grupo 9 — Reportes y Dashboard</title>
+<style>
+  /* El margen real que separa cabecera y pie del contenido lo define ESTE
+     @page: Chrome pagina el texto usando esta caja, y build.mjs solo puede
+     recortar/reposicionar lo que ya entra en ella — con margin:0 el texto
+     ocupa toda la altura de la página y la cabecera pisa la primera línea. */
+  @page { size: A4; margin: 25mm 18mm 18mm 18mm; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.2pt;
+    line-height: 1.5;
+    color: #16202b;
+  }
+  h1, h2, h3, h4 { color: #0b3d6b; line-height: 1.25; margin: 0; }
+  h2 {
+    font-size: 15pt;
+    margin: 22px 0 10px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #d7e3ee;
+    page-break-after: avoid;
+  }
+  h3 { font-size: 12pt; margin: 16px 0 6px; page-break-after: avoid; }
+  h4 { font-size: 10.4pt; margin: 12px 0 4px; color: #23415c; page-break-after: avoid; }
+  p { margin: 0 0 8px; }
+  ul { margin: 0 0 8px; padding-left: 18px; }
+  li { margin-bottom: 3px; }
+  code {
+    font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+    font-size: 0.88em;
+    background: #eef3f8;
+    border: 1px solid #dde6ef;
+    border-radius: 3px;
+    padding: 0 3px;
+  }
+  .tabla {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6px 0 12px;
+    font-size: 9.2pt;
+    page-break-inside: avoid;
+  }
+  .tabla th, .tabla td {
+    border: 1px solid #cfdbe6;
+    padding: 5px 7px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .tabla th { background: #eaf1f7; color: #0b3d6b; font-weight: 600; }
+  .tabla tr:nth-child(even) td { background: #f8fafc; }
+  .tabla code { background: transparent; border: 0; padding: 0; }
+
+  .portada {
+    height: 245mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    page-break-after: always;
+  }
+  .portada .logo-cover { width: 84px; height: 84px; margin-top: 20mm; object-fit: contain; }
+  .portada .bloque {
+    width: 100%;
+    max-width: 480px;
+    background: #0b3d6b;
+    color: #fff;
+    padding: 26px 28px;
+    border-radius: 6px;
+    margin-top: 16mm;
+  }
+  .portada .grupo { font-size: 11pt; letter-spacing: 3px; text-transform: uppercase; opacity: .85; }
+  .portada h1 { color: #fff; font-size: 26pt; margin: 8px 0 10px; }
+  .portada .modulo { font-size: 13pt; opacity: .92; }
+  .portada .curso { margin-top: 26px; font-size: 11pt; color: #35506b; }
+  .portada .profesor { margin-top: 4px; font-size: 10pt; color: #4a6a8a; }
+  .portada .meta { margin-top: auto; width: 100%; max-width: 480px; text-align: left; }
+  .portada .aviso {
+    margin-top: 12px;
+    font-size: 8.6pt;
+    color: #55697d;
+    border-left: 3px solid #cfdbe6;
+    padding-left: 10px;
+  }
+
+  .indice { page-break-after: always; }
+  .indice ol { padding-left: 20px; }
+  .indice li { margin-bottom: 5px; font-weight: 600; color: #0b3d6b; }
+
+  .rf {
+    border: 1px solid #cfdbe6;
+    border-left: 4px solid #0b3d6b;
+    border-radius: 4px;
+    padding: 10px 13px 4px;
+    margin: 0 0 12px;
+    page-break-inside: avoid;
+  }
+  .rf-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .rf-id { font-weight: 700; color: #0b3d6b; font-size: 10.6pt; }
+  .rf-ruta {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 8.6pt;
+    background: #eef3f8;
+    border: 1px solid #dde6ef;
+    border-radius: 3px;
+    padding: 1px 6px;
+    white-space: nowrap;
+  }
+  .rf h4 { margin-top: 8px; }
+  .nota {
+    background: #fff8e6;
+    border: 1px solid #f0dfae;
+    border-left: 4px solid #d9a520;
+    border-radius: 4px;
+    padding: 9px 12px;
+    margin: 10px 0 14px;
+    font-size: 9.4pt;
+    page-break-inside: avoid;
+  }
+  .fuente { font-size: 8.6pt; color: #5b6f83; margin-top: 2px; }
+</style>
+</head>
+<body>
+<section class="portada">
+    <img class="logo-cover" src="data:image/png;base64,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" alt="CIT">
+    <div class="bloque">
+      <div class="grupo">Grupo 9 &middot; Requerimientos funcionales</div>
+      <h1>Reportes y Dashboard</h1>
+      <div class="modulo">Módulo: Panel de control / reportes financieros</div>
+    </div>
+    <p class="curso"><strong>Curso de Automatización de Pruebas de Software</strong><br>Universidad Nacional de Asunción — CIT</p>
+    <p class="profesor">Profesor: Steven Gracia</p>
+    <div class="meta">
+      <table class="tabla">
+    <thead><tr><th>Campo</th><th>Valor</th></tr></thead>
+    <tbody><tr><td>Documento</td><td>Requerimientos funcionales — Grupo 9</td></tr><tr><td>Versión</td><td>1.0</td></tr><tr><td>Fecha</td><td>22 de agosto de 2026</td></tr><tr><td>Sistemas alcanzados</td><td>aiquaa-sandbox-api (REST) y aiquaa-sandbox-web (front)</td></tr><tr><td>Fuente de la lógica</td><td>Código fuente de ambos repositorios y scripts SQL del schema qa_training</td></tr><tr><td>Uso previsto</td><td>Base para escribir escenarios BDD/Gherkin y casos de prueba automatizados</td></tr></tbody>
+  </table>
+      <p class="aviso">Documento derivado del código fuente de aiquaa-sandbox-api y aiquaa-sandbox-web. Describe el comportamiento realmente implementado en el sandbox de práctica, no un sistema bancario productivo. El anexo normativo es material de referencia orientativo.</p>
+    </div>
+  </section>
+<section class="indice">
+    <h2>Contenido</h2>
+    <ol><li>Alcance y actores</li><li>Precondiciones y acceso</li><li>Modelo de datos del módulo</li><li>Requerimientos funcionales</li><li>Reglas transversales de la API</li><li>Flujo en la aplicación web</li><li>Criterios de aceptación</li><li>Anexo normativo (BCP / SEDECO) y brechas</li></ol>
+  </section>
+
+<h2>1. Alcance y actores</h2>
+<p>Cubre los dos reportes agregados del sandbox sobre el libro de movimientos (desglose por tipo y resumen general) y, desde la incorporación del CRUD, el alta, consulta, reemplazo y baja de movimientos individuales sobre esa misma tabla.</p>
+<p><strong>Fuera de alcance:</strong> Exportación a archivo, gráficos, comparación entre períodos, agregados sobre otras tablas (transferencias, pagos, órdenes) y reportes por moneda: los reportes leen únicamente la tabla de movimientos.</p>
+<h3>Actores</h3>
+<table class="tabla">
+    <thead><tr><th>Actor</th><th>Descripción</th></tr></thead>
+    <tbody><tr><td>Alumno / QA automatizador</td><td>Consume la API con su propia API key y automatiza escenarios BDD sobre el módulo de su grupo.</td></tr><tr><td>Usuario de negocio (fila de <code>usuarios</code>)</td><td>Identidad de dominio sobre la que operan los endpoints: es dueño de cuentas, facturas, tarjetas, órdenes, reservas, notificaciones y roles.</td></tr><tr><td>API REST (aiquaa-sandbox-api)</td><td>Ejecuta la lógica de negocio con SQL fijo bajo el rol de base de datos <code>qa_api</code> (SELECT + INSERT + UPDATE, sin DELETE).</td></tr><tr><td>Aplicación web (aiquaa-sandbox-web)</td><td>Interfaz que consume la API a través del proxy <code>/api/proxy/{path}</code>; nunca llama al backend directamente desde el navegador.</td></tr></tbody>
+  </table>
+<h3>Endpoints del módulo</h3>
+<table class="tabla">
+    <thead><tr><th>Método y ruta</th><th>Requerimiento</th><th>Descripción</th></tr></thead>
+    <tbody><tr><td>GET /api/v1/reportes/movimientos</td><td>RF-G9-01</td><td>Desglose por tipo de movimiento, con cantidad y total, filtrable por titular y por rango de fechas.</td></tr><tr><td>GET /api/v1/reportes/resumen</td><td>RF-G9-02</td><td>Resumen general: cantidad, total y fechas del primer y del último movimiento.</td></tr><tr><td>GET /api/v1/movimientos</td><td>RF-G9-03</td><td>Lista movimientos activos, opcionalmente por titular.</td></tr><tr><td>POST /api/v1/movimientos</td><td>RF-G9-04</td><td>Crea un movimiento individual.</td></tr><tr><td>GET /api/v1/movimientos/{id}</td><td>RF-G9-05</td><td>Devuelve el detalle de un movimiento.</td></tr><tr><td>PUT /api/v1/movimientos/{id}</td><td>RF-G9-06</td><td>Reemplaza un movimiento existente.</td></tr><tr><td>DELETE /api/v1/movimientos/{id}</td><td>RF-G9-07</td><td>Da de baja (soft-delete) un movimiento.</td></tr></tbody>
+  </table>
+
+<h2>2. Precondiciones y acceso</h2>
+<ul><li>Toda request a la API debe enviar el header <code>x-api-key</code> con una clave existente y con <code>active = true</code> en la tabla <code>public.api_keys</code>; sin header o con clave inválida/inactiva la respuesta es <code>401 UNAUTHORIZED</code> con el mensaje genérico &quot;Invalid or inactive API key.&quot;.</li><li>Cada API key admite un máximo de <strong>30 requests por minuto</strong> (ventana deslizante). Superado el límite la API responde <code>429 RATE_LIMITED</code> con los headers <code>Retry-After</code>, <code>X-RateLimit-Limit</code>, <code>X-RateLimit-Remaining</code> y <code>X-RateLimit-Reset</code>.</li><li>Los datos de práctica viven en el schema aislado <code>qa_training</code> y se cargan con <code>scripts/seed-data.sql</code>; la data es determinística, por lo que un escenario puede apoyarse en los registros sembrados.</li><li>La API no expone borrado físico: el rol <code>qa_api</code> no tiene permiso <code>DELETE</code> en Postgres, y todo endpoint <code>DELETE</code> de la API hace baja lógica (<code>activo = false</code>), devolviendo <code>204 No Content</code> sin cuerpo.</li><li>Casi todas las tablas de negocio (<code>sesiones</code>, <code>transferencias</code>, <code>facturas</code>, <code>tarjetas</code>, <code>notificaciones</code>, <code>ordenes</code>, <code>reservas</code>, <code>movimientos</code>, <code>roles</code>, además de <code>usuarios</code> y <code>cuentas</code> que ya la tenían) tienen columna <code>activo</code>/<code>activa</code>; todo <code>GET</code>, <code>PUT</code> y <code>DELETE</code> de esa tabla filtra u opera solo sobre filas con <code>activo = true</code> — una fila dada de baja deja de ser visible y de poder reemplazarse, pero no se borra.</li><li>En la aplicación web el acceso tiene dos capas: capa 1 la API key (pantalla <code>/login</code>, se valida contra <code>GET /api/v1/roles</code> antes de guardarse) y capa 2 el usuario de negocio (pantalla <code>/auth/login</code>). Con <code>NEXT_PUBLIC_DEMO_MODE=true</code> la capa 1 se omite y el proxy inyecta una key demo del servidor.</li><li>Las rutas <code>/usuarios/*</code> de la web son la excepción al guard de capa 2: se pueden usar solo con la API key, porque son el punto de partida para obtener un <code>usuarioId</code>.</li></ul>
+<ul><li>Los reportes se calculan sobre la tabla <code>movimientos</code>, que se carga con los datos sembrados y, desde el CRUD, también con lo que cree <code>POST /movimientos</code>.</li><li>Las fechas de los filtros se envían como texto en la URL y las interpreta la base de datos; el formato recomendado es <code>AAAA-MM-DD</code> o una marca de tiempo ISO 8601.</li><li><strong>Los dos reportes (RF-G9-01/02) no se tocaron al agregar el CRUD y no filtran por <code>activo</code>:</strong> agregan absolutamente todos los movimientos, incluidos los dados de baja con <code>DELETE /movimientos/{id}</code>. Un escenario que dé de baja un movimiento y espere verlo desaparecer del reporte fallará.</li></ul>
+
+<h2>3. Modelo de datos del módulo</h2>
+<h3>movimientos</h3>
+    <p>Libro de movimientos que atraviesa los distintos dominios del sandbox. Es la única fuente de los dos reportes.</p>
+    <table class="tabla">
+    <thead><tr><th>Columna</th><th>Tipo / restricción</th></tr></thead>
+    <tbody><tr><td><code>id</code></td><td><code>bigserial</code>, clave primaria</td></tr><tr><td><code>usuario_id</code></td><td><code>bigint</code>, obligatorio, referencia a <code>usuarios(id)</code></td></tr><tr><td><code>tipo_movimiento</code></td><td><code>text</code>, uno de <code>transferencia</code> / <code>pago_factura</code> / <code>compra_ecommerce</code> / <code>cargo_tarjeta</code></td></tr><tr><td><code>monto</code></td><td><code>numeric(14,2)</code>, obligatorio</td></tr><tr><td><code>referencia_id</code></td><td><code>bigint</code>, opcional y deliberadamente <strong>sin</strong> clave foránea: según el tipo, apunta a una transferencia, un pago, una orden o una tarjeta</td></tr><tr><td><code>descripcion</code></td><td><code>text</code>, opcional</td></tr><tr><td><code>created_at</code></td><td><code>timestamptz</code>, por defecto <code>now()</code></td></tr><tr><td><code>activo</code></td><td><code>boolean</code>, obligatorio, por defecto <code>true</code>; lo usan <code>GET</code>/<code>PUT</code>/<code>DELETE</code> del CRUD (RF-G9-03/06/07) para filtrar/operar — <strong>los reportes lo ignoran</strong></td></tr></tbody>
+  </table>
+<div class="nota">La tabla de movimientos sigue sin alimentarse automáticamente: registrar una transferencia, pagar una factura o cerrar una compra <strong>no</strong> agrega un movimiento. Con el CRUD, un movimiento puede crearse a mano con <code>POST /movimientos</code> (RF-G9-04), pero eso tampoco enlaza con la operación real: <code>referenciaId</code> es un número libre que nadie valida contra la tabla que dice referenciar.</div>
+
+<h2>4. Requerimientos funcionales</h2>
+<div class="rf">
+    <div class="rf-cab">
+      <span class="rf-id">RF-G9-01 — Reporte de movimientos por tipo</span>
+      <span class="rf-ruta">GET /api/v1/reportes/movimientos</span>
+    </div>
+    <p>Devuelve, para cada tipo de movimiento, cuántos movimientos hay y cuál es su importe acumulado, sobre el universo que definen los filtros aplicados.</p>
+    <h4>Entradas y validaciones</h4>
+    <ul><li><code>usuarioId</code> (opcional, por query): número entero positivo.</li><li><code>desde</code> (opcional, por query): fecha de inicio del período; incluye los movimientos con fecha igual o posterior.</li><li><code>hasta</code> (opcional, por query): fecha de fin del período; incluye los movimientos con fecha igual o anterior.</li></ul>
+    <h4>Reglas de negocio</h4>
+    <ul><li>Los tres filtros son opcionales y se combinan con Y lógico; sin ninguno, el reporte abarca todos los movimientos del sandbox.</li><li>El resultado agrupa por <code>tipo_movimiento</code> y devuelve una fila por tipo presente en el universo filtrado, ordenada alfabéticamente por tipo.</li><li>Un tipo de movimiento sin registros en el período <strong>no aparece</strong> con cantidad cero: simplemente no figura en el resultado.</li><li>La cantidad se devuelve como número entero y el total como valor numérico exacto (texto con decimales).</li><li><strong>Las fechas no se validan en la entrada:</strong> viajan como texto y las interpreta la base de datos. Un texto no interpretable produce un error de ejecución.</li><li>Tampoco se valida la coherencia del rango: enviar <code>desde</code> posterior a <code>hasta</code> es aceptado y devuelve un resultado vacío.</li><li>No hay límite de filas ni paginación, porque la cantidad de tipos posibles es acotada.</li><li><strong>Agrega también los movimientos dados de baja (<code>activo = false</code>)</strong> con <code>DELETE /movimientos/{id}</code>: este reporte no filtra por esa columna.</li></ul>
+    <h4>Respuesta esperada</h4>
+    <ul><li><code>200 OK</code> con <code>data</code> como arreglo de filas, cada una con <code>tipo_movimiento</code>, <code>cantidad</code> y <code>total</code>.</li><li>Si ningún movimiento cumple los filtros, <code>data</code> es un arreglo vacío.</li></ul>
+    <h4>Errores</h4>
+    <table class="tabla">
+    <thead><tr><th>Código</th><th>HTTP</th><th>Cuándo ocurre</th></tr></thead>
+    <tbody><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td><code>usuarioId</code> presente pero no numérico, cero o negativo.</td></tr><tr><td><code>EXECUTION_ERROR</code></td><td>400</td><td><code>desde</code> o <code>hasta</code> con un texto que la base no puede interpretar como fecha.</td></tr><tr><td><code>UNAUTHORIZED</code></td><td>401</td><td>Falta la API key o es inválida.</td></tr></tbody>
+  </table>
+    <p class="fuente">Fuente: <code>app/api/v1/reportes/movimientos/route.ts</code></p>
+  </div><div class="rf">
+    <div class="rf-cab">
+      <span class="rf-id">RF-G9-02 — Resumen general de movimientos</span>
+      <span class="rf-ruta">GET /api/v1/reportes/resumen</span>
+    </div>
+    <p>Devuelve los indicadores del panel de control: cuántos movimientos hay, cuánto suman, y las fechas del primero y del último.</p>
+    <h4>Entradas y validaciones</h4>
+    <ul><li><code>usuarioId</code> (opcional, por query): número entero positivo.</li></ul>
+    <h4>Reglas de negocio</h4>
+    <ul><li>Con <code>usuarioId</code>, los indicadores se calculan sobre los movimientos de ese titular; sin él, sobre todos los movimientos del sandbox.</li><li>Devuelve siempre un único objeto, nunca un arreglo.</li><li>Si no hay movimientos que cumplan el filtro, <code>cantidad_movimientos</code> es cero, <code>total</code> es cero, y las fechas del primero y del último quedan vacías.</li><li>El total se devuelve como cero (y no vacío) cuando no hay movimientos, para que el panel pueda mostrarlo sin conversiones.</li><li>Este reporte no acepta filtros de fecha: siempre abarca toda la historia del titular.</li><li><strong>Agrega también los movimientos dados de baja</strong>, por la misma razón que RF-G9-01: no filtra por <code>activo</code>.</li></ul>
+    <h4>Respuesta esperada</h4>
+    <ul><li><code>200 OK</code> con <code>data</code> conteniendo <code>cantidad_movimientos</code> (entero), <code>total</code> (numérico), <code>primero</code> (fecha del movimiento más antiguo) y <code>ultimo</code> (fecha del más reciente).</li></ul>
+    <h4>Errores</h4>
+    <table class="tabla">
+    <thead><tr><th>Código</th><th>HTTP</th><th>Cuándo ocurre</th></tr></thead>
+    <tbody><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td><code>usuarioId</code> presente pero no numérico, cero o negativo.</td></tr><tr><td><code>UNAUTHORIZED</code></td><td>401</td><td>Falta la API key o es inválida.</td></tr></tbody>
+  </table>
+    <p class="fuente">Fuente: <code>app/api/v1/reportes/resumen/route.ts</code></p>
+  </div><div class="rf">
+    <div class="rf-cab">
+      <span class="rf-id">RF-G9-03 — Listar movimientos</span>
+      <span class="rf-ruta">GET /api/v1/movimientos</span>
+    </div>
+    <p>Devuelve los movimientos individuales del sandbox, con la posibilidad de acotar el resultado a un titular. Es el recurso CRUD genérico sobre la misma tabla que agregan los reportes de arriba.</p>
+    <h4>Entradas y validaciones</h4>
+    <ul><li><code>usuarioId</code> (opcional, por query): número entero positivo.</li></ul>
+    <h4>Reglas de negocio</h4>
+    <ul><li>Devuelve únicamente movimientos con <code>activo = true</code>; uno dado de baja con RF-G9-07 deja de aparecer aquí (aunque siga contando en los reportes).</li><li>Con <code>usuarioId</code>, devuelve todos los movimientos activos de ese titular ordenados por identificador ascendente; sin filtro, los primeros 100 del sandbox.</li></ul>
+    <h4>Respuesta esperada</h4>
+    <ul><li><code>200 OK</code> con <code>data</code> como arreglo de movimientos.</li></ul>
+    <h4>Errores</h4>
+    <table class="tabla">
+    <thead><tr><th>Código</th><th>HTTP</th><th>Cuándo ocurre</th></tr></thead>
+    <tbody><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td><code>usuarioId</code> presente pero no numérico, cero o negativo.</td></tr><tr><td><code>UNAUTHORIZED</code></td><td>401</td><td>Falta la API key o es inválida.</td></tr></tbody>
+  </table>
+    <p class="fuente">Fuente: <code>app/api/v1/movimientos/route.ts</code></p>
+  </div><div class="rf">
+    <div class="rf-cab">
+      <span class="rf-id">RF-G9-04 — Crear un movimiento</span>
+      <span class="rf-ruta">POST /api/v1/movimientos</span>
+    </div>
+    <p>Registra un movimiento individual en el libro, con su tipo, importe y una referencia opcional a la operación que lo originó.</p>
+    <h4>Entradas y validaciones</h4>
+    <ul><li><code>usuarioId</code> (obligatorio): número entero positivo.</li><li><code>tipoMovimiento</code> (obligatorio): uno de <code>transferencia</code>, <code>pago_factura</code>, <code>compra_ecommerce</code>, <code>cargo_tarjeta</code>.</li><li><code>monto</code> (obligatorio): número mayor que cero.</li><li><code>referenciaId</code> (opcional): número entero positivo.</li><li><code>descripcion</code> (opcional): texto libre.</li></ul>
+    <h4>Reglas de negocio</h4>
+    <ul><li><code>referenciaId</code> <strong>no tiene clave foránea</strong>: acepta cualquier número entero positivo, exista o no como identificador en la tabla que el <code>tipoMovimiento</code> sugiere (transferencias, pagos, órdenes o tarjetas). No hay forma de que la base rechace una referencia inventada.</li><li>El titular debe existir: un <code>usuarioId</code> inexistente falla como error de ejecución por violación de clave foránea.</li><li>El movimiento creado aparece de inmediato en los reportes de RF-G9-01/02, sumando a su <code>tipo_movimiento</code>.</li></ul>
+    <h4>Respuesta esperada</h4>
+    <ul><li><code>201 Created</code> con <code>data</code> conteniendo el movimiento creado.</li></ul>
+    <h4>Errores</h4>
+    <table class="tabla">
+    <thead><tr><th>Código</th><th>HTTP</th><th>Cuándo ocurre</th></tr></thead>
+    <tbody><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td>Falta un campo obligatorio, <code>tipoMovimiento</code> tiene un valor fuera de la lista permitida, o el <code>usuarioId</code> indicado no existe.</td></tr></tbody>
+  </table>
+    <p class="fuente">Fuente: <code>app/api/v1/movimientos/route.ts</code></p>
+  </div><div class="rf">
+    <div class="rf-cab">
+      <span class="rf-id">RF-G9-05 — Consultar un movimiento</span>
+      <span class="rf-ruta">GET /api/v1/movimientos/{id}</span>
+    </div>
+    <p>Devuelve el detalle de un movimiento puntual.</p>
+    <h4>Entradas y validaciones</h4>
+    <ul><li><code>id</code> (obligatorio, en la ruta): número entero positivo.</li></ul>
+    <h4>Reglas de negocio</h4>
+    <ul><li>Devuelve el movimiento cuyo identificador coincide exactamente, siempre que siga <code>activo = true</code>.</li><li>Si no existe o ya está dado de baja, responde 404 con el mensaje &quot;Movimiento no encontrado.&quot;.</li></ul>
+    <h4>Respuesta esperada</h4>
+    <ul><li><code>200 OK</code> con <code>data</code> conteniendo el movimiento completo.</li></ul>
+    <h4>Errores</h4>
+    <table class="tabla">
+    <thead><tr><th>Código</th><th>HTTP</th><th>Cuándo ocurre</th></tr></thead>
+    <tbody><tr><td><code>NOT_FOUND</code></td><td>404</td><td>No existe un movimiento vigente con ese identificador.</td></tr><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td>El identificador no es un entero positivo.</td></tr></tbody>
+  </table>
+    <p class="fuente">Fuente: <code>app/api/v1/movimientos/[id]/route.ts</code></p>
+  </div><div class="rf">
+    <div class="rf-cab">
+      <span class="rf-id">RF-G9-06 — Reemplazar un movimiento</span>
+      <span class="rf-ruta">PUT /api/v1/movimientos/{id}</span>
+    </div>
+    <p>Reemplaza el tipo, importe, referencia y descripción de un movimiento existente.</p>
+    <h4>Entradas y validaciones</h4>
+    <ul><li><code>id</code> (obligatorio, en la ruta): número entero positivo.</li><li><code>tipoMovimiento</code> (obligatorio): uno de <code>transferencia</code>, <code>pago_factura</code>, <code>compra_ecommerce</code>, <code>cargo_tarjeta</code>.</li><li><code>monto</code> (obligatorio): número mayor que cero.</li><li><code>referenciaId</code> (opcional): número entero positivo.</li><li><code>descripcion</code> (opcional): texto libre.</li></ul>
+    <h4>Reglas de negocio</h4>
+    <ul><li>Solo puede reemplazar un movimiento con <code>activo = true</code>; uno dado de baja responde 404.</li><li><code>usuarioId</code> no forma parte del cuerpo: el titular del movimiento no puede cambiarse por este reemplazo.</li><li>El nuevo <code>monto</code> se refleja de inmediato en los reportes de RF-G9-01/02.</li></ul>
+    <h4>Respuesta esperada</h4>
+    <ul><li><code>200 OK</code> con <code>data</code> conteniendo el movimiento ya actualizado.</li></ul>
+    <h4>Errores</h4>
+    <table class="tabla">
+    <thead><tr><th>Código</th><th>HTTP</th><th>Cuándo ocurre</th></tr></thead>
+    <tbody><tr><td><code>NOT_FOUND</code></td><td>404</td><td>No existe un movimiento vigente con ese identificador.</td></tr><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td>Falta un campo obligatorio o tiene un valor fuera de la lista permitida.</td></tr></tbody>
+  </table>
+    <p class="fuente">Fuente: <code>app/api/v1/movimientos/[id]/route.ts</code></p>
+  </div><div class="rf">
+    <div class="rf-cab">
+      <span class="rf-id">RF-G9-07 — Dar de baja un movimiento</span>
+      <span class="rf-ruta">DELETE /api/v1/movimientos/{id}</span>
+    </div>
+    <p>Da de baja lógica un movimiento, quitándolo de los listados y consultas por id del CRUD. <strong>No lo quita de los reportes</strong>: RF-G9-01 y RF-G9-02 no filtran por <code>activo</code> y lo siguen sumando.</p>
+    <h4>Entradas y validaciones</h4>
+    <ul><li><code>id</code> (obligatorio, en la ruta): número entero positivo.</li></ul>
+    <h4>Reglas de negocio</h4>
+    <ul><li>Marca <code>activo = false</code>; la fila permanece en la base, nunca se borra físicamente.</li><li>Es la única baja del sandbox cuyo efecto es visible en el CRUD pero invisible en los reportes que agregan la misma tabla — una inconsistencia real, no un comportamiento a validar como correcto.</li></ul>
+    <h4>Respuesta esperada</h4>
+    <ul><li><code>204 No Content</code>, sin cuerpo.</li></ul>
+    <h4>Errores</h4>
+    <table class="tabla">
+    <thead><tr><th>Código</th><th>HTTP</th><th>Cuándo ocurre</th></tr></thead>
+    <tbody><tr><td><code>NOT_FOUND</code></td><td>404</td><td>No existe un movimiento vigente con ese identificador.</td></tr><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td>El identificador no es un entero positivo.</td></tr></tbody>
+  </table>
+    <p class="fuente">Fuente: <code>app/api/v1/movimientos/[id]/route.ts</code></p>
+  </div>
+
+<h2>5. Reglas transversales de la API</h2>
+<p>Todas las rutas REST comparten el mismo pipeline: autenticación → control de caudal → validación de entrada → ejecución del SQL fijo → auditoría. Estas reglas aplican a cada requerimiento del documento y no se repiten en cada uno.</p>
+<ul><li><strong>Envoltura de respuesta:</strong> las respuestas exitosas devuelven <code>{ &quot;data&quot;: ... }</code> y las fallidas <code>{ &quot;error&quot;: { &quot;code&quot;, &quot;message&quot;, &quot;details?&quot; } }</code>.</li><li><strong>Validación de entrada:</strong> cada ruta define un esquema; los parámetros de query, el cuerpo JSON y los parámetros de ruta se combinan en un único objeto con precedencia query &lt; body &lt; path (un <code>{id}</code> de la URL siempre gana sobre un <code>id</code> del cuerpo).</li><li><strong>Coerción de tipos:</strong> los identificadores y montos que llegan por query o por path se convierten de texto a número automáticamente; los campos numéricos de un cuerpo JSON deben enviarse como número, no como texto, salvo que el requerimiento indique lo contrario.</li><li><strong>Cuerpo JSON malformado:</strong> un cuerpo que no parsea como JSON devuelve <code>400 VALIDATION_ERROR</code> con el mensaje &quot;Invalid JSON body.&quot;.</li><li><strong>Errores de base de datos, mapeados por código SQLSTATE:</strong> una violación de unicidad (<code>23505</code>, ej. un email o número de factura repetido) se traduce a <code>409 CONFLICT</code>; una violación de clave foránea o de restricción <code>CHECK</code> (<code>23503</code>/<code>23514</code>) se traduce a <code>400 VALIDATION_ERROR</code>; cualquier otro error de base de datos cae en <code>400 EXECUTION_ERROR</code>.</li><li><strong><code>DELETE</code> es siempre baja lógica:</strong> actualiza <code>activo = false</code> (o <code>activa</code> en <code>cuentas</code>) y responde <code>204 No Content</code> <strong>sin cuerpo</strong> — no <code>200</code> con la fila afectada.</li><li><strong>Verbo no soportado:</strong> una ruta que no define el método HTTP usado responde <code>405 Method Not Allowed</code>; lo genera Next.js automáticamente, ninguna ruta lo arma a mano, y su cuerpo no sigue la envoltura <code>{ error }</code> del resto de la API.</li><li><strong>Auditoría:</strong> toda request, exitosa o fallida, deja un registro en <code>public.sql_audit_log</code> con la clave usada, el método y la ruta, la entrada validada, el resultado y la IP de origen. Un fallo de auditoría nunca convierte una respuesta exitosa en error.</li><li><strong>Idempotencia de las transiciones de estado:</strong> los endpoints que fijan un estado (<code>bloquear</code>, <code>activar</code>, <code>confirmar</code>, <code>cancelar</code>, <code>leer</code>) escriben el valor destino sin verificar el estado previo, por lo que repetir la llamada devuelve el mismo resultado.</li><li><strong>Las transiciones de estado anteriores al CRUD no miran <code>activo</code>:</strong> <code>PATCH .../bloquear</code>, <code>.../activar</code>, <code>.../leer</code>, <code>.../confirmar</code>, <code>.../cancelar</code>, <code>.../kyc</code> y <code>POST .../pagar</code> no filtran por <code>activo = true</code> (ninguno de esos archivos se tocó al agregar el CRUD). Un recurso dado de baja con el nuevo <code>DELETE</code> deja de aparecer en <code>GET</code>, pero <strong>sigue pudiendo bloquearse, confirmarse, leerse o pagarse</strong> a través de su acción dedicada — una inconsistencia real del sandbox, no un comportamiento a asumir como intencional.</li></ul>
+<h3>Códigos de éxito</h3>
+<table class="tabla">
+    <thead><tr><th>Status</th><th>Cuándo ocurre</th></tr></thead>
+    <tbody><tr><td><code>200 OK</code></td><td>GET/PUT/PATCH exitoso; también un POST de upsert que reactivó una fila existente en vez de crearla.</td></tr><tr><td><code>201 Created</code></td><td>POST que crea una fila nueva.</td></tr><tr><td><code>204 No Content</code></td><td>DELETE exitoso (baja lógica) — la respuesta no lleva cuerpo.</td></tr></tbody>
+  </table>
+<h3>Códigos de error</h3>
+<table class="tabla">
+    <thead><tr><th>Código</th><th>HTTP</th><th>Significado</th></tr></thead>
+    <tbody><tr><td><code>UNAUTHORIZED</code></td><td>401</td><td>Falta el header <code>x-api-key</code>, o la clave no existe o está inactiva.</td></tr><tr><td><code>RATE_LIMITED</code></td><td>429</td><td>Se superaron las 30 requests por minuto de esa API key.</td></tr><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td>La entrada no cumple el esquema de la ruta, el JSON es inválido, o Postgres rechazó una clave foránea/CHECK.</td></tr><tr><td><code>EXECUTION_ERROR</code></td><td>400</td><td>La consulta falló en la base de datos por un motivo no cubierto por los códigos anteriores.</td></tr><tr><td><code>NOT_FOUND</code></td><td>404</td><td>El recurso indicado no existe, ya está dado de baja (<code>activo=false</code>), o no está en un estado que admita la operación.</td></tr><tr><td><code>CONFLICT</code></td><td>409</td><td>Violación de restricción <code>UNIQUE</code> en Postgres (ej. email, número de factura o nombre de rol duplicado).</td></tr><tr><td><code>INTERNAL_ERROR</code></td><td>500</td><td>Fallo inesperado del servidor (por ejemplo, no se pudo verificar la API key).</td></tr></tbody>
+  </table>
+
+<h2>6. Flujo en la aplicación web</h2>
+<p>La aplicación web consume exactamente los mismos endpoints a través del proxy <code>/api/proxy/{path}</code>, que agrega la API key del lado del servidor y reenvía los headers de límite de caudal. El menú de navegación muestra únicamente los módulos del grupo del alumno cuando su email figura en el roster del curso; si no figura, muestra los diez módulos. Los errores de la API se muestran en pantalla con el mensaje que devolvió el backend, y un <code>401</code> cierra la sesión local. <strong>La interfaz web todavía no tiene pantallas para <code>PUT</code>/<code>DELETE</code> ni para los recursos nuevos (<code>sesiones</code>, <code>movimientos</code>)</strong>: solo cubre los flujos de creación y consulta que ya existían; esos requerimientos se prueban llamando la API directamente (Postman, <code>curl</code>, o el cliente HTTP del framework de automatización), no navegando la web.</p>
+<table class="tabla">
+    <thead><tr><th>Pantalla</th><th>Qué permite hacer</th></tr></thead>
+    <tbody><tr><td><code>/reportes</code> — Panel de control</td><td>Una sola pantalla con filtros de titular, fecha desde y fecha hasta, la tarjeta de indicadores del resumen y la tabla del desglose por tipo de movimiento. Ejecuta RF-G9-01 y RF-G9-02.</td></tr></tbody>
+  </table>
+<ul><li>Los filtros de fecha aplican solo al desglose por tipo: el resumen general no los usa, porque el endpoint no los acepta.</li><li>Con filtros que no arrojan resultados, la pantalla muestra el estado vacío en lugar de una tabla sin filas.</li><li>No hay pantalla para el CRUD de movimientos: <code>GET</code>/<code>POST /movimientos</code> y <code>GET</code>/<code>PUT</code>/<code>DELETE /movimientos/{id}</code> (RF-G9-03 a 07) solo se pueden ejercitar llamando la API directamente.</li></ul>
+
+<h2>7. Criterios de aceptación</h2>
+<p>Criterios de aceptación redactados en prosa, uno o más por requerimiento, cubriendo el camino feliz y los caminos negativos. Son la base para derivar escenarios BDD.</p>
+<h3>RF-G9-01 — Reporte de movimientos por tipo</h3><ul><li>Al pedir el reporte sin filtros, la respuesta es 200 y cada elemento de <code>data</code> tiene <code>tipo_movimiento</code>, <code>cantidad</code> y <code>total</code>.</li><li>Los tipos devueltos están ordenados alfabéticamente y no se repiten.</li><li>Al filtrar por un titular, la suma de las cantidades del reporte coincide con la cantidad de movimientos de ese titular.</li><li>Al acotar el período a un rango sin movimientos, la respuesta es 200 con <code>data</code> vacío.</li><li>Al enviar <code>desde</code> posterior a <code>hasta</code>, la respuesta es 200 con <code>data</code> vacío, no un error.</li><li>Al enviar <code>desde=ayer</code>, la respuesta es 400 <code>EXECUTION_ERROR</code>, porque la validación de fechas la hace la base de datos.</li><li>Registrar una transferencia nueva no cambia el resultado del reporte: el libro de movimientos no se alimenta automáticamente.</li><li>Dar de baja un movimiento con RF-G9-07 <strong>no</strong> lo saca de este reporte: sigue sumando en su <code>tipo_movimiento</code>.</li></ul><h3>RF-G9-02 — Resumen general de movimientos</h3><ul><li>Al pedir el resumen sin filtro, la respuesta es 200 y <code>data</code> es un objeto con las cuatro propiedades del indicador.</li><li>Al pedir el resumen de un titular con movimientos, <code>data.cantidad_movimientos</code> coincide con la suma de las cantidades del reporte por tipo del mismo titular.</li><li>Al pedir el resumen de un titular sin movimientos, la respuesta es 200 con <code>cantidad_movimientos</code> en cero, <code>total</code> en cero y las fechas vacías.</li><li>La fecha de <code>primero</code> nunca es posterior a la de <code>ultimo</code>.</li><li>Al enviar <code>usuarioId=0</code>, la respuesta es 400 <code>VALIDATION_ERROR</code>.</li></ul><h3>RF-G9-03 — Listar movimientos</h3><ul><li>Al listar movimientos filtrando por un titular, todos los elementos devueltos tienen ese <code>usuario_id</code>.</li><li>Un movimiento dado de baja con RF-G9-07 deja de aparecer en este listado, aunque siga sumando en RF-G9-01/02.</li></ul><h3>RF-G9-04 — Crear un movimiento</h3><ul><li>Al crear un movimiento con datos válidos, la respuesta es 201 y el movimiento aparece en el listado de RF-G9-03.</li><li>Tras crearlo, el reporte de RF-G9-01 filtrado por ese titular incluye el nuevo movimiento en su <code>tipo_movimiento</code>.</li><li>Al crear con un <code>referenciaId</code> que no corresponde a ninguna fila real, la operación es aceptada igual: no hay validación cruzada.</li><li>Al crear con <code>tipoMovimiento=deposito</code>, la respuesta es 400 <code>VALIDATION_ERROR</code>.</li><li>Al crear para un <code>usuarioId</code> inexistente, la respuesta es 400 <code>VALIDATION_ERROR</code>.</li></ul><h3>RF-G9-05 — Consultar un movimiento</h3><ul><li>Dado un movimiento creado con RF-G9-04, al consultarlo por su <code>id</code> la respuesta es 200 y los datos coinciden con los enviados.</li><li>Al consultar un movimiento inexistente o dado de baja, la respuesta es 404 <code>NOT_FOUND</code>.</li></ul><h3>RF-G9-06 — Reemplazar un movimiento</h3><ul><li>Dado un movimiento existente, al reemplazar su <code>monto</code> la respuesta es 200 y el reporte de RF-G9-01 refleja el nuevo importe.</li><li>Al reemplazar un movimiento inexistente o dado de baja, la respuesta es 404 <code>NOT_FOUND</code>.</li></ul><h3>RF-G9-07 — Dar de baja un movimiento</h3><ul><li>Dado un movimiento vigente, al darlo de baja la respuesta es 204 sin cuerpo.</li><li>Tras la baja, <code>GET /movimientos/{id}</code> responde 404 y el movimiento deja de aparecer en RF-G9-03.</li><li>Tras la baja, el mismo movimiento <strong>sigue sumando</strong> en el reporte de RF-G9-01 y en el resumen de RF-G9-02 para ese titular.</li></ul>
+
+<h2>8. Anexo normativo (BCP / SEDECO) y brechas</h2>
+<div class="nota">Este anexo es material de referencia orientativo para dar contexto de negocio a los escenarios de prueba. Las normas citadas del Banco Central del Paraguay (BCP) y de la Secretaría de Defensa del Consumidor y el Usuario (SEDECO) se mencionan de forma general y deben validarse con su texto vigente antes de usarse como criterio de cumplimiento. El sandbox es un entorno didáctico y no pretende cumplir ninguna de ellas.</div>
+<table class="tabla">
+    <thead><tr><th>Referencia normativa</th><th>Expectativa</th><th>Estado en el sandbox</th></tr></thead>
+    <tbody><tr><td>Marco del BCP sobre información de operaciones al cliente</td><td>El cliente debe poder consultar el detalle y el resumen de sus operaciones por período.</td><td>Parcial: existe el desglose y el resumen, pero el resumen no admite acotar el período y el detalle operación por operación no se expone.</td></tr><tr><td>Ley 1334/98 de Defensa del Consumidor (SEDECO), derecho a la información</td><td>La información debe ser cierta, clara y suficiente para que el consumidor entienda su actividad.</td><td>Parcial: los indicadores son claros, pero el libro de movimientos no refleja automáticamente las operaciones que el propio usuario realiza en el sandbox, y un movimiento dado de baja sigue apareciendo en los totales.</td></tr><tr><td>Integridad y trazabilidad de la información contable</td><td>Los agregados deben poder reconciliarse contra los registros de origen que los componen, y una baja debe excluirse de los totales.</td><td>No implementado: <code>referencia_id</code> no tiene clave foránea, no hay endpoint que permita ir del movimiento a la operación que lo originó, y dar de baja un movimiento no lo excluye de los reportes que lo agregan.</td></tr><tr><td>Ley 6534/2020 de protección de datos personales</td><td>Los reportes de un titular solo deben ser accesibles para ese titular.</td><td>No implementado: sin filtro, los reportes agregan la actividad de todos los titulares del sandbox.</td></tr><tr><td>Presentación de importes en moneda</td><td>Los totales deben expresarse indicando la moneda a la que corresponden.</td><td>No implementado: <code>movimientos</code> no tiene columna de moneda; los totales suman importes sin distinguirla.</td></tr></tbody>
+  </table>
+<h3>Brechas conocidas del sandbox</h3>
+<ul><li>El libro de movimientos sigue sin alimentarse automáticamente con las operaciones del sandbox: transferencias, pagos y órdenes no generan movimientos por sí solas.</li><li><strong>Los reportes (RF-G9-01/02) no filtran por <code>activo</code>: un movimiento dado de baja con <code>DELETE /movimientos/{id}</code> desaparece del CRUD pero sigue sumando en ambos reportes.</strong> Es la inconsistencia más notable introducida por el CRUD y la más fácil de pasar por alto al automatizar escenarios.</li><li><code>referenciaId</code> no tiene clave foránea ni en el reporte ni en el CRUD: acepta cualquier número, exista o no la fila referenciada.</li><li>Los filtros de fecha de los reportes no se validan en la entrada; un texto inválido llega hasta la base y se reporta como error de ejecución.</li><li>El resumen no acepta rango de fechas, por lo que no puede compararse un período contra otro.</li><li>Un tipo de movimiento sin registros no aparece con cantidad cero, lo que obliga al consumidor del reporte a completar los faltantes.</li><li>No hay columna de moneda: los importes se suman sin distinguirla.</li><li>No hay exportación ni paginación en los reportes.</li></ul>
+</body>
+</html>

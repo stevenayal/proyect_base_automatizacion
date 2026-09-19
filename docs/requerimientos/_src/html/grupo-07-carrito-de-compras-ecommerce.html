@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Grupo 7 — Carrito de Compras / E-commerce</title>
+<style>
+  /* El margen real que separa cabecera y pie del contenido lo define ESTE
+     @page: Chrome pagina el texto usando esta caja, y build.mjs solo puede
+     recortar/reposicionar lo que ya entra en ella — con margin:0 el texto
+     ocupa toda la altura de la página y la cabecera pisa la primera línea. */
+  @page { size: A4; margin: 25mm 18mm 18mm 18mm; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.2pt;
+    line-height: 1.5;
+    color: #16202b;
+  }
+  h1, h2, h3, h4 { color: #0b3d6b; line-height: 1.25; margin: 0; }
+  h2 {
+    font-size: 15pt;
+    margin: 22px 0 10px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #d7e3ee;
+    page-break-after: avoid;
+  }
+  h3 { font-size: 12pt; margin: 16px 0 6px; page-break-after: avoid; }
+  h4 { font-size: 10.4pt; margin: 12px 0 4px; color: #23415c; page-break-after: avoid; }
+  p { margin: 0 0 8px; }
+  ul { margin: 0 0 8px; padding-left: 18px; }
+  li { margin-bottom: 3px; }
+  code {
+    font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+    font-size: 0.88em;
+    background: #eef3f8;
+    border: 1px solid #dde6ef;
+    border-radius: 3px;
+    padding: 0 3px;
+  }
+  .tabla {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6px 0 12px;
+    font-size: 9.2pt;
+    page-break-inside: avoid;
+  }
+  .tabla th, .tabla td {
+    border: 1px solid #cfdbe6;
+    padding: 5px 7px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .tabla th { background: #eaf1f7; color: #0b3d6b; font-weight: 600; }
+  .tabla tr:nth-child(even) td { background: #f8fafc; }
+  .tabla code { background: transparent; border: 0; padding: 0; }
+
+  .portada {
+    height: 245mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    page-break-after: always;
+  }
+  .portada .logo-cover { width: 84px; height: 84px; margin-top: 20mm; object-fit: contain; }
+  .portada .bloque {
+    width: 100%;
+    max-width: 480px;
+    background: #0b3d6b;
+    color: #fff;
+    padding: 26px 28px;
+    border-radius: 6px;
+    margin-top: 16mm;
+  }
+  .portada .grupo { font-size: 11pt; letter-spacing: 3px; text-transform: uppercase; opacity: .85; }
+  .portada h1 { color: #fff; font-size: 26pt; margin: 8px 0 10px; }
+  .portada .modulo { font-size: 13pt; opacity: .92; }
+  .portada .curso { margin-top: 26px; font-size: 11pt; color: #35506b; }
+  .portada .profesor { margin-top: 4px; font-size: 10pt; color: #4a6a8a; }
+  .portada .meta { margin-top: auto; width: 100%; max-width: 480px; text-align: left; }
+  .portada .aviso {
+    margin-top: 12px;
+    font-size: 8.6pt;
+    color: #55697d;
+    border-left: 3px solid #cfdbe6;
+    padding-left: 10px;
+  }
+
+  .indice { page-break-after: always; }
+  .indice ol { padding-left: 20px; }
+  .indice li { margin-bottom: 5px; font-weight: 600; color: #0b3d6b; }
+
+  .rf {
+    border: 1px solid #cfdbe6;
+    border-left: 4px solid #0b3d6b;
+    border-radius: 4px;
+    padding: 10px 13px 4px;
+    margin: 0 0 12px;
+    page-break-inside: avoid;
+  }
+  .rf-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .rf-id { font-weight: 700; color: #0b3d6b; font-size: 10.6pt; }
+  .rf-ruta {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 8.6pt;
+    background: #eef3f8;
+    border: 1px solid #dde6ef;
+    border-radius: 3px;
+    padding: 1px 6px;
+    white-space: nowrap;
+  }
+  .rf h4 { margin-top: 8px; }
+  .nota {
+    background: #fff8e6;
+    border: 1px solid #f0dfae;
+    border-left: 4px solid #d9a520;
+    border-radius: 4px;
+    padding: 9px 12px;
+    margin: 10px 0 14px;
+    font-size: 9.4pt;
+    page-break-inside: avoid;
+  }
+  .fuente { font-size: 8.6pt; color: #5b6f83; margin-top: 2px; }
+</style>
+</head>
+<body>
+<section class="portada">
+    <img class="logo-cover" src="data:image/png;base64,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" alt="CIT">
+    <div class="bloque">
+      <div class="grupo">Grupo 7 &middot; Requerimientos funcionales</div>
+      <h1>Carrito de Compras / E-commerce</h1>
+      <div class="modulo">Módulo: Checkout de un e-commerce</div>
+    </div>
+    <p class="curso"><strong>Curso de Automatización de Pruebas de Software</strong><br>Universidad Nacional de Asunción — CIT</p>
+    <p class="profesor">Profesor: Steven Gracia</p>
+    <div class="meta">
+      <table class="tabla">
+    <thead><tr><th>Campo</th><th>Valor</th></tr></thead>
+    <tbody><tr><td>Documento</td><td>Requerimientos funcionales — Grupo 7</td></tr><tr><td>Versión</td><td>1.0</td></tr><tr><td>Fecha</td><td>22 de agosto de 2026</td></tr><tr><td>Sistemas alcanzados</td><td>aiquaa-sandbox-api (REST) y aiquaa-sandbox-web (front)</td></tr><tr><td>Fuente de la lógica</td><td>Código fuente de ambos repositorios y scripts SQL del schema qa_training</td></tr><tr><td>Uso previsto</td><td>Base para escribir escenarios BDD/Gherkin y casos de prueba automatizados</td></tr></tbody>
+  </table>
+      <p class="aviso">Documento derivado del código fuente de aiquaa-sandbox-api y aiquaa-sandbox-web. Describe el comportamiento realmente implementado en el sandbox de práctica, no un sistema bancario productivo. El anexo normativo es material de referencia orientativo.</p>
+    </div>
+  </section>
+<section class="indice">
+    <h2>Contenido</h2>
+    <ol><li>Alcance y actores</li><li>Precondiciones y acceso</li><li>Modelo de datos del módulo</li><li>Requerimientos funcionales</li><li>Reglas transversales de la API</li><li>Flujo en la aplicación web</li><li>Criterios de aceptación</li><li>Anexo normativo (BCP / SEDECO) y brechas</li></ol>
+  </section>
+
+<h2>1. Alcance y actores</h2>
+<p>Cubre el cierre de compra: la creación de una orden a partir de un conjunto de ítems, el cálculo del importe total del lado del servidor y la consulta de la orden con su detalle. La orden y sus ítems se escriben dentro de una misma transacción.</p>
+<p><strong>Fuera de alcance:</strong> Catálogo de productos, control de existencias, carrito persistente antes del cierre, cupones y descuentos, costos de envío, cobro del importe y cambios de estado posteriores de la orden.</p>
+<h3>Actores</h3>
+<table class="tabla">
+    <thead><tr><th>Actor</th><th>Descripción</th></tr></thead>
+    <tbody><tr><td>Alumno / QA automatizador</td><td>Consume la API con su propia API key y automatiza escenarios BDD sobre el módulo de su grupo.</td></tr><tr><td>Usuario de negocio (fila de <code>usuarios</code>)</td><td>Identidad de dominio sobre la que operan los endpoints: es dueño de cuentas, facturas, tarjetas, órdenes, reservas, notificaciones y roles.</td></tr><tr><td>API REST (aiquaa-sandbox-api)</td><td>Ejecuta la lógica de negocio con SQL fijo bajo el rol de base de datos <code>qa_api</code> (SELECT + INSERT + UPDATE, sin DELETE).</td></tr><tr><td>Aplicación web (aiquaa-sandbox-web)</td><td>Interfaz que consume la API a través del proxy <code>/api/proxy/{path}</code>; nunca llama al backend directamente desde el navegador.</td></tr></tbody>
+  </table>
+<h3>Endpoints del módulo</h3>
+<table class="tabla">
+    <thead><tr><th>Método y ruta</th><th>Requerimiento</th><th>Descripción</th></tr></thead>
+    <tbody><tr><td>GET /api/v1/ordenes</td><td>RF-G7-01</td><td>Lista órdenes activas, opcionalmente filtradas por comprador.</td></tr><tr><td>POST /api/v1/ordenes</td><td>RF-G7-02</td><td>Cierra la compra: crea la orden con sus ítems.</td></tr><tr><td>GET /api/v1/ordenes/{id}</td><td>RF-G7-03</td><td>Devuelve una orden con el detalle de sus ítems.</td></tr><tr><td>PUT /api/v1/ordenes/{id}</td><td>RF-G7-04</td><td>Recalcula producto/monto de la orden a partir de ítems (no toca <code>items_orden</code>).</td></tr><tr><td>DELETE /api/v1/ordenes/{id}</td><td>RF-G7-05</td><td>Da de baja (soft-delete) una orden.</td></tr></tbody>
+  </table>
+
+<h2>2. Precondiciones y acceso</h2>
+<ul><li>Toda request a la API debe enviar el header <code>x-api-key</code> con una clave existente y con <code>active = true</code> en la tabla <code>public.api_keys</code>; sin header o con clave inválida/inactiva la respuesta es <code>401 UNAUTHORIZED</code> con el mensaje genérico &quot;Invalid or inactive API key.&quot;.</li><li>Cada API key admite un máximo de <strong>30 requests por minuto</strong> (ventana deslizante). Superado el límite la API responde <code>429 RATE_LIMITED</code> con los headers <code>Retry-After</code>, <code>X-RateLimit-Limit</code>, <code>X-RateLimit-Remaining</code> y <code>X-RateLimit-Reset</code>.</li><li>Los datos de práctica viven en el schema aislado <code>qa_training</code> y se cargan con <code>scripts/seed-data.sql</code>; la data es determinística, por lo que un escenario puede apoyarse en los registros sembrados.</li><li>La API no expone borrado físico: el rol <code>qa_api</code> no tiene permiso <code>DELETE</code> en Postgres, y todo endpoint <code>DELETE</code> de la API hace baja lógica (<code>activo = false</code>), devolviendo <code>204 No Content</code> sin cuerpo.</li><li>Casi todas las tablas de negocio (<code>sesiones</code>, <code>transferencias</code>, <code>facturas</code>, <code>tarjetas</code>, <code>notificaciones</code>, <code>ordenes</code>, <code>reservas</code>, <code>movimientos</code>, <code>roles</code>, además de <code>usuarios</code> y <code>cuentas</code> que ya la tenían) tienen columna <code>activo</code>/<code>activa</code>; todo <code>GET</code>, <code>PUT</code> y <code>DELETE</code> de esa tabla filtra u opera solo sobre filas con <code>activo = true</code> — una fila dada de baja deja de ser visible y de poder reemplazarse, pero no se borra.</li><li>En la aplicación web el acceso tiene dos capas: capa 1 la API key (pantalla <code>/login</code>, se valida contra <code>GET /api/v1/roles</code> antes de guardarse) y capa 2 el usuario de negocio (pantalla <code>/auth/login</code>). Con <code>NEXT_PUBLIC_DEMO_MODE=true</code> la capa 1 se omite y el proxy inyecta una key demo del servidor.</li><li>Las rutas <code>/usuarios/*</code> de la web son la excepción al guard de capa 2: se pueden usar solo con la API key, porque son el punto de partida para obtener un <code>usuarioId</code>.</li></ul>
+<ul><li>El cierre de compra requiere un comprador existente; el <code>usuarioId</code> se obtiene del alta de cliente (RF-G4-01) o de los datos sembrados.</li><li>Los importes de los ítems deben enviarse como números en el cuerpo JSON, no como texto entre comillas: este endpoint no convierte textos numéricos.</li></ul>
+
+<h2>3. Modelo de datos del módulo</h2>
+<h3>ordenes</h3>
+    <p>Cabecera de la compra: comprador, producto representativo, importe total y estado.</p>
+    <table class="tabla">
+    <thead><tr><th>Columna</th><th>Tipo / restricción</th></tr></thead>
+    <tbody><tr><td><code>id</code></td><td><code>bigserial</code>, clave primaria</td></tr><tr><td><code>usuario_id</code></td><td><code>bigint</code>, obligatorio, referencia a <code>usuarios(id)</code></td></tr><tr><td><code>producto</code></td><td><code>text</code>, obligatorio; la API guarda el producto del primer ítem</td></tr><tr><td><code>monto</code></td><td><code>numeric(10,2)</code>, obligatorio; lo calcula el servidor</td></tr><tr><td><code>estado</code></td><td><code>text</code>, uno de <code>pendiente</code> / <code>pagada</code> / <code>enviada</code> / <code>cancelada</code>; por defecto <code>pendiente</code></td></tr><tr><td><code>created_at</code></td><td><code>timestamptz</code>, por defecto <code>now()</code></td></tr><tr><td><code>activo</code></td><td><code>boolean</code>, obligatorio, por defecto <code>true</code>; lo usan <code>GET</code>/<code>PUT</code>/<code>DELETE</code> para filtrar/operar</td></tr></tbody>
+  </table><h3>items_orden</h3>
+    <p>Detalle de la compra: una fila por producto comprado.</p>
+    <table class="tabla">
+    <thead><tr><th>Columna</th><th>Tipo / restricción</th></tr></thead>
+    <tbody><tr><td><code>id</code></td><td><code>bigserial</code>, clave primaria</td></tr><tr><td><code>orden_id</code></td><td><code>bigint</code>, obligatorio, referencia a <code>ordenes(id)</code></td></tr><tr><td><code>producto</code></td><td><code>text</code>, obligatorio</td></tr><tr><td><code>cantidad</code></td><td><code>integer</code>, obligatorio, la base exige que sea mayor que cero</td></tr><tr><td><code>precio_unitario</code></td><td><code>numeric(10,2)</code>, obligatorio</td></tr><tr><td><code>subtotal</code></td><td><code>numeric(10,2)</code>, obligatorio; lo calcula el servidor</td></tr><tr><td><code>created_at</code></td><td><code>timestamptz</code>, por defecto <code>now()</code></td></tr></tbody>
+  </table>
+<div class="nota">El importe total de la orden y el subtotal de cada ítem los calcula el servidor a partir de la cantidad y el precio unitario recibidos. Un total enviado por el cliente sería ignorado: no existe ese campo en la entrada.</div>
+
+<h2>4. Requerimientos funcionales</h2>
+<div class="rf">
+    <div class="rf-cab">
+      <span class="rf-id">RF-G7-01 — Listar órdenes</span>
+      <span class="rf-ruta">GET /api/v1/ordenes</span>
+    </div>
+    <p>Devuelve las órdenes del sandbox, con la posibilidad de acotar el resultado a un comprador determinado. La lista no incluye el detalle de ítems.</p>
+    <h4>Entradas y validaciones</h4>
+    <ul><li><code>usuarioId</code> (opcional, por query): número entero positivo.</li></ul>
+    <h4>Reglas de negocio</h4>
+    <ul><li>Devuelve únicamente órdenes con <code>activo = true</code>; una dada de baja con RF-G7-05 deja de aparecer.</li><li>Con <code>usuarioId</code>, devuelve todas las órdenes de ese comprador ordenadas por identificador ascendente.</li><li>Sin <code>usuarioId</code>, devuelve las primeras 100 órdenes del sandbox.</li><li>La respuesta contiene solo las cabeceras: para ver los ítems hay que consultar la orden puntual (RF-G7-03).</li><li>Un comprador sin órdenes devuelve una lista vacía.</li></ul>
+    <h4>Respuesta esperada</h4>
+    <ul><li><code>200 OK</code> con <code>data</code> como arreglo de órdenes, cada una con <code>id</code>, <code>usuario_id</code>, <code>producto</code>, <code>monto</code>, <code>estado</code> y <code>created_at</code>.</li></ul>
+    <h4>Errores</h4>
+    <table class="tabla">
+    <thead><tr><th>Código</th><th>HTTP</th><th>Cuándo ocurre</th></tr></thead>
+    <tbody><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td><code>usuarioId</code> presente pero no numérico, cero o negativo.</td></tr><tr><td><code>UNAUTHORIZED</code></td><td>401</td><td>Falta la API key o es inválida.</td></tr></tbody>
+  </table>
+    <p class="fuente">Fuente: <code>app/api/v1/ordenes/route.ts</code></p>
+  </div><div class="rf">
+    <div class="rf-cab">
+      <span class="rf-id">RF-G7-02 — Cerrar la compra (checkout)</span>
+      <span class="rf-ruta">POST /api/v1/ordenes</span>
+    </div>
+    <p>Crea una orden a partir de la lista de ítems comprados. El sistema calcula los subtotales y el importe total, y guarda la cabecera y el detalle en una sola operación indivisible.</p>
+    <h4>Entradas y validaciones</h4>
+    <ul><li><code>usuarioId</code> (obligatorio): número entero positivo del comprador.</li><li><code>items</code> (obligatorio): arreglo con al menos un elemento.</li><li><code>items[].producto</code> (obligatorio): texto no vacío.</li><li><code>items[].cantidad</code> (obligatorio): número entero mayor que cero, enviado como número.</li><li><code>items[].precioUnitario</code> (obligatorio): número mayor que cero, enviado como número.</li></ul>
+    <h4>Reglas de negocio</h4>
+    <ul><li>El subtotal de cada ítem se calcula como cantidad por precio unitario; el cliente no lo envía.</li><li>El importe total de la orden es la suma de los subtotales de todos los ítems: <strong>nunca se confía en un total enviado por el cliente</strong>.</li><li>El campo <code>producto</code> de la cabecera se completa con el producto del primer ítem del arreglo, como resumen de la compra.</li><li>La orden se crea siempre con <code>estado = 'pendiente'</code>.</li><li>La cabecera y todos los ítems se escriben dentro de una misma transacción: si falla la inserción de un ítem, tampoco queda la orden.</li><li>Una compra sin ítems es rechazada: el arreglo debe tener al menos un elemento.</li><li>Cantidad y precio unitario deben ser números en el cuerpo JSON; enviados como texto entrecomillado, la compra se rechaza por validación.</li><li><strong>No hay control de existencias, ni catálogo, ni precios de referencia:</strong> el producto es texto libre y el precio lo fija quien compra.</li><li>El cierre de compra no cobra el importe ni descuenta saldo de ninguna cuenta o tarjeta.</li></ul>
+    <h4>Respuesta esperada</h4>
+    <ul><li><code>201 Created</code> con <code>data</code> conteniendo la orden creada y, dentro de la propiedad <code>items</code>, cada ítem con su <code>subtotal</code> ya calculado.</li></ul>
+    <h4>Errores</h4>
+    <table class="tabla">
+    <thead><tr><th>Código</th><th>HTTP</th><th>Cuándo ocurre</th></tr></thead>
+    <tbody><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td>Falta <code>usuarioId</code>, el arreglo de ítems está vacío o ausente, un ítem tiene cantidad o precio no positivos o enviados como texto, o el comprador indicado no existe.</td></tr><tr><td><code>EXECUTION_ERROR</code></td><td>400</td><td>El importe total supera la capacidad numérica del campo <code>monto</code>.</td></tr></tbody>
+  </table>
+    <p class="fuente">Fuente: <code>app/api/v1/ordenes/route.ts</code></p>
+  </div><div class="rf">
+    <div class="rf-cab">
+      <span class="rf-id">RF-G7-03 — Consultar una orden con su detalle</span>
+      <span class="rf-ruta">GET /api/v1/ordenes/{id}</span>
+    </div>
+    <p>Devuelve la cabecera de una orden junto con todos sus ítems, para verificar el contenido de la compra.</p>
+    <h4>Entradas y validaciones</h4>
+    <ul><li><code>id</code> (obligatorio, en la ruta): número entero positivo.</li></ul>
+    <h4>Reglas de negocio</h4>
+    <ul><li>Devuelve la orden cuyo identificador coincide exactamente, junto con sus ítems ordenados por identificador ascendente.</li><li>Si la orden no existe, responde 404 con el mensaje &quot;Orden no encontrada.&quot;.</li><li>Una orden sin ítems (posible solo en datos cargados a mano) devuelve la cabecera con un arreglo de ítems vacío.</li></ul>
+    <h4>Respuesta esperada</h4>
+    <ul><li><code>200 OK</code> con <code>data</code> conteniendo los campos de la orden más la propiedad <code>items</code> con el detalle completo.</li></ul>
+    <h4>Errores</h4>
+    <table class="tabla">
+    <thead><tr><th>Código</th><th>HTTP</th><th>Cuándo ocurre</th></tr></thead>
+    <tbody><tr><td><code>NOT_FOUND</code></td><td>404</td><td>No existe una orden con ese identificador.</td></tr><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td>El identificador no es un entero positivo.</td></tr></tbody>
+  </table>
+    <p class="fuente">Fuente: <code>app/api/v1/ordenes/[id]/route.ts</code></p>
+  </div><div class="rf">
+    <div class="rf-cab">
+      <span class="rf-id">RF-G7-04 — Recalcular una orden</span>
+      <span class="rf-ruta">PUT /api/v1/ordenes/{id}</span>
+    </div>
+    <p>Recalcula el producto representativo y el importe total de una orden a partir de una lista de ítems enviada de nuevo. <strong>No modifica las filas de <code>items_orden</code></strong>: el rol <code>qa_api</code> no tiene permiso <code>DELETE</code>, así que no hay forma de reemplazar el detalle sin dejar filas huérfanas, y este endpoint no inserta ítems nuevos tampoco. Solo actualiza los dos campos propios de la cabecera.</p>
+    <h4>Entradas y validaciones</h4>
+    <ul><li><code>id</code> (obligatorio, en la ruta): número entero positivo.</li><li><code>items</code> (obligatorio): arreglo con al menos un elemento, con la misma forma que en el checkout (<code>producto</code>, <code>cantidad</code>, <code>precioUnitario</code>).</li></ul>
+    <h4>Reglas de negocio</h4>
+    <ul><li>El <code>monto</code> se recalcula como la suma de cantidad por precio unitario de los ítems enviados, igual que en el checkout.</li><li>El <code>producto</code> de la cabecera se reemplaza por el del primer ítem del arreglo enviado.</li><li><strong>Los ítems enviados nunca se guardan en <code>items_orden</code>:</strong> tras este <code>PUT</code>, <code>GET /ordenes/{id}</code> sigue devolviendo el detalle de ítems original de la compra, que ya no coincide con el nuevo <code>monto</code> de la cabecera.</li><li>Solo puede recalcular una orden con <code>activo = true</code>; una dada de baja responde 404.</li><li><code>estado</code> no forma parte del cuerpo: no cambia por este reemplazo.</li></ul>
+    <h4>Respuesta esperada</h4>
+    <ul><li><code>200 OK</code> con <code>data</code> conteniendo la cabecera de la orden ya actualizada (sin la propiedad <code>items</code>).</li></ul>
+    <h4>Errores</h4>
+    <table class="tabla">
+    <thead><tr><th>Código</th><th>HTTP</th><th>Cuándo ocurre</th></tr></thead>
+    <tbody><tr><td><code>NOT_FOUND</code></td><td>404</td><td>No existe una orden vigente con ese identificador.</td></tr><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td>Falta <code>items</code>, el arreglo está vacío, o algún ítem tiene cantidad o precio no positivos.</td></tr></tbody>
+  </table>
+    <p class="fuente">Fuente: <code>app/api/v1/ordenes/[id]/route.ts</code></p>
+  </div><div class="rf">
+    <div class="rf-cab">
+      <span class="rf-id">RF-G7-05 — Dar de baja una orden</span>
+      <span class="rf-ruta">DELETE /api/v1/ordenes/{id}</span>
+    </div>
+    <p>Da de baja lógica una orden, quitándola de los listados y consultas por id.</p>
+    <h4>Entradas y validaciones</h4>
+    <ul><li><code>id</code> (obligatorio, en la ruta): número entero positivo.</li></ul>
+    <h4>Reglas de negocio</h4>
+    <ul><li>Marca <code>activo = false</code>; la fila permanece en la base, nunca se borra físicamente.</li><li>No borra ni afecta las filas de <code>items_orden</code> asociadas: quedan huérfanas (ya no accesibles por <code>GET /ordenes/{id}</code>, que responde 404).</li><li>Una orden en cualquier <code>estado</code> de negocio puede darse de baja.</li></ul>
+    <h4>Respuesta esperada</h4>
+    <ul><li><code>204 No Content</code>, sin cuerpo.</li></ul>
+    <h4>Errores</h4>
+    <table class="tabla">
+    <thead><tr><th>Código</th><th>HTTP</th><th>Cuándo ocurre</th></tr></thead>
+    <tbody><tr><td><code>NOT_FOUND</code></td><td>404</td><td>No existe una orden vigente con ese identificador.</td></tr><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td>El identificador no es un entero positivo.</td></tr></tbody>
+  </table>
+    <p class="fuente">Fuente: <code>app/api/v1/ordenes/[id]/route.ts</code></p>
+  </div>
+
+<h2>5. Reglas transversales de la API</h2>
+<p>Todas las rutas REST comparten el mismo pipeline: autenticación → control de caudal → validación de entrada → ejecución del SQL fijo → auditoría. Estas reglas aplican a cada requerimiento del documento y no se repiten en cada uno.</p>
+<ul><li><strong>Envoltura de respuesta:</strong> las respuestas exitosas devuelven <code>{ &quot;data&quot;: ... }</code> y las fallidas <code>{ &quot;error&quot;: { &quot;code&quot;, &quot;message&quot;, &quot;details?&quot; } }</code>.</li><li><strong>Validación de entrada:</strong> cada ruta define un esquema; los parámetros de query, el cuerpo JSON y los parámetros de ruta se combinan en un único objeto con precedencia query &lt; body &lt; path (un <code>{id}</code> de la URL siempre gana sobre un <code>id</code> del cuerpo).</li><li><strong>Coerción de tipos:</strong> los identificadores y montos que llegan por query o por path se convierten de texto a número automáticamente; los campos numéricos de un cuerpo JSON deben enviarse como número, no como texto, salvo que el requerimiento indique lo contrario.</li><li><strong>Cuerpo JSON malformado:</strong> un cuerpo que no parsea como JSON devuelve <code>400 VALIDATION_ERROR</code> con el mensaje &quot;Invalid JSON body.&quot;.</li><li><strong>Errores de base de datos, mapeados por código SQLSTATE:</strong> una violación de unicidad (<code>23505</code>, ej. un email o número de factura repetido) se traduce a <code>409 CONFLICT</code>; una violación de clave foránea o de restricción <code>CHECK</code> (<code>23503</code>/<code>23514</code>) se traduce a <code>400 VALIDATION_ERROR</code>; cualquier otro error de base de datos cae en <code>400 EXECUTION_ERROR</code>.</li><li><strong><code>DELETE</code> es siempre baja lógica:</strong> actualiza <code>activo = false</code> (o <code>activa</code> en <code>cuentas</code>) y responde <code>204 No Content</code> <strong>sin cuerpo</strong> — no <code>200</code> con la fila afectada.</li><li><strong>Verbo no soportado:</strong> una ruta que no define el método HTTP usado responde <code>405 Method Not Allowed</code>; lo genera Next.js automáticamente, ninguna ruta lo arma a mano, y su cuerpo no sigue la envoltura <code>{ error }</code> del resto de la API.</li><li><strong>Auditoría:</strong> toda request, exitosa o fallida, deja un registro en <code>public.sql_audit_log</code> con la clave usada, el método y la ruta, la entrada validada, el resultado y la IP de origen. Un fallo de auditoría nunca convierte una respuesta exitosa en error.</li><li><strong>Idempotencia de las transiciones de estado:</strong> los endpoints que fijan un estado (<code>bloquear</code>, <code>activar</code>, <code>confirmar</code>, <code>cancelar</code>, <code>leer</code>) escriben el valor destino sin verificar el estado previo, por lo que repetir la llamada devuelve el mismo resultado.</li><li><strong>Las transiciones de estado anteriores al CRUD no miran <code>activo</code>:</strong> <code>PATCH .../bloquear</code>, <code>.../activar</code>, <code>.../leer</code>, <code>.../confirmar</code>, <code>.../cancelar</code>, <code>.../kyc</code> y <code>POST .../pagar</code> no filtran por <code>activo = true</code> (ninguno de esos archivos se tocó al agregar el CRUD). Un recurso dado de baja con el nuevo <code>DELETE</code> deja de aparecer en <code>GET</code>, pero <strong>sigue pudiendo bloquearse, confirmarse, leerse o pagarse</strong> a través de su acción dedicada — una inconsistencia real del sandbox, no un comportamiento a asumir como intencional.</li></ul>
+<h3>Códigos de éxito</h3>
+<table class="tabla">
+    <thead><tr><th>Status</th><th>Cuándo ocurre</th></tr></thead>
+    <tbody><tr><td><code>200 OK</code></td><td>GET/PUT/PATCH exitoso; también un POST de upsert que reactivó una fila existente en vez de crearla.</td></tr><tr><td><code>201 Created</code></td><td>POST que crea una fila nueva.</td></tr><tr><td><code>204 No Content</code></td><td>DELETE exitoso (baja lógica) — la respuesta no lleva cuerpo.</td></tr></tbody>
+  </table>
+<h3>Códigos de error</h3>
+<table class="tabla">
+    <thead><tr><th>Código</th><th>HTTP</th><th>Significado</th></tr></thead>
+    <tbody><tr><td><code>UNAUTHORIZED</code></td><td>401</td><td>Falta el header <code>x-api-key</code>, o la clave no existe o está inactiva.</td></tr><tr><td><code>RATE_LIMITED</code></td><td>429</td><td>Se superaron las 30 requests por minuto de esa API key.</td></tr><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td>La entrada no cumple el esquema de la ruta, el JSON es inválido, o Postgres rechazó una clave foránea/CHECK.</td></tr><tr><td><code>EXECUTION_ERROR</code></td><td>400</td><td>La consulta falló en la base de datos por un motivo no cubierto por los códigos anteriores.</td></tr><tr><td><code>NOT_FOUND</code></td><td>404</td><td>El recurso indicado no existe, ya está dado de baja (<code>activo=false</code>), o no está en un estado que admita la operación.</td></tr><tr><td><code>CONFLICT</code></td><td>409</td><td>Violación de restricción <code>UNIQUE</code> en Postgres (ej. email, número de factura o nombre de rol duplicado).</td></tr><tr><td><code>INTERNAL_ERROR</code></td><td>500</td><td>Fallo inesperado del servidor (por ejemplo, no se pudo verificar la API key).</td></tr></tbody>
+  </table>
+
+<h2>6. Flujo en la aplicación web</h2>
+<p>La aplicación web consume exactamente los mismos endpoints a través del proxy <code>/api/proxy/{path}</code>, que agrega la API key del lado del servidor y reenvía los headers de límite de caudal. El menú de navegación muestra únicamente los módulos del grupo del alumno cuando su email figura en el roster del curso; si no figura, muestra los diez módulos. Los errores de la API se muestran en pantalla con el mensaje que devolvió el backend, y un <code>401</code> cierra la sesión local. <strong>La interfaz web todavía no tiene pantallas para <code>PUT</code>/<code>DELETE</code> ni para los recursos nuevos (<code>sesiones</code>, <code>movimientos</code>)</strong>: solo cubre los flujos de creación y consulta que ya existían; esos requerimientos se prueban llamando la API directamente (Postman, <code>curl</code>, o el cliente HTTP del framework de automatización), no navegando la web.</p>
+<table class="tabla">
+    <thead><tr><th>Pantalla</th><th>Qué permite hacer</th></tr></thead>
+    <tbody><tr><td><code>/ordenes</code> — Listado de órdenes</td><td>Tabla con producto, importe y estado, con filtro por comprador. Ejecuta RF-G7-01.</td></tr><tr><td><code>/ordenes/new</code> — Nueva orden</td><td>Formulario con el comprador y una tabla editable de ítems (producto, cantidad, precio unitario), donde se pueden agregar filas. Ejecuta RF-G7-02 y, al confirmarse, navega al detalle de la orden.</td></tr><tr><td><code>/ordenes/{id}</code> — Detalle de la orden</td><td>Muestra la cabecera y la tabla de ítems con su subtotal. Ejecuta RF-G7-03.</td></tr></tbody>
+  </table>
+<ul><li>El formulario convierte a número la cantidad y el precio antes de enviarlos, de modo que el error por enviarlos como texto solo puede provocarse llamando la API directamente.</li><li>El total de la compra no se edita en la pantalla: se ve recién en el detalle, ya calculado por el servidor.</li><li>No hay pantalla de edición ni baja: <code>PUT</code> y <code>DELETE /ordenes/{id}</code> (RF-G7-04/05) solo se pueden ejercitar llamando la API directamente.</li></ul>
+
+<h2>7. Criterios de aceptación</h2>
+<p>Criterios de aceptación redactados en prosa, uno o más por requerimiento, cubriendo el camino feliz y los caminos negativos. Son la base para derivar escenarios BDD.</p>
+<h3>RF-G7-01 — Listar órdenes</h3><ul><li>Al listar órdenes filtrando por un comprador, todos los elementos devueltos tienen ese <code>usuario_id</code>.</li><li>Los elementos del listado no incluyen el arreglo de ítems.</li><li>Al filtrar por un comprador sin órdenes, la respuesta es 200 con <code>data</code> vacío.</li><li>Una orden recién creada aparece en el listado de su comprador.</li></ul><h3>RF-G7-02 — Cerrar la compra (checkout)</h3><ul><li>Al cerrar una compra con dos ítems, la respuesta es 201 y <code>data.monto</code> es igual a la suma de cantidad por precio unitario de ambos ítems.</li><li>Cada elemento de <code>data.items</code> trae su <code>subtotal</code> calculado por el servidor, coincidente con su cantidad por su precio unitario.</li><li>El campo <code>data.producto</code> de la cabecera coincide con el producto del primer ítem enviado.</li><li>La orden creada queda en estado <code>pendiente</code>.</li><li>Al cerrar una compra con el arreglo de ítems vacío, la respuesta es 400 <code>VALIDATION_ERROR</code> y no se crea ninguna orden.</li><li>Al enviar un ítem con cantidad cero o negativa, la respuesta es 400 <code>VALIDATION_ERROR</code>.</li><li>Al enviar la cantidad como texto (por ejemplo <code>&quot;2&quot;</code>), la respuesta es 400 <code>VALIDATION_ERROR</code>.</li><li>Al cerrar la compra para un comprador inexistente, la respuesta es 400 <code>VALIDATION_ERROR</code> y no queda ni la cabecera ni ítem alguno.</li></ul><h3>RF-G7-03 — Consultar una orden con su detalle</h3><ul><li>Dada una orden recién creada, al consultarla la respuesta es 200 y la cantidad de elementos de <code>data.items</code> coincide con la cantidad de ítems enviados en el cierre de compra.</li><li>La suma de los subtotales de <code>data.items</code> es igual a <code>data.monto</code>.</li><li>Al consultar una orden inexistente, la respuesta es 404 <code>NOT_FOUND</code> con el mensaje &quot;Orden no encontrada.&quot;.</li><li>El orden de los ítems devueltos es estable entre consultas sucesivas.</li></ul><h3>RF-G7-04 — Recalcular una orden</h3><ul><li>Dada una orden existente, al recalcularla con ítems distintos la respuesta es 200 y <code>data.monto</code> coincide con la suma de los nuevos ítems.</li><li>Al consultar luego la orden con RF-G7-03, <code>data.items</code> sigue mostrando los ítems originales del checkout, no los enviados en el <code>PUT</code>, aunque <code>data.monto</code> ya sea el nuevo — una inconsistencia real a documentar, no a &quot;corregir&quot; en el escenario de prueba.</li><li>Al recalcular con el arreglo de ítems vacío, la respuesta es 400 <code>VALIDATION_ERROR</code>.</li><li>Al recalcular una orden inexistente o dada de baja, la respuesta es 404 <code>NOT_FOUND</code>.</li></ul><h3>RF-G7-05 — Dar de baja una orden</h3><ul><li>Dada una orden vigente, al darla de baja la respuesta es 204 sin cuerpo.</li><li>Tras la baja, <code>GET /ordenes/{id}</code> sobre esa orden responde 404, y deja de aparecer en RF-G7-01.</li></ul>
+
+<h2>8. Anexo normativo (BCP / SEDECO) y brechas</h2>
+<div class="nota">Este anexo es material de referencia orientativo para dar contexto de negocio a los escenarios de prueba. Las normas citadas del Banco Central del Paraguay (BCP) y de la Secretaría de Defensa del Consumidor y el Usuario (SEDECO) se mencionan de forma general y deben validarse con su texto vigente antes de usarse como criterio de cumplimiento. El sandbox es un entorno didáctico y no pretende cumplir ninguna de ellas.</div>
+<table class="tabla">
+    <thead><tr><th>Referencia normativa</th><th>Expectativa</th><th>Estado en el sandbox</th></tr></thead>
+    <tbody><tr><td>Ley 4868/2013 de Comercio Electrónico, información previa y confirmación de la operación</td><td>Antes de confirmar, el consumidor debe conocer el detalle de lo que compra y el importe total; luego debe recibir constancia de la operación.</td><td>Cubierto: la respuesta del cierre de compra devuelve el detalle completo con subtotales y total, y el detalle de la orden queda consultable.</td></tr><tr><td>Ley 1334/98 de Defensa del Consumidor (SEDECO), precio cierto y veraz</td><td>El precio cobrado debe corresponder al precio informado del producto ofertado.</td><td>No implementado: no hay catálogo ni precio de referencia; el precio unitario lo fija la propia request.</td></tr><tr><td>Ley 1334/98, garantía de disponibilidad del producto</td><td>No debe venderse un producto sin existencias disponibles.</td><td>No implementado: no hay control de existencias ni verificación de que el producto exista.</td></tr><tr><td>Ley 4868/2013, derecho de retracto y cancelación</td><td>El consumidor debe poder cancelar la compra dentro del plazo previsto.</td><td>No implementado: el estado <code>cancelada</code> existe en el modelo pero no hay endpoint que lo aplique.</td></tr><tr><td>Marco del BCP sobre pagos en comercio electrónico</td><td>El cobro debe realizarse con un instrumento de pago válido y quedar conciliado con la orden.</td><td>No implementado: el cierre de compra no cobra; la orden nunca pasa a <code>pagada</code>.</td></tr></tbody>
+  </table>
+<h3>Brechas conocidas del sandbox</h3>
+<ul><li>No hay catálogo, existencias ni precios de referencia: producto y precio son datos libres de la request.</li><li>La orden nace <code>pendiente</code> y no existe ningún endpoint que la mueva a <code>pagada</code>, <code>enviada</code> o <code>cancelada</code>.</li><li>El cierre de compra no cobra el importe ni se vincula con tarjetas, cuentas ni pagos.</li><li>El campo <code>producto</code> de la cabecera duplica el primer ítem, lo que puede inducir a error cuando la compra tiene varios productos distintos.</li><li>No existen descuentos, impuestos ni costos de envío en el cálculo del total.</li><li>El listado de órdenes está limitado a 100 registros sin paginación.</li><li><code>PUT /ordenes/{id}</code> recalcula <code>producto</code>/<code>monto</code> de la cabecera pero nunca toca <code>items_orden</code>: tras un reemplazo, el detalle de ítems que devuelve <code>GET /ordenes/{id}</code> queda desincronizado del nuevo monto.</li><li>Dar de baja una orden (<code>DELETE</code>) no borra ni marca sus <code>items_orden</code>, que quedan huérfanos e inaccesibles desde la API.</li></ul>
+</body>
+</html>
