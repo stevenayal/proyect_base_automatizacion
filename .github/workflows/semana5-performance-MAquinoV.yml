@@ -1,4 +1,4 @@
-  name: Semana 5 - Performance - MAquinoV
+name: Semana 5 - Performance - MAquinoV
 
 on:
   workflow_dispatch:
