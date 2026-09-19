@@ -1,0 +1,99 @@
+# Aporte Semana 05 - Mariel Aquino
+# Pipeline CI/CD para ejecución JMeter del Grupo 01
+
+name: Semana 05 - Grupo 01 - JMeter CI
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - semana-05/grupo-01-cicd-jmeter-grafana
+    paths:
+      - "grupos/grupo-01-autenticacion-acceso/jmeter/**"
+      - ".github/workflows/semana5-jmeter-grupo01.yml"
+
+jobs:
+  jmeter-performance:
+    name: Ejecutar prueba JMeter Grupo 01
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Instalar Apache JMeter 5.6.3
+        shell: bash
+        run: |
+          curl -L \
+            https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz \
+            -o /tmp/apache-jmeter-5.6.3.tgz
+
+          tar -xzf /tmp/apache-jmeter-5.6.3.tgz -C /tmp
+
+          echo "/tmp/apache-jmeter-5.6.3/bin" >> "$GITHUB_PATH"
+
+      - name: Verificar JMeter
+        shell: bash
+        run: |
+          jmeter -v
+
+      - name: Preparar directorios de resultados
+        shell: bash
+        run: |
+          rm -rf grupos/grupo-01-autenticacion-acceso/jmeter/results-ci
+          rm -rf grupos/grupo-01-autenticacion-acceso/jmeter/reporte-html-ci
+
+          mkdir -p grupos/grupo-01-autenticacion-acceso/jmeter/results-ci
+
+      - name: Ejecutar prueba JMeter en modo no grafico
+        shell: bash
+        env:
+          API_KEY: ${{ secrets.GRUPO01_API_KEY }}
+        run: |
+          jmeter \
+            -n \
+            -t grupos/grupo-01-autenticacion-acceso/jmeter/datos_dinamicos-sesiones.ci.jmx \
+            -JapiKey="$API_KEY" \
+            -JcsvPath="$GITHUB_WORKSPACE/grupos/grupo-01-autenticacion-acceso/jmeter/data/datos_sesiones_validado.csv" \
+            -Jthreads=1 \
+            -JrampUp=1 \
+            -Jloops=6 \
+            -JconnectTimeoutMs=10000 \
+            -JresponseTimeoutMs=30000 \
+            -JmaxResponseMs=10000 \
+            -JpauseBaseMs=1000 \
+            -JpauseVariationMs=1000 \
+            -l grupos/grupo-01-autenticacion-acceso/jmeter/results-ci/sesiones-resultados.jtl \
+            -e \
+            -o grupos/grupo-01-autenticacion-acceso/jmeter/reporte-html-ci \
+            -j grupos/grupo-01-autenticacion-acceso/jmeter/results-ci/jmeter.log
+
+      - name: Mostrar resumen de la ejecucion
+        if: always()
+        shell: bash
+        run: |
+          echo "===== ARCHIVOS GENERADOS ====="
+
+          ls -lh grupos/grupo-01-autenticacion-acceso/jmeter/results-ci || true
+
+          echo ""
+          echo "===== REPORTE HTML ====="
+
+          ls -lh grupos/grupo-01-autenticacion-acceso/jmeter/reporte-html-ci || true
+
+      - name: Publicar evidencias JMeter
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grupo01-semana05-jmeter-${{ github.run_number }}
+          path: |
+            grupos/grupo-01-autenticacion-acceso/jmeter/results-ci/
+            grupos/grupo-01-autenticacion-acceso/jmeter/reporte-html-ci/
+          retention-days: 14
