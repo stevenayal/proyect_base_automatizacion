@@ -10,6 +10,7 @@
     "test:api": "newman run postman/AIQUAA-Lab-Template.postman_collection.json -e postman/local.postman_environment.json",
     "test:bdd": "cucumber-js \"features/**/*.feature\" \"grupos/**/*.feature\"",
     "test:bdd:demo": "cucumber-js --profile demo",
+    "test:bdd:sandbox": "node tests/bdd/sandbox-pom/scripts/run-sandbox.cjs",
     "smoke": "playwright test tests/e2e/smoke.spec.ts",
     "verify": "npm run test:api && npm run test:e2e"
   },
