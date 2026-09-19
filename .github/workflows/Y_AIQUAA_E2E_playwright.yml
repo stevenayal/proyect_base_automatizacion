@@ -1,0 +1,67 @@
+name: AIQUAA E2E - Playwright
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/e2e/**'
+      - 'playwright.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/Y_AIQUAA_E2E_playwright.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/e2e/**'
+      - 'playwright.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/Y_AIQUAA_E2E_playwright.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aiquaa-e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Smoke E2E en Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar Chromium de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Ejecutar casos smoke
+        env:
+          CI: 'true'
+          BASE_URL: ${{ vars.AIQUAA_SANDBOX_BASE_URL || 'https://aiquaa-sandbox-web.vercel.app/' }}
+        run: npm run smoke
+
+      - name: Publicar informe y evidencias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aiquaa-e2e-${{ github.run_number }}
+          path: |
+            playwright-report/
+            results/playwright-results.json
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14

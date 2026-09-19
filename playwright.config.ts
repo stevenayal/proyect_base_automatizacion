@@ -9,7 +9,11 @@ export default defineConfig({
   testIgnore: ['**/node_modules/**', '**/.claude/**'],
   timeout: 30_000,
   retries: 1,
-  reporter: [['html', { open: 'never' }], ['list']],
+  reporter: [
+    ['html', { open: 'never' }],
+    ['json', { outputFile: 'results/playwright-results.json' }],
+    ['list'],
+  ],
 
   use: {
     baseURL: process.env.BASE_URL || 'https://aiquaa-sandbox-web.vercel.app/',
