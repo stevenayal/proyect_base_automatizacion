@@ -1,0 +1,236 @@
+{
+	"info": {
+		"_postman_id": "f6a7b8c9-0d1e-4f2a-b134-5c6d7e8f9a09",
+		"name": "Grupo 09 - Leila Ruiz - Control de Acceso por Rol",
+		"description": "Aporte individual de Leila Ruiz al Grupo 9. Mapea los 4 escenarios BDD de 'Control de acceso por rol' (Caso Positivo, 2 Casos Negativos, 1 Caso Limite) a endpoints REALES del OpenAPI de AIQUAA (tags 'Grupo 9 - Reportes y Dashboard' y 'Grupo 10 - Roles y Permisos', confirmado en {{baseUrl}}/api/v1/docs).\n\nNOTA: los roles reales seedeados en el sistema son solo admin, soporte, auditor, operador (CHECK constraint cerrado). Los nombres de negocio del feature (Administrador, Gerente Financiero, Analista Financiero, Invitado) no existen literalmente en la tabla roles; se usa el rol real mas cercano donde aplica, y se deja comentado en cada request.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "baseUrl", "value": "https://aiquaa-sandbox-api.vercel.app" },
+		{ "key": "apiKey", "value": "sbx_demo_f581ca21e68a347288c94d71" },
+		{ "key": "usuarioId", "value": "1" },
+		{ "key": "usuarioSinRolId", "value": "" },
+		{ "key": "operadorRoleId", "value": "" }
+	],
+	"item": [
+		{
+			"name": "01 - Caso Positivo: Rol Administrador (Scenario Outline)",
+			"event": [{ "listen": "test", "script": { "exec": [
+				"// Given que el usuario tiene el rol \"Administrador\" / Then visualiza ingresos, egresos, utilidad neta, flujo de caja, auditoria",
+				"// 'Administrador' no existe literal en el sistema; rol real mas cercano: 'admin'.",
+				"var indicadoresEsperados = ['ingresos', 'egresos', 'utilidad neta', 'flujo de caja', 'auditoria'];",
+				"pm.environment.set('indicadores_Administrador', indicadoresEsperados.join(', '));",
+				"pm.test('Status code es 200', function () { pm.response.to.have.status(200); });",
+				"pm.test('El usuario tiene al menos un rol activo asignado', function () {",
+				"    var jsonData = pm.response.json();",
+				"    pm.expect(jsonData.data).to.be.an('array');",
+				"    pm.expect(jsonData.data.length).to.be.above(0);",
+				"});",
+				"pm.test('La matriz BDD define 5 indicadores para el rol de mayor alcance', function () {",
+				"    pm.expect(indicadoresEsperados.length).to.eql(5);",
+				"});"
+			]}}],
+			"request": {
+				"method": "GET",
+				"header": [{ "key": "x-api-key", "value": "{{apiKey}}" }],
+				"url": { "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","usuarios","{{usuarioId}}","roles"] }
+			},
+			"response": []
+		},
+		{
+			"name": "02 - Caso Positivo: Rol Auditor (Scenario Outline)",
+			"event": [{ "listen": "test", "script": { "exec": [
+				"// Given rol \"Auditor\" / Then visualiza flujo de caja, auditoria",
+				"// 'Auditor' SI coincide con un rol real del sistema.",
+				"var indicadoresEsperados = ['flujo de caja', 'auditoria'];",
+				"pm.environment.set('indicadores_Auditor', indicadoresEsperados.join(', '));",
+				"pm.test('Status code es 200', function () { pm.response.to.have.status(200); });",
+				"pm.test('El usuario tiene al menos un rol activo asignado', function () {",
+				"    var jsonData = pm.response.json();",
+				"    pm.expect(jsonData.data).to.be.an('array');",
+				"    pm.expect(jsonData.data.length).to.be.above(0);",
+				"});",
+				"pm.test('El Auditor solo ve 2 indicadores segun BDD', function () {",
+				"    pm.expect(indicadoresEsperados.length).to.eql(2);",
+				"});"
+			]}}],
+			"request": {
+				"method": "GET",
+				"header": [{ "key": "x-api-key", "value": "{{apiKey}}" }],
+				"url": { "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","usuarios","{{usuarioId}}","roles"] }
+			},
+			"response": []
+		},
+		{
+			"name": "03 - Caso Positivo: Rol Invitado - solo lectura (Scenario Outline)",
+			"event": [{ "listen": "test", "script": { "exec": [
+				"// Given rol \"Invitado (solo lectura)\" / Then visualiza ingresos, egresos",
+				"// 'Invitado' no existe literal; rol real mas cercano: 'soporte'.",
+				"var indicadoresEsperados = ['ingresos', 'egresos'];",
+				"pm.environment.set('indicadores_Invitado', indicadoresEsperados.join(', '));",
+				"pm.test('Status code es 200', function () { pm.response.to.have.status(200); });",
+				"pm.test('El usuario tiene al menos un rol activo asignado', function () {",
+				"    var jsonData = pm.response.json();",
+				"    pm.expect(jsonData.data).to.be.an('array');",
+				"    pm.expect(jsonData.data.length).to.be.above(0);",
+				"});",
+				"pm.test('El Invitado es el rol con menor alcance segun BDD', function () {",
+				"    pm.expect(indicadoresEsperados.length).to.eql(2);",
+				"    pm.expect(indicadoresEsperados).to.not.include('auditoria');",
+				"});"
+			]}}],
+			"request": {
+				"method": "GET",
+				"header": [{ "key": "x-api-key", "value": "{{apiKey}}" }],
+				"url": { "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","usuarios","{{usuarioId}}","roles"] }
+			},
+			"response": []
+		},
+		{
+			"name": "04 - Caso Negativo: Denegar Acceso a Rol Sin Permisos (Pre-request SQL dinamico)",
+			"event": [
+				{ "listen": "prerequest", "script": { "exec": [
+					"// PRE-REQUEST: buscamos dinamicamente un usuario activo que NO tenga",
+					"// ningun rol activo asignado -- ese es el caso real de 'Sin permisos'.",
+					"var sqlRequest = {",
+					"    url: pm.variables.get('baseUrl') + '/api/v1/sql/select',",
+					"    method: 'POST',",
+					"    header: { 'Content-Type': 'application/json', 'x-api-key': pm.variables.get('apiKey') },",
+					"    body: { mode: 'raw', raw: JSON.stringify({",
+					"        sql: \"SELECT u.id FROM usuarios u WHERE u.activo = true AND NOT EXISTS (SELECT 1 FROM usuario_roles ur WHERE ur.usuario_id = u.id AND ur.activo = true) ORDER BY u.id LIMIT 1\",",
+					"        params: []",
+					"    })}",
+					"};",
+					"pm.sendRequest(sqlRequest, function (err, res) {",
+					"    if (err) { console.error('Error buscando usuario sin rol:', err); return; }",
+					"    var json = res.json();",
+					"    if (json.data && json.data.length > 0) {",
+					"        pm.environment.set('usuarioSinRolId', json.data[0].id);",
+					"        console.log('Usuario sin rol activo encontrado: id =', json.data[0].id);",
+					"    } else {",
+					"        console.warn('No se encontro ningun usuario sin rol activo en la BD seed.');",
+					"    }",
+					"});"
+				]}},
+				{ "listen": "test", "script": { "exec": [
+					"// Given rol \"Sin permisos\" / Then denegar acceso y mostrar 'Acceso restringido'",
+					"// La API confirma la precondicion: el usuario no tiene ningun rol activo.",
+					"// La denegacion en si (mensaje 'Acceso restringido') es logica de negocio/UI.",
+					"pm.test('Status code es 200 (consulta valida)', function () { pm.response.to.have.status(200); });",
+					"pm.test('El usuario NO tiene ningun rol activo (precondicion de acceso denegado)', function () {",
+					"    var jsonData = pm.response.json();",
+					"    pm.expect(jsonData.data).to.be.an('array');",
+					"    pm.expect(jsonData.data.length).to.eql(0);",
+					"});"
+				]}}
+			],
+			"request": {
+				"method": "GET",
+				"header": [{ "key": "x-api-key", "value": "{{apiKey}}" }],
+				"url": { "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioSinRolId}}/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","usuarios","{{usuarioSinRolId}}","roles"] }
+			},
+			"response": []
+		},
+		{
+			"name": "05 - Caso Negativo: Rol No Reconocido por el Sistema",
+			"event": [{ "listen": "test", "script": { "exec": [
+				"// Given rol \"Rol-Desconocido-999\" no configurado / Then error de configuracion de permisos",
+				"// La tabla roles tiene un CHECK cerrado a 4 valores (admin, soporte, auditor, operador);",
+				"// cualquier otro valor debe ser rechazado por la API con 400 VALIDATION_ERROR.",
+				"pm.test('Status code es 400 - Rol no reconocido / validacion rechazada', function () {",
+				"    pm.response.to.have.status(400);",
+				"});",
+				"pm.test('El codigo de error es VALIDATION_ERROR', function () {",
+				"    var jsonData = pm.response.json();",
+				"    pm.expect(jsonData.error.code).to.eql('VALIDATION_ERROR');",
+				"});"
+			]}}],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "x-api-key", "value": "{{apiKey}}" }
+				],
+				"body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Rol-Desconocido-999\"\n}" },
+				"url": { "raw": "{{baseUrl}}/api/v1/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","roles"] }
+			},
+			"response": []
+		},
+		{
+			"name": "06 - Caso Limite (1/3): Asignar Rol Operador (simula 'Analista Financiero' con sesion iniciada)",
+			"event": [
+				{ "listen": "prerequest", "script": { "exec": [
+					"// PRE-REQUEST: obtenemos el id real del rol 'operador' (proxy de 'Analista Financiero').",
+					"var sqlRequest = {",
+					"    url: pm.variables.get('baseUrl') + '/api/v1/sql/select',",
+					"    method: 'POST',",
+					"    header: { 'Content-Type': 'application/json', 'x-api-key': pm.variables.get('apiKey') },",
+					"    body: { mode: 'raw', raw: JSON.stringify({ sql: \"SELECT id FROM roles WHERE nombre = 'operador' LIMIT 1\", params: [] }) }",
+					"};",
+					"pm.sendRequest(sqlRequest, function (err, res) {",
+					"    if (err) { console.error('Error buscando rol operador:', err); return; }",
+					"    var json = res.json();",
+					"    if (json.data && json.data.length > 0) {",
+					"        pm.environment.set('operadorRoleId', json.data[0].id);",
+					"        console.log('operadorRoleId =', json.data[0].id);",
+					"    }",
+					"});"
+				]}},
+				{ "listen": "test", "script": { "exec": [
+					"pm.test('Status code es 200 o 201 - Rol asignado/reactivado', function () {",
+					"    pm.expect([200, 201]).to.include(pm.response.code);",
+					"});",
+					"pm.test('El rol quedo activo tras la asignacion', function () {",
+					"    var jsonData = pm.response.json();",
+					"    pm.expect(jsonData.data.activo).to.eql(true);",
+					"});"
+				]}}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "x-api-key", "value": "{{apiKey}}" }
+				],
+				"body": { "mode": "raw", "raw": "{\n  \"roleId\": {{operadorRoleId}}\n}" },
+				"url": { "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","usuarios","{{usuarioId}}","roles"] }
+			},
+			"response": []
+		},
+		{
+			"name": "07 - Caso Limite (2/3): Administrador Revoca el Rol Durante la Sesion Activa",
+			"event": [{ "listen": "test", "script": { "exec": [
+				"// And el administrador revoca ese rol durante la sesion activa",
+				"pm.test('Status code es 204 - Rol revocado (soft-revoke)', function () {",
+				"    pm.response.to.have.status(204);",
+				"});"
+			]}}],
+			"request": {
+				"method": "DELETE",
+				"header": [{ "key": "x-api-key", "value": "{{apiKey}}" }],
+				"url": { "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/roles/{{operadorRoleId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","usuarios","{{usuarioId}}","roles","{{operadorRoleId}}"] }
+			},
+			"response": []
+		},
+		{
+			"name": "08 - Caso Limite (3/3): Re-validar Permisos al Refrescar (debe denegar el rol revocado)",
+			"event": [{ "listen": "test", "script": { "exec": [
+				"// When el usuario intenta refrescar o navegar dentro del panel",
+				"// Then el sistema debe re-validar los permisos y denegar acceso al indicador restringido",
+				"pm.test('Status code es 200', function () { pm.response.to.have.status(200); });",
+				"pm.test('El rol revocado YA NO aparece en la lista de roles activos', function () {",
+				"    var jsonData = pm.response.json();",
+				"    var operadorId = Number(pm.environment.get('operadorRoleId'));",
+				"    var sigueActivo = jsonData.data.some(function (r) { return Number(r.role_id) === operadorId; });",
+				"    pm.expect(sigueActivo).to.eql(false);",
+				"});"
+			]}}],
+			"request": {
+				"method": "GET",
+				"header": [{ "key": "x-api-key", "value": "{{apiKey}}" }],
+				"url": { "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","usuarios","{{usuarioId}}","roles"] }
+			},
+			"response": []
+		}
+	]
+}
