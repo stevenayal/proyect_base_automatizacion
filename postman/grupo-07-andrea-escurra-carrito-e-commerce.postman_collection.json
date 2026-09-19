@@ -1,0 +1,322 @@
+{
+  "info": {
+    "_postman_id": "cc9a0356-2d6b-4d56-afb4-85b688357301",
+    "name": "grupo 07 - carrito / e-commerce (Andrea Escurra)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "39786135"
+  },
+  "item": [
+    {
+      "name": "Eliminar producto de carrito - Andrea",
+      "item": [
+        {
+          "name": "1-Crear Orden",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status es 201', function () {\r",
+                  "    pm.response.to.have.status(201);\r",
+                  "});\r",
+                  "pm.test('Guardo el id de la orden a eliminar', function () {\r",
+                  "    var d = pm.response.json().data;\r",
+                  "    pm.collectionVariables.set('eliminarId', String(d.id));\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"usuarioId\": {{usuarioId}},\r\n  \"items\": [\r\n    { \"producto\": \"Cable HDMI\", \"cantidad\": 1, \"precioUnitario\": 50000 }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ordenes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ordenes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2-Dar de Baja",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var id = pm.collectionVariables.get(\"eliminarId\");",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT id, activo FROM ordenes WHERE id = $1\",",
+                  "  [id]",
+                  "), function (err, res) {",
+                  "  if (err) { console.error(\"Pre-request SQL fallo:\", err); return; }",
+                  "  var row = res.json().data[0];",
+                  "  pm.test(\"Precondicion BD: la orden existe y esta activa\", function () {",
+                  "    pm.expect(row).to.not.be.undefined;",
+                  "    pm.expect(String(row.activo)).to.eql(\"true\");",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status es 204', function () {\r",
+                  "    pm.response.to.have.status(204);\r",
+                  "});",
+                  "var id = pm.collectionVariables.get(\"eliminarId\");",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT id, activo FROM ordenes WHERE id = $1\",",
+                  "  [id]",
+                  "), function (err, res) {",
+                  "  if (err) { throw err; }",
+                  "  var row = res.json().data[0];",
+                  "  pm.test(\"La BD confirma que la orden quedo inactiva (activo = false)\", function () {",
+                  "    pm.expect(String(row.activo)).to.eql(\"false\");",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ordenes/{{eliminarId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ordenes",
+                "{{eliminarId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3-Verificar Baja",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status es 404 (orden dada de baja)', function () {\r",
+                  "    pm.response.to.have.status(404);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ordenes/{{eliminarId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ordenes",
+                "{{eliminarId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4-Orden inexistente (404, BD sin cambios)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM ordenes\"",
+                  "), function (err, res) {",
+                  "  if (err) { console.error(\"Pre-request SQL fallo:\", err); return; }",
+                  "  pm.variables.set(\"totalAntes\", res.json().data[0].total);",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status es 404 (orden inexistente)', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.sendRequest(utils.bodySqlRest(",
+                  "  \"SELECT COUNT(*) AS total FROM ordenes\"",
+                  "), function (err, res) {",
+                  "  if (err) { throw err; }",
+                  "  var totalDespues = res.json().data[0].total;",
+                  "  pm.test(\"La BD no registro ni borro nada (COUNT igual)\", function () {",
+                  "    pm.expect(Number(totalDespues)).to.eql(Number(pm.variables.get(\"totalAntes\")));",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ordenes/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ordenes",
+                "999999"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          "if (typeof utils === \"undefined\") {",
+          "  utils = { bodySqlRest: function (sql, params) {",
+          "    return {",
+          "      url: pm.collectionVariables.get(\"baseUrl\") + \"/api/v1/sql/select\",",
+          "      method: \"POST\",",
+          "      header: { \"Content-Type\": \"application/json\",",
+          "                \"x-api-key\": pm.collectionVariables.get(\"apiKey\") },",
+          "      body: { mode: \"raw\", raw: JSON.stringify({ sql: sql, params: params || [] }) }",
+          "    };",
+          "  }};",
+          "}",
+          "pm.collectionVariables.set(\"usuarioId\", 3);"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://aiquaa-sandbox-api.vercel.app"
+    },
+    {
+      "key": "apiKey",
+      "value": "sbx_demo_f581ca21e68a347288c94d71"
+    },
+    {
+      "key": "eliminarId",
+      "value": ""
+    },
+    {
+      "key": "usuarioId",
+      "value": "3"
+    }
+  ]
+}
