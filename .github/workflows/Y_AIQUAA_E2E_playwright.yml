@@ -8,6 +8,7 @@ on:
       - 'playwright.config.ts'
       - 'package.json'
       - 'package-lock.json'
+      - 'reporter/**'
       - '.github/workflows/Y_AIQUAA_E2E_playwright.yml'
   pull_request:
     branches: [main]
@@ -16,6 +17,7 @@ on:
       - 'playwright.config.ts'
       - 'package.json'
       - 'package-lock.json'
+      - 'reporter/**'
       - '.github/workflows/Y_AIQUAA_E2E_playwright.yml'
   workflow_dispatch:
 
@@ -42,8 +44,16 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Instalar dependencias
         run: npm ci
+
+      - name: Instalar dependencias del informe PDF
+        run: pip install -r reporter/requirements.txt
 
       - name: Instalar Chromium de Playwright
         run: npx playwright install --with-deps chromium
@@ -54,6 +64,18 @@ jobs:
           BASE_URL: ${{ vars.AIQUAA_SANDBOX_BASE_URL || 'https://aiquaa-sandbox-web.vercel.app/' }}
         run: npm run smoke
 
+      - name: Generar informe PDF con evidencias
+        if: always() && hashFiles('results/playwright-results.json') != ''
+        run: >
+          python reporter/playwright_report.py
+          --results results/playwright-results.json
+          --output results/INFORME_E2E_AIQUAA_SANDBOX.pdf
+          --app-name "AIQUAA Sandbox"
+          --environment "GitHub Actions"
+          --app-version "${{ github.sha }}"
+          --repo-url "${{ github.server_url }}/${{ github.repository }}"
+          --author "Base de automatización"
+
       - name: Publicar informe y evidencias
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,6 +84,7 @@ jobs:
           path: |
             playwright-report/
             results/playwright-results.json
+            results/INFORME_E2E_AIQUAA_SANDBOX.pdf
             test-results/
           if-no-files-found: warn
           retention-days: 14
