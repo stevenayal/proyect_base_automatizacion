@@ -1,0 +1,101 @@
+  name: Semana 5 - Performance - MAquinoV
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - feature/semana5-MAquinoV
+    paths:
+      - "prueba_tecnica_MAquinoV/semana_05/**"
+      - ".github/workflows/semana5-performance-MAquinoV.yml"
+
+jobs:
+  performance-MAquinoV:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar JMeter 5.6.3
+        shell: bash
+        run: |
+          curl -L \
+            https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz \
+            -o /tmp/apache-jmeter-5.6.3.tgz
+
+          tar -xzf /tmp/apache-jmeter-5.6.3.tgz -C /tmp
+
+          echo "/tmp/apache-jmeter-5.6.3/bin" >> "$GITHUB_PATH"
+
+      - name: Verificar JMeter
+        shell: bash
+        run: |
+          jmeter -v
+
+      - name: Preparar directorios
+        shell: bash
+        run: |
+          mkdir -p prueba_tecnica_MAquinoV/semana_05/results
+          mkdir -p prueba_tecnica_MAquinoV/semana_05/reports/html_ci
+
+      - name: Ejecutar prueba de rendimiento
+        working-directory: prueba_tecnica_MAquinoV/semana_05/jmeter
+        shell: bash
+        env:
+          API_KEY: ${{ secrets.GRUPO01_API_KEY }}
+        run: |
+          jmeter \
+            -n \
+            -t rendimiento.jmx \
+            -JapiKey="$API_KEY" \
+            -Jusers=5 \
+            -Jrampup=10 \
+            -Jiterations=10 \
+            -Jthroughput=20 \
+            -JcsvFile=../data/usuarios.csv \
+            -l ../results/resultados_CI.jtl \
+            -j ../results/jmeter_CI.log
+
+      - name: Generar reporte HTML
+        working-directory: prueba_tecnica_MAquinoV/semana_05/jmeter
+        shell: bash
+        run: |
+          rm -rf ../reports/html_ci
+
+          jmeter \
+            -g ../results/resultados_CI.jtl \
+            -o ../reports/html_ci
+
+      - name: Validar límites de rendimiento
+        shell: bash
+        run: |
+          python \
+            prueba_tecnica_MAquinoV/semana_05/scripts/validar_limites.py \
+            prueba_tecnica_MAquinoV/semana_05/reports/html_ci/statistics.json \
+            --max-error-rate 2 \
+            --max-p95 1500 \
+            --min-samples 50
+
+      - name: Publicar evidencias de rendimiento
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semana5-performance-MAquinoV
+          path: |
+            prueba_tecnica_MAquinoV/semana_05/results/resultados_CI.jtl
+            prueba_tecnica_MAquinoV/semana_05/results/jmeter_CI.log
+            prueba_tecnica_MAquinoV/semana_05/reports/html_ci
+          retention-days: 14
