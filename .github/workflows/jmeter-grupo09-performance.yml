@@ -1,0 +1,114 @@
+name: JMeter Performance - Grupo 09 Reportes y Dashboard
+
+on:
+  push:
+    branches:
+      - grupo-09-reportes-dashboard-corregido
+    paths:
+      - "tests/performance/plans/Grupo09_Reportes_Dashboard.jmx"
+      - ".github/workflows/jmeter-grupo09-performance.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "tests/performance/plans/Grupo09_Reportes_Dashboard.jmx"
+      - ".github/workflows/jmeter-grupo09-performance.yml"
+  workflow_dispatch:
+    inputs:
+      threads:
+        description: "Usuarios concurrentes"
+        required: false
+        default: "3"
+      loops:
+        description: "Iteraciones por usuario"
+        required: false
+        default: "20"
+
+      monitoring_dashboard_url:
+        description: "URL publica del dashboard de Grafana para evidencia"
+        required: false
+        default: "https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958"
+
+permissions:
+  contents: read
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+
+    env:
+      JMETER_VERSION: "5.6.3"
+      RESULTS_DIR: "test-results/performance"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Descargar JMeter
+        run: |
+          curl -fsSL \
+            -o apache-jmeter.tgz \
+            "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz"
+          tar -xzf apache-jmeter.tgz
+
+      - name: Ejecutar prueba JMeter
+        run: |
+          mkdir -p "${RESULTS_DIR}/dashboard"
+
+          "./apache-jmeter-${JMETER_VERSION}/bin/jmeter" -n \
+            -t tests/performance/plans/Grupo09_Reportes_Dashboard.jmx \
+            -l "${RESULTS_DIR}/R_GRUPO09_REPORTES.jtl" \
+            -e \
+            -o "${RESULTS_DIR}/dashboard" \
+            -Jthreads="${{ inputs.threads || '3' }}" \
+            -Jloops="${{ inputs.loops || '20' }}"
+
+      - name: Configurar Python (captura de monitoreo)
+        if: ${{ inputs.monitoring_dashboard_url != '' }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Capturar evidencia del dashboard de monitoreo
+        if: ${{ inputs.monitoring_dashboard_url != '' }}
+        run: |
+          pip install selenium
+          mkdir -p "${RESULTS_DIR}/evidence"
+
+          CAPTURE=$(npm pack aiquaa-performance-mcp-server --pack-destination . --silent)
+          tar -xzf "$CAPTURE" package/dist/monitoring/python/capture_dashboard.py
+
+          python3 package/dist/monitoring/python/capture_dashboard.py \
+            --url "${{ inputs.monitoring_dashboard_url }}" \
+            --output "${RESULTS_DIR}/evidence/EVIDENCIA_MONITOREO.png" \
+            --wait-seconds 8 \
+            --timeout-seconds 180
+
+
+      - name: Generar informe PDF
+        run: |
+          npx -y aiquaa-performance-mcp-server --report \
+            "${RESULTS_DIR}/R_GRUPO09_REPORTES.jtl" \
+            "tests/performance/thresholds/GRUPO_09_REPORTES.json" \
+            "${RESULTS_DIR}/INFORME_GRUPO09.pdf" \
+            --api-name "AIQUAA Sandbox API - Grupo 09 Reportes" \
+            --test-type carga \
+            --plan tests/performance/plans/Grupo09_Reportes_Dashboard.jmx
+
+      - name: Subir resultados y PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grupo09-performance-report
+          path: |
+            test-results/performance/R_GRUPO09_REPORTES.jtl
+            test-results/performance/INFORME_GRUPO09.pdf
+            test-results/performance/dashboard/
+            test-results/performance/evidence/
+            
