@@ -42,7 +42,7 @@ jobs:
           npx newman run "postman/C_grupo07_carrito_ecomerce_Armin_Avezada.postman_collection.json"
           --env-var "baseUrl=${{ vars.GRUPO07_BASE_URL }}"
           --env-var "x-api-key=${{ secrets.GRUPO07_API_KEY }}"
-          --delay-request 800
+          --delay-request 3000
           --reporters cli,json
           --reporter-json-export newman/results.json
 
