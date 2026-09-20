@@ -14,6 +14,8 @@ API bajo prueba: `https://aiquaa-sandbox-api.vercel.app` (sandbox de clase).
 | `data/Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.csv` | Dataset semilla: `usuarioId,monto,fechaVencimiento`. |
 | `thresholds/thresholds.json` | Umbrales por operación y globales. |
 | `properties/local.properties` | Host, carga, think time y API key del ambiente local. |
+| `monitoring/capture_dashboard.py` | Captura con Selenium el dashboard de Grafana como evidencia del informe. Copiado de `src/monitoring/python/` del MCP. |
+| `monitoring/requirements.txt` | Dependencia de la captura (`selenium>=4.16,<5`). |
 
 ## Requisito y modelo de carga
 
@@ -121,6 +123,66 @@ Si se abre el `.jmx` desde otra ubicación, alcanza con pasar rutas absolutas:
 -JcsvFile=C:\ruta\al\repo\tests\performance\data\Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.csv
 -JjtlFile=C:\ruta\al\repo\test-results\performance\R_Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.jtl
 ```
+
+## Ejecucion por pipeline
+
+El workflow `.github/workflows/Y_GRUPO03_jmeter.yml` corre la prueba en GitHub Actions
+siguiendo el modelo de `Y_NASAAPOD_jmeter.yml` del repo del MCP.
+
+Se dispara **a mano** desde la pestaña Actions (`Run workflow`), con tres inputs:
+
+| Input | Default | Para qué |
+| --- | --- | --- |
+| `monitoring_dashboard_url` | dashboard público de Grafana del curso | Se captura como evidencia del PDF. Vacío = sin captura. |
+| `threads` | `10` | Hilos concurrentes. |
+| `duration` | `180` | Duración en segundos. |
+
+Se dispara a mano y no en cada push porque el POST crea facturas reales en el sandbox
+compartido del curso.
+
+**Disparo temporal por `push`.** GitHub solo muestra `Run workflow` en la pestaña Actions
+cuando el archivo del workflow ya está en la rama por defecto. Mientras este trabajo viva en
+`grupo-03-pagos-servicios` sin mergear, el disparo manual no está disponible, así que el
+workflow lleva además un `push` acotado a esa rama y a `tests/performance/**`. Es lo que
+permite ejecutar el pipeline y adjuntar el PDF a la entrega. Una vez en `main`, ese bloque
+se puede borrar y queda solo el disparo manual, igual que el ejemplo de clase.
+
+En un evento `push` los `inputs` vienen vacíos, así que el paso *Resolver parametros de la
+corrida* aplica los mismos valores por defecto del formulario (10 hilos, 180 s, el dashboard
+del curso).
+
+Secuencia de pasos:
+
+```
+checkout del repo
+checkout de stevenayal/aiquaa-performance-mcp-server en ./mcp
+JMeter 5.6.3 (cacheado)
+resolucion de parametros (inputs del formulario o defaults si vino por push)
+corrida headless del plan        -> test-results/performance/R_<PLAN>.jtl
+dashboard HTML de JMeter (-g)    -> test-results/performance/dashboard/
+npm ci + npm run build del MCP
+captura del Grafana (Selenium)   -> test-results/performance/evidence/EVIDENCIA_MONITOREO.png
+informe PDF con la evidencia     -> test-results/performance/INFORME_PERF_<PLAN>.pdf
+upload-artifact
+evaluacion de thresholds         -> falla el job si se pasan los umbrales
+```
+
+La evaluación de umbrales va **al final a propósito**: si el P95 o el error rate se pasan,
+el job queda en rojo pero el PDF y el dashboard ya se subieron como artifact. Al revés
+se perdería justamente la evidencia de la corrida que falló.
+
+La captura de Grafana tiene `continue-on-error: true`: si el stack de Grafana está dormido
+o la URL cambia, el PDF igual se genera, sin esa sección.
+
+### Entregables de cada corrida
+
+El artifact `jmeter-GRUPO03-<run>` contiene:
+
+- `INFORME_PERF_<PLAN>.pdf` — informe con portada, percentiles, veredicto, detalle por
+  sampler y la captura del Grafana.
+- `R_<PLAN>.jtl` — resultados crudos.
+- `dashboard/index.html` — dashboard HTML de JMeter.
+- `evidence/EVIDENCIA_MONITOREO.png` — la captura del dashboard de monitoreo.
 
 ## Umbrales
 

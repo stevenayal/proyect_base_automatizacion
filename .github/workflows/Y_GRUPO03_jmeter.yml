@@ -1,0 +1,217 @@
+name: JMeter Grupo03 - Pago de Servicios
+
+# Prueba de rendimiento del Grupo 03 ejecutada por pipeline.
+# Sigue el modelo de Y_NASAAPOD_jmeter.yml del repo aiquaa-performance-mcp-server:
+# corrida headless -> evaluacion de thresholds -> captura del dashboard de Grafana
+# como evidencia -> informe PDF con esa evidencia embebida.
+#
+# Diferencia con el ejemplo: aquel corre DENTRO del repo del MCP, asi que usa
+# node dist/server.js directamente. Aca el MCP se clona en ./mcp y se compila.
+
+on:
+  workflow_dispatch:
+    inputs:
+      monitoring_dashboard_url:
+        description: >-
+          URL publica del dashboard de monitoreo (Grafana) a capturar como evidencia
+          post-ejecucion; dejar vacio para omitir la captura.
+        required: false
+        default: https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958
+      threads:
+        description: Hilos concurrentes
+        required: false
+        default: '10'
+      duration:
+        description: Duracion de la corrida en segundos
+        required: false
+        default: '180'
+
+  # workflow_dispatch solo aparece en la pestana Actions cuando el archivo ya esta
+  # en la rama por defecto. Mientras este PR no se mergee a main, este push acotado
+  # es la unica forma de ejecutar el pipeline y adjuntar el PDF a la entrega.
+  # Una vez en main se puede borrar este bloque y quedarse solo con el disparo manual.
+  push:
+    branches:
+      - grupo-03-pagos-servicios
+    paths:
+      - 'tests/performance/**'
+      - '.github/workflows/Y_GRUPO03_jmeter.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  # El sandbox del curso es compartido y el POST crea facturas reales:
+  # una corrida por vez, y nunca cancelar una a mitad de camino.
+  group: perf-grupo03
+  cancel-in-progress: false
+
+env:
+  JMETER_VERSION: 5.6.3
+  PLAN: Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal
+  MCP_REPO: stevenayal/aiquaa-performance-mcp-server
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout del repo
+        uses: actions/checkout@v5
+
+      - name: Checkout del MCP de performance
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.MCP_REPO }}
+          path: mcp
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Cache de JMeter
+        id: cache-jmeter
+        uses: actions/cache@v4
+        with:
+          path: apache-jmeter-${{ env.JMETER_VERSION }}
+          key: jmeter-${{ env.JMETER_VERSION }}
+
+      - name: Instalar JMeter
+        if: steps.cache-jmeter.outputs.cache-hit != 'true'
+        run: |
+          curl --fail --location --silent --show-error \
+            "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" -o jmeter.tgz
+          tar -xzf jmeter.tgz
+
+      - name: Resolver parametros de la corrida
+        id: params
+        env:
+          DEFAULT_DASHBOARD: https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958
+        run: |
+          THREADS="${{ inputs.threads }}"
+          DURATION="${{ inputs.duration }}"
+          DASHBOARD="${{ inputs.monitoring_dashboard_url }}"
+
+          # En un push no hay inputs: se usan los mismos valores que trae el formulario.
+          THREADS="${THREADS:-10}"
+          DURATION="${DURATION:-180}"
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            DASHBOARD="$DEFAULT_DASHBOARD"
+          fi
+
+          echo "threads=$THREADS"     >> "$GITHUB_OUTPUT"
+          echo "duration=$DURATION"   >> "$GITHUB_OUTPUT"
+          echo "dashboard=$DASHBOARD" >> "$GITHUB_OUTPUT"
+
+          echo "Evento: ${{ github.event_name }} | hilos: $THREADS | duracion: ${DURATION}s"
+          if [ -n "$DASHBOARD" ]; then
+            echo "Dashboard a capturar: $DASHBOARD"
+          else
+            echo "Sin dashboard: se omite la captura de monitoreo."
+          fi
+
+      - name: Correr el plan (headless)
+        env:
+          # Secret del repo; si no esta definido cae a la key publica del sandbox de clase.
+          API_KEY: ${{ secrets.AIQUAA_API_KEY }}
+        run: |
+          mkdir -p test-results/performance
+
+          # csvFile NO se pasa: el default del plan (../data/...) es relativo al .jmx
+          # y JMeter lo resuelve igual en el runner.
+          "apache-jmeter-${JMETER_VERSION}/bin/jmeter" -n \
+            -t "tests/performance/plans/${PLAN}.jmx" \
+            -q tests/performance/properties/local.properties \
+            -JapiKey="${API_KEY:-sbx_demo_f581ca21e68a347288c94d71}" \
+            -Jthreads="${{ steps.params.outputs.threads }}" \
+            -Jduration="${{ steps.params.outputs.duration }}" \
+            -JjtlFile="$GITHUB_WORKSPACE/test-results/performance/R_${PLAN}.jtl"
+
+      - name: Dashboard HTML de JMeter
+        if: always()
+        run: |
+          if [ -s "test-results/performance/R_${PLAN}.jtl" ]; then
+            "apache-jmeter-${JMETER_VERSION}/bin/jmeter" \
+              -g "test-results/performance/R_${PLAN}.jtl" \
+              -o test-results/performance/dashboard
+          else
+            echo "No hay .jtl: se omite el dashboard."
+          fi
+
+      - uses: actions/setup-node@v6
+        if: always()
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+
+      - name: Compilar el MCP
+        if: always()
+        working-directory: mcp
+        run: |
+          npm ci
+          npm run build
+
+      - name: Preparar Python para la captura
+        if: ${{ always() && steps.params.outputs.dashboard != '' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias de captura
+        if: ${{ always() && steps.params.outputs.dashboard != '' }}
+        run: pip install -r tests/performance/monitoring/requirements.txt
+
+      - name: Capturar evidencia del dashboard de monitoreo
+        # Selenium >=4.6 resuelve el chromedriver solo; ubuntu-latest ya trae Chrome.
+        if: ${{ always() && steps.params.outputs.dashboard != '' }}
+        continue-on-error: true
+        run: |
+          mkdir -p test-results/performance/evidence
+          python3 tests/performance/monitoring/capture_dashboard.py \
+            --url "${{ steps.params.outputs.dashboard }}" \
+            --output test-results/performance/evidence/EVIDENCIA_MONITOREO.png \
+            --wait-seconds 8 \
+            --ready-timeout-seconds 180
+
+      - name: Generar informe PDF
+        if: always()
+        run: |
+          EVIDENCE_ARGS=()
+          if [ -f test-results/performance/evidence/EVIDENCIA_MONITOREO.png ]; then
+            EVIDENCE_ARGS=(--evidence-image test-results/performance/evidence/EVIDENCIA_MONITOREO.png \
+              --evidence-label "Dashboard de monitoreo - base del sandbox AIQUAA" \
+              --evidence-url "${{ steps.params.outputs.dashboard }}")
+          else
+            echo "Sin evidencia de monitoreo: el PDF sale sin esa seccion."
+          fi
+
+          node mcp/dist/server.js --report \
+            "test-results/performance/R_${PLAN}.jtl" \
+            tests/performance/thresholds/thresholds.json \
+            "test-results/performance/INFORME_PERF_${PLAN}.pdf" \
+            --api-name "Grupo 03 - Pago de Servicios" \
+            --test-type load \
+            --threads "${{ steps.params.outputs.threads }}" \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            --author "${{ github.actor }}" \
+            "${EVIDENCE_ARGS[@]}"
+
+      - name: Publicar resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-GRUPO03-${{ github.run_number }}
+          path: test-results/performance
+          retention-days: 30
+
+      # Ultimo a proposito: si los umbrales se pasan, este paso falla el job,
+      # pero el PDF y el dashboard ya quedaron subidos como artifact.
+      - name: Evaluar thresholds
+        if: always()
+        run: |
+          node mcp/dist/server.js --evaluate \
+            "test-results/performance/R_${PLAN}.jtl" \
+            tests/performance/thresholds/thresholds.json
