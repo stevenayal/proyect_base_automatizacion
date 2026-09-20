@@ -8,7 +8,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 JTL = BASE_DIR / "resultados" / "prueba_rate_limit.jtl"
-PDF = Path("newman") / "Informe_Prueba_Rendimiento.pdf"
+PDF = str(Path("newman") / "Informe_Prueba_Rendimiento.pdf")
 
 
 df = pd.read_csv(JTL)
