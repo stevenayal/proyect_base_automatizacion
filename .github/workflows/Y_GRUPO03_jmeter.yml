@@ -26,14 +26,17 @@ on:
         default: https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958
       baseline_think_time:
         description: >-
-          Think time del baseline en ms. Con 1 hilo, 3000 ms da ~19 req/min, debajo
-          del techo de ~31 req/min observado en el sandbox.
+          Think time del baseline en ms. Con 1 hilo, 6000 ms da ~10 req/min. La corrida
+          con 3000 ms todavia comio 19,8% de 429: el techo real esta cerca de 15 req/min,
+          no de los 31 que se estimaron al principio.
         required: false
-        default: '3000'
+        default: '6000'
       baseline_duration:
-        description: Duracion del baseline en segundos
+        description: >-
+          Duracion del baseline en segundos. A 10 req/min hacen falta ~7 minutos para
+          juntar una muestra decente.
         required: false
-        default: '300'
+        default: '420'
       saturacion_threads:
         description: Hilos de la corrida de saturacion
         required: false
@@ -115,8 +118,8 @@ jobs:
           DASHBOARD="${{ inputs.monitoring_dashboard_url }}"
 
           # En un push no hay inputs: se usan los mismos valores que trae el formulario.
-          BL_THINK="${BL_THINK:-3000}"
-          BL_DUR="${BL_DUR:-300}"
+          BL_THINK="${BL_THINK:-6000}"
+          BL_DUR="${BL_DUR:-420}"
           SAT_THREADS="${SAT_THREADS:-10}"
           SAT_DUR="${SAT_DUR:-180}"
           if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
@@ -207,6 +210,26 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: mcp/package-lock.json
+
+      - name: Parche temporal del MCP (bug del grafico de throughput)
+        if: always()
+        working-directory: mcp
+        # niceTicks() redondea cada tick con Math.round(), asi que con throughput menor
+        # a ~0.5 req/s los ticks colapsan a [0,0,0,0,0]. Despues maxY = yTicks.at(-1) ?? 1
+        # se queda en 0 (?? no atrapa el 0), scale() divide por cero y pdfkit falla con
+        # "unsupported number: -Infinity". El baseline corre debajo de 1 req/s a proposito,
+        # asi que cae siempre en ese caso.
+        # Reportado al repo del MCP; mientras tanto se parchea antes de compilar.
+        run: |
+          F=src/reporting/pdf-kit.ts
+          sed -i 's/ticks.push(Math.round(v));/ticks.push(Number(v.toFixed(6)));/' "$F"
+          sed -i 's/const maxY = yTicks.at(-1) ?? 1;/const maxY = yTicks.at(-1) || 1;/' "$F"
+
+          # Si upstream cambia esas lineas el parche deja de aplicar en silencio:
+          # mejor fallar aca que generar un PDF roto.
+          grep -q 'Number(v.toFixed(6))' "$F" || { echo "El parche de niceTicks no aplico"; exit 1; }
+          grep -q 'yTicks.at(-1) || 1' "$F"   || { echo "El parche de maxY no aplico"; exit 1; }
+          echo "Parche aplicado."
 
       - name: Compilar el MCP
         if: always()
