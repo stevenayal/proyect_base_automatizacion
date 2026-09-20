@@ -2,16 +2,12 @@ name: Postman Regression - Grupo 07 Carrito (con reporte PDF en Python)
 
 on:
   push:
-    branches:
-      - "grupo-07-carrito-ecomerce-entrega"
-      - "main"
+    branches: ["main"]
     paths:
       - "postman/C_grupo07_carrito_ecomerce_Armin_Avezada.postman_collection.json"
       - ".github/workflows/postman-grupo07-armin-regression.yml"
   pull_request:
-    branches:
-      - "grupo-07-carrito-ecomerce-entrega"
-      - "main"
+    branches: ["main"]
     paths:
       - "postman/C_grupo07_carrito_ecomerce_Armin_Avezada.postman_collection.json"
       - ".github/workflows/postman-grupo07-armin-regression.yml"
