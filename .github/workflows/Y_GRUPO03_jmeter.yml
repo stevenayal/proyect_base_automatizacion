@@ -262,6 +262,10 @@ jobs:
 
       - name: Informe PDF del BASELINE
         if: always()
+        # --report escribe el PDF y despues sale con codigo 1 si el veredicto es FAIL.
+        # El trabajo de este paso es producir el documento, no decidir si el job pasa:
+        # de eso se encarga el paso final "Veredicto del BASELINE".
+        continue-on-error: true
         run: |
           EVIDENCE_ARGS=()
           if [ -f "$RESULTS/evidence/EVIDENCIA_MONITOREO.png" ]; then
@@ -284,6 +288,10 @@ jobs:
 
       - name: Informe PDF de SATURACION (comparado contra el baseline)
         if: always()
+        # --report escribe el PDF y despues sale con codigo 1 si el veredicto es FAIL.
+        # El trabajo de este paso es producir el documento, no decidir si el job pasa:
+        # de eso se encarga el paso final "Veredicto del BASELINE".
+        continue-on-error: true
         run: |
           EVIDENCE_ARGS=()
           if [ -f "$RESULTS/evidence/EVIDENCIA_MONITOREO.png" ]; then
