@@ -34,7 +34,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-          
+
       - name: Instalar dependencias Python
         run: |
           pip install pandas reportlab
@@ -58,6 +58,9 @@ jobs:
             -g "grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/resultados/prueba_rate_limit.jtl" \
             -o "grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/reporte-html-ci"
 
+      - name: Crear carpeta de salida
+          run: mkdir -p newman
+     
       - name: Generar reporte PDF
         if: always()
         run: |
