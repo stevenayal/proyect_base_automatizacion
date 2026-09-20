@@ -1,0 +1,75 @@
+name: JMeter Performance - Grupo 08 Reservas
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/**"
+      - ".github/workflows/jmeter-grupo08.yml"
+
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/**"
+      - ".github/workflows/jmeter-grupo08.yml"
+
+  workflow_dispatch:
+
+jobs:
+  jmeter-performance:
+    name: JMeter + Reporte PDF
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          
+      - name: Instalar dependencias Python
+        run: |
+          pip install pandas reportlab
+
+      - name: Descargar Apache JMeter
+        run: |
+          wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.zip
+          unzip apache-jmeter-5.6.3.zip
+
+      - name: Ejecutar prueba de rendimiento JMeter
+        run: |
+          ./apache-jmeter-5.6.3/bin/jmeter \
+            -n \
+            -t "grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/reservas_performance.jmx" \
+            -l "grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/resultados/prueba_rate_limit.jtl"
+
+      - name: Generar reporte HTML JMeter
+        if: always()
+        run: |
+          ./apache-jmeter-5.6.3/bin/jmeter \
+            -g "grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/resultados/prueba_rate_limit.jtl" \
+            -o "grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/reporte-html-ci"
+
+      - name: Generar reporte PDF
+        if: always()
+        run: |
+          python "grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/informe/generar_informe.py"
+
+      - name: Subir evidencias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-jmeter-grupo08
+          path: |
+            grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/resultados/
+            grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/reporte-html-ci/
+            grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/informe/Informe_Prueba_Rendimiento.pdf
+          retention-days: 7
