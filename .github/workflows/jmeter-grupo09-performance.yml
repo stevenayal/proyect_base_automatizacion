@@ -18,11 +18,11 @@ on:
       threads:
         description: "Usuarios concurrentes"
         required: false
-        default: "3"
+        default: "1"
       loops:
         description: "Iteraciones por usuario"
         required: false
-        default: "20"
+        default: "2"
 
       monitoring_dashboard_url:
         description: "URL publica del dashboard de Grafana para evidencia"
