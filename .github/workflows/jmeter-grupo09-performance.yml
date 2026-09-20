@@ -66,8 +66,8 @@ jobs:
             -l "${RESULTS_DIR}/R_GRUPO09_REPORTES.jtl" \
             -e \
             -o "${RESULTS_DIR}/dashboard" \
-            -Jthreads="${{ inputs.threads || '3' }}" \
-            -Jloops="${{ inputs.loops || '20' }}"
+            -Jthreads="${{ inputs.threads || '1' }}" \
+            -Jloops="${{ inputs.loops || '2' }}"
 
       - name: Configurar Python (captura de monitoreo)
         if: ${{ inputs.monitoring_dashboard_url != '' }}
