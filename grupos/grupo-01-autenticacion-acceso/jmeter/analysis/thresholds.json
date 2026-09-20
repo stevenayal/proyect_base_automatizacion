@@ -1,0 +1,27 @@
+{
+  "global": {
+    "scope": "global",
+    "maxErrorRate": 1,
+    "p95Ms": 3000,
+    "p99Ms": 5000
+  },
+  "operations": {
+    "GET - Consultar sesiones por usuario (Gloria)": {
+      "scope": "GET - Consultar sesiones por usuario (Gloria)",
+      "maxErrorRate": 1,
+      "p95Ms": 3000,
+      "p99Ms": 5000
+    },
+    "POST - Crear sesion (David)": {
+      "scope": "POST - Crear sesion (David)",
+      "maxErrorRate": 1,
+      "p95Ms": 3000,
+      "p99Ms": 5000
+    }
+  },
+  "analysis": {
+    "minimumSamplesGlobal": 10,
+    "minimumSamplesPerOperation": 5,
+    "minimumThroughputPerSecond": 0.2
+  }
+}
