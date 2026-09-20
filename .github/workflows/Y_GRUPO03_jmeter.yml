@@ -2,11 +2,18 @@ name: JMeter Grupo03 - Pago de Servicios
 
 # Prueba de rendimiento del Grupo 03 ejecutada por pipeline.
 # Sigue el modelo de Y_NASAAPOD_jmeter.yml del repo aiquaa-performance-mcp-server:
-# corrida headless -> evaluacion de thresholds -> captura del dashboard de Grafana
-# como evidencia -> informe PDF con esa evidencia embebida.
+# corrida headless -> captura del dashboard de Grafana como evidencia -> informe PDF
+# -> evaluacion de thresholds.
 #
-# Diferencia con el ejemplo: aquel corre DENTRO del repo del MCP, asi que usa
-# node dist/server.js directamente. Aca el MCP se clona en ./mcp y se compila.
+# Dos diferencias con el ejemplo:
+#  1. Aquel corre DENTRO del repo del MCP y usa node dist/server.js directamente.
+#     Aca el MCP se clona en ./mcp y se compila.
+#  2. Se ejecutan DOS corridas encadenadas, no una:
+#       - BASELINE   : carga baja, por debajo del rate limit del sandbox. Es la que
+#                      mide de verdad la API y la que define el veredicto del SLA.
+#       - SATURACION : la carga del NFR (10 hilos). Encuentra el techo de capacidad.
+#     La primera corrida del pipeline con 10 hilos devolvio 97,8% de 429 y percentiles
+#     de ~120 ms que median al rate limiter, no a la API. De ahi la separacion.
 
 on:
   workflow_dispatch:
@@ -17,12 +24,22 @@ on:
           post-ejecucion; dejar vacio para omitir la captura.
         required: false
         default: https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958
-      threads:
-        description: Hilos concurrentes
+      baseline_think_time:
+        description: >-
+          Think time del baseline en ms. Con 1 hilo, 3000 ms da ~19 req/min, debajo
+          del techo de ~31 req/min observado en el sandbox.
+        required: false
+        default: '3000'
+      baseline_duration:
+        description: Duracion del baseline en segundos
+        required: false
+        default: '300'
+      saturacion_threads:
+        description: Hilos de la corrida de saturacion
         required: false
         default: '10'
-      duration:
-        description: Duracion de la corrida en segundos
+      saturacion_duration:
+        description: Duracion de la saturacion en segundos
         required: false
         default: '180'
 
@@ -50,6 +67,7 @@ env:
   JMETER_VERSION: 5.6.3
   PLAN: Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal
   MCP_REPO: stevenayal/aiquaa-performance-mcp-server
+  RESULTS: test-results/performance
 
 jobs:
   performance:
@@ -85,60 +103,103 @@ jobs:
             "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" -o jmeter.tgz
           tar -xzf jmeter.tgz
 
-      - name: Resolver parametros de la corrida
+      - name: Resolver parametros de las corridas
         id: params
         env:
           DEFAULT_DASHBOARD: https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958
         run: |
-          THREADS="${{ inputs.threads }}"
-          DURATION="${{ inputs.duration }}"
+          BL_THINK="${{ inputs.baseline_think_time }}"
+          BL_DUR="${{ inputs.baseline_duration }}"
+          SAT_THREADS="${{ inputs.saturacion_threads }}"
+          SAT_DUR="${{ inputs.saturacion_duration }}"
           DASHBOARD="${{ inputs.monitoring_dashboard_url }}"
 
           # En un push no hay inputs: se usan los mismos valores que trae el formulario.
-          THREADS="${THREADS:-10}"
-          DURATION="${DURATION:-180}"
+          BL_THINK="${BL_THINK:-3000}"
+          BL_DUR="${BL_DUR:-300}"
+          SAT_THREADS="${SAT_THREADS:-10}"
+          SAT_DUR="${SAT_DUR:-180}"
           if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
             DASHBOARD="$DEFAULT_DASHBOARD"
           fi
 
-          echo "threads=$THREADS"     >> "$GITHUB_OUTPUT"
-          echo "duration=$DURATION"   >> "$GITHUB_OUTPUT"
-          echo "dashboard=$DASHBOARD" >> "$GITHUB_OUTPUT"
+          {
+            echo "bl_think=$BL_THINK"
+            echo "bl_dur=$BL_DUR"
+            echo "sat_threads=$SAT_THREADS"
+            echo "sat_dur=$SAT_DUR"
+            echo "dashboard=$DASHBOARD"
+          } >> "$GITHUB_OUTPUT"
 
-          echo "Evento: ${{ github.event_name }} | hilos: $THREADS | duracion: ${DURATION}s"
+          echo "Evento: ${{ github.event_name }}"
+          echo "BASELINE  : 1 hilo, think time ${BL_THINK} ms, ${BL_DUR}s"
+          echo "SATURACION: ${SAT_THREADS} hilos, think time 500 ms, ${SAT_DUR}s"
           if [ -n "$DASHBOARD" ]; then
             echo "Dashboard a capturar: $DASHBOARD"
           else
             echo "Sin dashboard: se omite la captura de monitoreo."
           fi
 
-      - name: Correr el plan (headless)
+      # ------------------------------------------------------------------
+      # Corrida 1: BASELINE. Carga deliberadamente baja para quedar debajo
+      # del rate limit y medir la API en vez del limitador.
+      # ------------------------------------------------------------------
+      - name: Corrida BASELINE (carga baja)
         env:
-          # Secret del repo; si no esta definido cae a la key publica del sandbox de clase.
           API_KEY: ${{ secrets.AIQUAA_API_KEY }}
         run: |
-          mkdir -p test-results/performance
+          mkdir -p "$RESULTS"
 
           # csvFile NO se pasa: el default del plan (../data/...) es relativo al .jmx
           # y JMeter lo resuelve igual en el runner.
           "apache-jmeter-${JMETER_VERSION}/bin/jmeter" -n \
             -t "tests/performance/plans/${PLAN}.jmx" \
-            -q tests/performance/properties/local.properties \
+            -q tests/performance/properties/GRUPO_03_local.properties \
             -JapiKey="${API_KEY:-sbx_demo_f581ca21e68a347288c94d71}" \
-            -Jthreads="${{ steps.params.outputs.threads }}" \
-            -Jduration="${{ steps.params.outputs.duration }}" \
-            -JjtlFile="$GITHUB_WORKSPACE/test-results/performance/R_${PLAN}.jtl"
+            -Jthreads=1 \
+            -JrampUp=1 \
+            -JthinkTime="${{ steps.params.outputs.bl_think }}" \
+            -Jduration="${{ steps.params.outputs.bl_dur }}" \
+            -JjtlFile="$GITHUB_WORKSPACE/$RESULTS/R_BASELINE.jtl"
 
-      - name: Dashboard HTML de JMeter
+      - name: Enfriamiento entre corridas
+        if: always()
+        # El rate limit del sandbox castiga las rafagas: se le da aire para que la
+        # ventana se reinicie antes de saturarlo, asi la saturacion arranca limpia.
+        run: sleep 90
+
+      # ------------------------------------------------------------------
+      # Corrida 2: SATURACION. La carga del NFR. No busca cumplir el SLA,
+      # busca encontrar donde empieza a rechazar.
+      # ------------------------------------------------------------------
+      - name: Corrida SATURACION (carga del NFR)
+        if: always()
+        env:
+          API_KEY: ${{ secrets.AIQUAA_API_KEY }}
+        run: |
+          mkdir -p "$RESULTS"
+          "apache-jmeter-${JMETER_VERSION}/bin/jmeter" -n \
+            -t "tests/performance/plans/${PLAN}.jmx" \
+            -q tests/performance/properties/GRUPO_03_local.properties \
+            -JapiKey="${API_KEY:-sbx_demo_f581ca21e68a347288c94d71}" \
+            -Jthreads="${{ steps.params.outputs.sat_threads }}" \
+            -JrampUp=30 \
+            -JthinkTime=500 \
+            -Jduration="${{ steps.params.outputs.sat_dur }}" \
+            -JjtlFile="$GITHUB_WORKSPACE/$RESULTS/R_SATURACION.jtl"
+
+      - name: Dashboards HTML de JMeter
         if: always()
         run: |
-          if [ -s "test-results/performance/R_${PLAN}.jtl" ]; then
-            "apache-jmeter-${JMETER_VERSION}/bin/jmeter" \
-              -g "test-results/performance/R_${PLAN}.jtl" \
-              -o test-results/performance/dashboard
-          else
-            echo "No hay .jtl: se omite el dashboard."
-          fi
+          for RUN in BASELINE SATURACION; do
+            if [ -s "$RESULTS/R_${RUN}.jtl" ]; then
+              "apache-jmeter-${JMETER_VERSION}/bin/jmeter" \
+                -g "$RESULTS/R_${RUN}.jtl" \
+                -o "$RESULTS/dashboard_${RUN}"
+            else
+              echo "No hay $RESULTS/R_${RUN}.jtl: se omite su dashboard."
+            fi
+          done
 
       - uses: actions/setup-node@v6
         if: always()
@@ -169,34 +230,61 @@ jobs:
         if: ${{ always() && steps.params.outputs.dashboard != '' }}
         continue-on-error: true
         run: |
-          mkdir -p test-results/performance/evidence
+          mkdir -p "$RESULTS/evidence"
           python3 tests/performance/monitoring/capture_dashboard.py \
             --url "${{ steps.params.outputs.dashboard }}" \
-            --output test-results/performance/evidence/EVIDENCIA_MONITOREO.png \
+            --output "$RESULTS/evidence/EVIDENCIA_MONITOREO.png" \
             --wait-seconds 8 \
             --ready-timeout-seconds 180
 
-      - name: Generar informe PDF
+      - name: Informe PDF del BASELINE
         if: always()
         run: |
           EVIDENCE_ARGS=()
-          if [ -f test-results/performance/evidence/EVIDENCIA_MONITOREO.png ]; then
-            EVIDENCE_ARGS=(--evidence-image test-results/performance/evidence/EVIDENCIA_MONITOREO.png \
+          if [ -f "$RESULTS/evidence/EVIDENCIA_MONITOREO.png" ]; then
+            EVIDENCE_ARGS=(--evidence-image "$RESULTS/evidence/EVIDENCIA_MONITOREO.png" \
               --evidence-label "Dashboard de monitoreo - base del sandbox AIQUAA" \
               --evidence-url "${{ steps.params.outputs.dashboard }}")
-          else
-            echo "Sin evidencia de monitoreo: el PDF sale sin esa seccion."
           fi
 
           node mcp/dist/server.js --report \
-            "test-results/performance/R_${PLAN}.jtl" \
-            tests/performance/thresholds/thresholds.json \
-            "test-results/performance/INFORME_PERF_${PLAN}.pdf" \
-            --api-name "Grupo 03 - Pago de Servicios" \
-            --test-type load \
-            --threads "${{ steps.params.outputs.threads }}" \
+            "$RESULTS/R_BASELINE.jtl" \
+            tests/performance/thresholds/GRUPO_03_thresholds.json \
+            "$RESULTS/INFORME_PERF_BASELINE.pdf" \
+            --api-name "Grupo 03 - Pago de Servicios (baseline)" \
+            --test-type baseline \
+            --threads 1 \
+            --plan "tests/performance/plans/${PLAN}.jmx" \
             --repo-url "${{ github.server_url }}/${{ github.repository }}" \
             --author "${{ github.actor }}" \
+            "${EVIDENCE_ARGS[@]}"
+
+      - name: Informe PDF de SATURACION (comparado contra el baseline)
+        if: always()
+        run: |
+          EVIDENCE_ARGS=()
+          if [ -f "$RESULTS/evidence/EVIDENCIA_MONITOREO.png" ]; then
+            EVIDENCE_ARGS=(--evidence-image "$RESULTS/evidence/EVIDENCIA_MONITOREO.png" \
+              --evidence-label "Dashboard de monitoreo - base del sandbox AIQUAA" \
+              --evidence-url "${{ steps.params.outputs.dashboard }}")
+          fi
+
+          BASELINE_ARGS=()
+          if [ -s "$RESULTS/R_BASELINE.jtl" ]; then
+            BASELINE_ARGS=(--baseline "$RESULTS/R_BASELINE.jtl")
+          fi
+
+          node mcp/dist/server.js --report \
+            "$RESULTS/R_SATURACION.jtl" \
+            tests/performance/thresholds/GRUPO_03_thresholds.json \
+            "$RESULTS/INFORME_PERF_SATURACION.pdf" \
+            --api-name "Grupo 03 - Pago de Servicios (saturacion)" \
+            --test-type load \
+            --threads "${{ steps.params.outputs.sat_threads }}" \
+            --plan "tests/performance/plans/${PLAN}.jmx" \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            --author "${{ github.actor }}" \
+            "${BASELINE_ARGS[@]}" \
             "${EVIDENCE_ARGS[@]}"
 
       - name: Publicar resultados
@@ -204,14 +292,24 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: jmeter-GRUPO03-${{ github.run_number }}
-          path: test-results/performance
+          path: ${{ env.RESULTS }}
           retention-days: 30
 
-      # Ultimo a proposito: si los umbrales se pasan, este paso falla el job,
-      # pero el PDF y el dashboard ya quedaron subidos como artifact.
-      - name: Evaluar thresholds
+      - name: Veredicto de la SATURACION (informativo)
+        if: always()
+        # Esta corrida busca el techo de capacidad, no cumplir el SLA: que de FAIL
+        # por rate limiting es el hallazgo, no un defecto del pipeline.
+        continue-on-error: true
+        run: |
+          node mcp/dist/server.js --evaluate \
+            "$RESULTS/R_SATURACION.jtl" \
+            tests/performance/thresholds/GRUPO_03_thresholds.json
+
+      # Ultimo a proposito: si el baseline no cumple, el job queda en rojo, pero
+      # los PDF y los dashboards ya se subieron como artifact.
+      - name: Veredicto del BASELINE (define el resultado del job)
         if: always()
         run: |
           node mcp/dist/server.js --evaluate \
-            "test-results/performance/R_${PLAN}.jtl" \
-            tests/performance/thresholds/thresholds.json
+            "$RESULTS/R_BASELINE.jtl" \
+            tests/performance/thresholds/GRUPO_03_thresholds.json

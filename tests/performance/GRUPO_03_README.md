@@ -6,14 +6,20 @@ a partir de la colección Postman `Grupo 03 - Pago de Servicios`.
 
 API bajo prueba: `https://aiquaa-sandbox-api.vercel.app` (sandbox de clase).
 
+> **Nombres con prefijo `GRUPO_03_`.** `tests/performance/` es compartido por todos los
+> grupos del curso y `README.md`, `thresholds.json` y `local.properties` ya existen en
+> `main` con contenido de otros grupos. Los archivos propios de este grupo llevan prefijo
+> para no pisarlos al mergear, siguiendo la convención que ya usan `GRUPO_07_*` y
+> `grupo04-thresholds.json`.
+
 ## Contenido
 
 | Archivo | Qué es |
 | --- | --- |
 | `plans/Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.jmx` | Plan grupal: GET facturas pendientes + POST crear factura, con el **proveedor elegido al azar** entre ANDE, ESSAP, COPACO y Tigo. Dentro de JMeter se ve como "Grupo03 - Plan de Pruebas de JMeter + CSV - Grupal". |
 | `data/Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.csv` | Dataset semilla: `usuarioId,monto,fechaVencimiento`. |
-| `thresholds/thresholds.json` | Umbrales por operación y globales. |
-| `properties/local.properties` | Host, carga, think time y API key del ambiente local. |
+| `thresholds/GRUPO_03_thresholds.json` | Umbrales por operación y globales. |
+| `properties/GRUPO_03_local.properties` | Host, carga, think time y API key del ambiente local. |
 | `monitoring/capture_dashboard.py` | Captura con Selenium el dashboard de Grafana como evidencia del informe. Copiado de `src/monitoring/python/` del MCP. |
 | `monitoring/requirements.txt` | Dependencia de la captura (`selenium>=4.16,<5`). |
 
@@ -34,7 +40,7 @@ API bajo prueba: `https://aiquaa-sandbox-api.vercel.app` (sandbox de clase).
    Con 20 hilos y think time 0 el plan mide el rate limiter, no la API.
 2. Los `usuarioId` **no se hardcodean**: se extraen en runtime de la respuesta del GET.
    El CSV solo aporta la semilla de fallback y los datos de negocio (`monto`, `fechaVencimiento`).
-3. La API key es la pública del sandbox de clase. Vive en `properties/local.properties`,
+3. La API key es la pública del sandbox de clase. Vive en `properties/GRUPO_03_local.properties`,
    nunca dentro del `.jmx`.
 
 ## Flujo de datos dinámicos
@@ -78,7 +84,7 @@ Desde la raíz del repositorio:
 ```bash
 jmeter -n \
   -t tests/performance/plans/Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.jmx \
-  -q tests/performance/properties/local.properties \
+  -q tests/performance/properties/GRUPO_03_local.properties \
   -l test-results/performance/R_Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.jtl \
   -e -o test-results/performance/dashboard
 ```
@@ -87,7 +93,7 @@ Smoke de 1 hilo antes de la corrida real:
 
 ```bash
 jmeter -n -t tests/performance/plans/Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.jmx \
-  -q tests/performance/properties/local.properties \
+  -q tests/performance/properties/GRUPO_03_local.properties \
   -Jthreads=1 -Jduration=30 -Jloops=1 \
   -l test-results/performance/R_SMOKE.jtl
 ```
@@ -97,7 +103,7 @@ Evaluar contra los umbrales e informe PDF (sin pasar por MCP):
 ```bash
 npx -y aiquaa-performance-mcp-server --evaluate \
   test-results/performance/R_Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.jtl \
-  tests/performance/thresholds/thresholds.json
+  tests/performance/thresholds/GRUPO_03_thresholds.json
 ```
 
 ## Propiedades configurables
