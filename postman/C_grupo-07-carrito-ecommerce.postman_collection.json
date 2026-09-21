@@ -1,0 +1,218 @@
+{
+  "info": {
+    "_postman_id": "a23393ff-b620-4eed-accb-d17afd11e92e",
+    "name": "C_grupo-07-carrito-ecommerce",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53986893",
+    "_collection_link": "https://go.postman.co/collection/53986893-a23393ff-b620-4eed-accb-d17afd11e92e?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "01 - Crear orden (checkout) (Grupo 7)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const statusCode = pm.response.code;\r",
+              "const jsonData = pm.response.json();\r",
+              "const errorMessage = jsonData.error;\r",
+              "if(statusCode === 201){\r",
+              "    pm.test(\"El código de respuesta es 201 Created\",() => {\r",
+              "        pm.response.to.have.status(201);\r",
+              "    });\r",
+              "    pm.test(\"La respuesta contiene el objeto 'data' con la estructura correcta\", function () {\r",
+              "\r",
+              "        // Validamos que exista el objeto data\r",
+              "        pm.expect(jsonData).to.have.property('data');\r",
+              "    \r",
+              "    \r",
+              "        // Validamos que exista el array de items y su contenido\r",
+              "        pm.expect(jsonData.data.items).to.be.an('array').that.is.not.empty;\r",
+              "        pm.expect(jsonData.data.items[0].producto).to.eql(\"Licencia Pro Anual\");\r",
+              "    });\r",
+              "}\r",
+              "else if(statusCode === 400){\r",
+              "\r",
+              "    //console.log(jsonData.error.code);\r",
+              "    pm.test(\"Code 400 - Body/query inválido o error de ejecución\", () =>{\r",
+              "        pm.expect(errorMessage.code).to.eql(\"VALIDATION_ERROR\");\r",
+              "    });\r",
+              "\r",
+              "}\r",
+              "else if(statusCode === 401){\r",
+              "    pm.test(\"Code 401 - API key inválida, inactiva o ausente\", () =>{\r",
+              "        pm.expect(errorMessage.code).to.eql(\"UNAUTHORIZED\");\r",
+              "    });\r",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "disabledSystemHeaders": {
+          "content-length": true,
+          "host": true,
+          "user-agent": true,
+          "accept": true,
+          "accept-encoding": true,
+          "connection": true,
+          "content-type": true
+        }
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{x-api-key}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"usuarioId\": 23,\r\n  \"items\": [\r\n    {\r\n      \"producto\": \"Licencia Pro Anual\",\r\n      \"cantidad\": 1,\r\n      \"precioUnitario\": 8500\r\n    }\r\n  ]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/ordenes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "ordenes"
+          ]
+        },
+        "description": "BDD: Crear una orden exitosamente con un usuario válido."
+      },
+      "response": []
+    },
+    {
+      "name": "02 - Crear orden - Usuario incorrecto",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const statusCode = pm.response.code;\r",
+              "const jsonData = pm.response.json();\r",
+              "const errorMessage = jsonData.error;\r",
+              "\r",
+              " if(statusCode === 400){\r",
+              "\r",
+              "    //console.log(jsonData.error.code);\r",
+              "    pm.test(\"El código de respuesta es 400 Bad Request\", () =>{\r",
+              "        // Validamos la estructura del error\r",
+              "        pm.response.to.have.status(400);\r",
+              "     });\r",
+              "\r",
+              "\r",
+              "    // Validamos que el mensaje contenga información clave de la Foreign Key\r",
+              "     pm.test(\"La respuesta captura el error de validación de base de datos\", () => {\r",
+              "        pm.expect(jsonData.error.message).to.include(\"violates foreign key constraint\");\r",
+              "        pm.expect(jsonData.error.message).to.include(\"ordenes_usuario_id_fkey\");\r",
+              "    });\r",
+              "\r",
+              "}\r",
+              "else if(statusCode === 401){\r",
+              "    pm.test(\"Code 401 - API key inválida, inactiva o ausente\", () =>{\r",
+              "        pm.expect(errorMessage.code).to.eql(\"UNAUTHORIZED\");\r",
+              "    });\r",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "disabledSystemHeaders": {
+          "content-length": true,
+          "host": true,
+          "user-agent": true,
+          "accept": true,
+          "accept-encoding": true,
+          "connection": true,
+          "content-type": true
+        }
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{x-api-key}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"usuarioId\": 7878,\r\n  \"items\": [\r\n    {\r\n      \"producto\": \"Licencia Pro Anual\",\r\n      \"cantidad\": 1,\r\n      \"precioUnitario\": 8500\r\n    }\r\n  ]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/ordenes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "ordenes"
+          ]
+        },
+        "description": "BDD: Error al crear una orden por un ID de usuario inexistente"
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "value": ""
+    }
+  ]
+}

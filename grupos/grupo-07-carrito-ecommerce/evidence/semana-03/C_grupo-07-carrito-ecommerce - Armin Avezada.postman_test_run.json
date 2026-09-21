@@ -1,0 +1,96 @@
+{
+	"id": "59e8baab-40b9-48fc-a797-16f7839a91a2",
+	"name": "C_grupo-07-carrito-ecommerce - Armin Avezada",
+	"timestamp": "2026-09-07T02:16:14.768Z",
+	"collection_id": "53986893-a23393ff-b620-4eed-accb-d17afd11e92e",
+	"folder_id": 0,
+	"environment_id": "0",
+	"totalPass": 4,
+	"delay": 0,
+	"persist": true,
+	"status": "finished",
+	"startedAt": "2026-09-07T02:16:13.098Z",
+	"totalFail": 0,
+	"results": [
+		{
+			"id": "0aef7195-9caa-43a3-b5cf-cce684e5f423",
+			"name": "01 - Crear orden (checkout)",
+			"url": "https://aiquaa-sandbox-api.vercel.app/api/v1/ordenes",
+			"time": 300,
+			"responseCode": {
+				"code": 201,
+				"name": "Created"
+			},
+			"tests": {
+				"El código de respuesta es 201 Created": true,
+				"La respuesta contiene el objeto 'data' con la estructura correcta": true
+			},
+			"testPassFailCounts": {
+				"El código de respuesta es 201 Created": {
+					"pass": 1,
+					"fail": 0
+				},
+				"La respuesta contiene el objeto 'data' con la estructura correcta": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				300
+			],
+			"allTests": [
+				{
+					"El código de respuesta es 201 Created": true,
+					"La respuesta contiene el objeto 'data' con la estructura correcta": true
+				}
+			]
+		},
+		{
+			"id": "5e5f2c58-61b5-4e3d-8b31-daa21cf7b2cc",
+			"name": "02 - Crear orden - Usuario incorrecto",
+			"url": "https://aiquaa-sandbox-api.vercel.app/api/v1/ordenes",
+			"time": 286,
+			"responseCode": {
+				"code": 400,
+				"name": "Bad Request"
+			},
+			"tests": {
+				"El código de respuesta es 400 Bad Request": true,
+				"La respuesta captura el error de validación de base de datos": true
+			},
+			"testPassFailCounts": {
+				"El código de respuesta es 400 Bad Request": {
+					"pass": 1,
+					"fail": 0
+				},
+				"La respuesta captura el error de validación de base de datos": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				286
+			],
+			"allTests": [
+				{
+					"El código de respuesta es 400 Bad Request": true,
+					"La respuesta captura el error de validación de base de datos": true
+				}
+			]
+		}
+	],
+	"count": 1,
+	"totalTime": 586,
+	"collection": {
+		"requests": [
+			{
+				"id": "0aef7195-9caa-43a3-b5cf-cce684e5f423",
+				"method": "POST"
+			},
+			{
+				"id": "5e5f2c58-61b5-4e3d-8b31-daa21cf7b2cc",
+				"method": "POST"
+			}
+		]
+	}
+}

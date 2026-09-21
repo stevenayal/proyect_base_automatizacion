@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="grupo 07 - carrito / e-commerce (Andrea Escurra)" tests="4" time="1.564">
+  <testsuite name="Eliminar producto de carrito - Andrea / 1-Crear Orden" id="e81e89e4-6bbd-4e8f-ba1e-789eb23b58a4" timestamp="2026-09-06T19:30:00.038Z" tests="2" failures="0" errors="0" time="0.562">
+    <testcase name="Status es 201" time="0.562" classname="EliminarProductoDeCarritoAndrea1CrearOrden"/>
+    <testcase name="Guardo el id de la orden a eliminar" time="0.562" classname="EliminarProductoDeCarritoAndrea1CrearOrden"/>
+  </testsuite>
+  <testsuite name="Eliminar producto de carrito - Andrea / 2-Dar de Baja" id="b7b90056-b0f7-4a6d-87fb-34df4639f128" timestamp="2026-09-06T19:30:00.038Z" tests="3" failures="0" errors="0" time="0.386">
+    <testcase name="Precondicion BD: la orden existe y esta activa" time="0.386" classname="EliminarProductoDeCarritoAndrea2DarDeBaja"/>
+    <testcase name="Status es 204" time="0.386" classname="EliminarProductoDeCarritoAndrea2DarDeBaja"/>
+    <testcase name="La BD confirma que la orden quedo inactiva (activo = false)" time="0.386" classname="EliminarProductoDeCarritoAndrea2DarDeBaja"/>
+  </testsuite>
+  <testsuite name="Eliminar producto de carrito - Andrea / 3-Verificar Baja" id="8510073d-ea20-4a1e-95f5-4e8cb0523fda" timestamp="2026-09-06T19:30:00.038Z" tests="1" failures="0" errors="0" time="0.332">
+    <testcase name="Status es 404 (orden dada de baja)" time="0.332" classname="EliminarProductoDeCarritoAndrea3VerificarBaja"/>
+  </testsuite>
+  <testsuite name="Eliminar producto de carrito - Andrea / 4-Orden inexistente (404, BD sin cambios)" id="ee7589c4-9dba-46fa-91c8-ebb631155159" timestamp="2026-09-06T19:30:00.038Z" tests="2" failures="0" errors="0" time="0.284">
+    <testcase name="Status es 404 (orden inexistente)" time="0.284" classname="EliminarProductoDeCarritoAndrea4OrdenInexistente404BdSinCambios"/>
+    <testcase name="La BD no registro ni borro nada (COUNT igual)" time="0.284" classname="EliminarProductoDeCarritoAndrea4OrdenInexistente404BdSinCambios"/>
+  </testsuite>
+</testsuites>
