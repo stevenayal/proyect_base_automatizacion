@@ -51,8 +51,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Instalar ReportLab
-        run: python -m pip install reportlab
+      - name: Instalar dependencias del reporte oficial
+        run: python -m pip install -r skills/postman-newman-skill/reporter/requirements.txt
 
       - name: Verificar consumidores antes de Newman
         run: python scripts/grupo07/wait_sandbox_consumers.py --check
@@ -72,15 +72,34 @@ jobs:
             --reporters cli,json \
             --reporter-json-export newman/results.json
 
-      # On real test failures still create a FAIL PDF; never mask Newman's exit.
-      - name: Validar alcance y generar PDF
+      # The internal reporter validates scope only; the official skill creates the PDF.
+      - name: Validar alcance 3/14 y generar PDF oficial
         id: report
         if: ${{ !cancelled() && (steps.newman.outcome == 'success' || steps.newman.outcome == 'failure') }}
         run: |
-          python scripts/grupo07/newman_report.py \
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/grupo07')
+          from newman_report import summarize
+          summary = summarize(json.loads(Path('newman/results.json').read_text()),
+                              expected_requests=3, expected_assertions=14)
+          assert summary['Result'] == 'PASS', 'Newman no cumple alcance estricto 3/14'
+          assert summary['Passed assertions'] == 14
+          assert summary['Failed assertions'] == 0 and summary['Skipped assertions'] == 0
+          print(json.dumps(summary))
+          PY
+          python skills/postman-newman-skill/reporter/newman_report.py \
             --results newman/results.json \
-            --output newman/report.pdf \
-            --expected-requests 3 --expected-assertions 14
+            --banner skills/postman-newman-skill/reporter/assets/banner_portada.png \
+            --logo-aiquaa skills/postman-newman-skill/reporter/assets/logo_aiquaa_circle.png \
+            --logo-postman skills/postman-newman-skill/reporter/assets/logo_postman_clean.png \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            --api-version "${{ inputs.tested_sha }}" \
+            --author "${{ github.triggering_actor }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --output newman/report.pdf
           test -s newman/report.pdf
 
       - name: Subir reporte PDF
