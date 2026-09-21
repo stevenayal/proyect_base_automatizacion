@@ -1,0 +1,152 @@
+name: JMeter - Grupo 07 - Juan Barreto
+
+on:
+  push:
+    branches: [grupo-07-carrito-ecommerce-entrega]
+    paths:
+      - .github/workflows/jmeter-grupo07-juan-performance.yml
+      - scripts/grupo07/jmeter_report.py
+      - tests/performance/plans/P_GRUPO_07_ORDENES_*.jmx
+      - tests/performance/properties/GRUPO_07_ORDENES_*.properties
+      - tests/performance/data/D_GRUPO_07_ORDENES_CSV.csv
+      - tests/performance/thresholds/GRUPO_07_ORDENES_BASELINE.json
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  JMETER_VERSION: 5.6.3
+  RESULTS_DIR: test-results/performance/grupo07-juan
+
+jobs:
+  jmeter-juan:
+    if: github.event_name != 'pull_request' || github.head_ref == 'grupo-07-carrito-ecommerce-entrega'
+    name: Juan Barreto - baseline y CSV completos
+    concurrency:
+      group: grupo07-juan-sandbox
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Verificar API_KEY
+        id: config
+        env:
+          API_KEY: ${{ secrets.GRUPO07_API_KEY }}
+        run: |
+          if [[ -z "${API_KEY//[[:space:]]/}" || "$API_KEY" == *$'\n'* || "$API_KEY" == *$'\r'* ]]; then
+            echo "::error::REGRESION_NO_EJECUTADA: falta una API_KEY valida."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        id: install
+        run: |
+          python -m pip install reportlab
+          curl --fail --location --silent --show-error \
+            "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" -o jmeter.tgz
+          curl --fail --location --silent --show-error \
+            "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz.sha512" -o jmeter.sha512
+          python - <<'PY'
+          import hashlib, pathlib, re
+          expected = re.findall(r"\b[0-9a-fA-F]{128}\b", pathlib.Path("jmeter.sha512").read_text())
+          actual = hashlib.sha512(pathlib.Path("jmeter.tgz").read_bytes()).hexdigest()
+          assert len(expected) == 1 and expected[0].lower() == actual, "JMeter SHA512 mismatch"
+          PY
+          tar -xzf jmeter.tgz
+          mkdir -p "$RESULTS_DIR/baseline" "$RESULTS_DIR/csv"
+
+      - name: Ejecutar JMX baseline de Juan
+        id: baseline
+        env:
+          API_KEY: ${{ secrets.GRUPO07_API_KEY }}
+        run: |
+          # Allow a prior Juan run's rate window to expire; other users are not locked.
+          sleep 65
+          "apache-jmeter-${JMETER_VERSION}/bin/jmeter" -n \
+            -t tests/performance/plans/P_GRUPO_07_ORDENES_BASELINE.jmx \
+            -q tests/performance/properties/GRUPO_07_ORDENES_BASELINE.properties \
+            -l "$RESULTS_DIR/baseline/results.jtl" \
+            -j "$RUNNER_TEMP/grupo07-juan-baseline.log"
+
+      - name: Evaluar 18 GET, threshold y generar reporte baseline
+        id: baseline_report
+        if: ${{ !cancelled() && (steps.baseline.outcome == 'success' || steps.baseline.outcome == 'failure') }}
+        run: |
+          python scripts/grupo07/jmeter_report.py --profile baseline \
+            --jtl "$RESULTS_DIR/baseline/results.jtl" \
+            --thresholds tests/performance/thresholds/GRUPO_07_ORDENES_BASELINE.json \
+            --output-dir "$RESULTS_DIR/baseline"
+
+      - name: Ejecutar JMX CSV de Juan
+        id: csv
+        env:
+          API_KEY: ${{ secrets.GRUPO07_API_KEY }}
+        run: |
+          sleep 65
+          "apache-jmeter-${JMETER_VERSION}/bin/jmeter" -n \
+            -t tests/performance/plans/P_GRUPO_07_ORDENES_CSV.jmx \
+            -q tests/performance/properties/GRUPO_07_ORDENES_CSV.properties \
+            -l "$RESULTS_DIR/csv/results.jtl" \
+            -j "$RUNNER_TEMP/grupo07-juan-csv.log"
+
+      - name: Evaluar 3 POST y 3 GET correlacionados y generar reporte CSV
+        id: csv_report
+        if: ${{ !cancelled() && (steps.csv.outcome == 'success' || steps.csv.outcome == 'failure') }}
+        run: |
+          python scripts/grupo07/jmeter_report.py --profile csv \
+            --jtl "$RESULTS_DIR/csv/results.jtl" \
+            --output-dir "$RESULTS_DIR/csv"
+
+      - name: Publicar reportes y resultados disponibles
+        id: upload
+        if: ${{ !cancelled() && (steps.baseline.outcome == 'success' || steps.baseline.outcome == 'failure') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: informe-jmeter-grupo07-juan
+          path: |
+            test-results/performance/grupo07-juan/**/*.jtl
+            test-results/performance/grupo07-juan/**/summary.json
+            test-results/performance/grupo07-juan/**/report.pdf
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Certificar ambos planes y publicacion
+        if: ${{ always() }}
+        env:
+          CONFIG: ${{ steps.config.outcome }}
+          BASELINE: ${{ steps.baseline.outcome }}
+          BASELINE_REPORT: ${{ steps.baseline_report.outcome }}
+          CSV: ${{ steps.csv.outcome }}
+          CSV_REPORT: ${{ steps.csv_report.outcome }}
+          UPLOAD: ${{ steps.upload.outcome }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+        run: |
+          if [[ "$CONFIG" != "success" || "$BASELINE" == "skipped" ]]; then
+            echo "REGRESION_NO_EJECUTADA: no aprobar; un success con tests omitidos seria GREEN_CON_TESTS_SKIPPED." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          if [[ "$BASELINE" != "success" || "$BASELINE_REPORT" != "success" || "$CSV" != "success" || "$CSV_REPORT" != "success" || "$UPLOAD" != "success" || -z "$ARTIFACT_ID" ]]; then
+            echo "FAILED_REAL: planes, alcance o publicacion incompletos." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          for profile in baseline csv; do
+            test -s "$RESULTS_DIR/$profile/results.jtl"
+            test -s "$RESULTS_DIR/$profile/summary.json"
+            test -s "$RESULTS_DIR/$profile/report.pdf"
+          done
+          echo "GREEN_REAL: 18 GET baseline, 3 POST y 3 GET correlacionados, cero fallos, threshold aprobado y PDFs publicados en artifact $ARTIFACT_ID." >> "$GITHUB_STEP_SUMMARY"
