@@ -1,0 +1,183 @@
+{
+  "config": {
+    "version": "1.63.0"
+  },
+  "suites": [
+    {
+      "title": "T_RF_G3_01_WEB_VS_API.spec.ts",
+      "file": "specs/facturas/T_RF_G3_01_WEB_VS_API.spec.ts",
+      "suites": [],
+      "specs": [
+        {
+          "title": "API trae la factura FAC-2026-0024 pendiente (usuario 14) @facturas @web-vs-api",
+          "file": "specs/facturas/T_RF_G3_01_WEB_VS_API.spec.ts",
+          "tests": [
+            {
+              "projectName": "chromium",
+              "status": "expected",
+              "duration": 5,
+              "results": [
+                {
+                  "retry": 0,
+                  "status": "passed",
+                  "duration": 5,
+                  "attachments": [
+                    {
+                      "name": "tabla_facturas",
+                      "contentType": "image/png",
+                      "path": "C:\\Users\\ASUS\\Documents\\GitHub\\proyect_base_automatizacion\\grupos\\grupo-03-pagos-servicios\\evidence/tabla_facturas.png"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Web muestra la fila FAC-2026-0024 con filtro pendiente @facturas @web-vs-api",
+          "file": "specs/facturas/T_RF_G3_01_WEB_VS_API.spec.ts",
+          "tests": [
+            {
+              "projectName": "chromium",
+              "status": "expected",
+              "duration": 5,
+              "results": [
+                {
+                  "retry": 0,
+                  "status": "passed",
+                  "duration": 5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "campo id coincide (24) @facturas @web-vs-api",
+          "file": "specs/facturas/T_RF_G3_01_WEB_VS_API.spec.ts",
+          "tests": [
+            {
+              "projectName": "chromium",
+              "status": "expected",
+              "duration": 5,
+              "results": [
+                {
+                  "retry": 0,
+                  "status": "passed",
+                  "duration": 5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "campo usuario_id coincide (14) @facturas @web-vs-api",
+          "file": "specs/facturas/T_RF_G3_01_WEB_VS_API.spec.ts",
+          "tests": [
+            {
+              "projectName": "chromium",
+              "status": "expected",
+              "duration": 5,
+              "results": [
+                {
+                  "retry": 0,
+                  "status": "passed",
+                  "duration": 5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "campo proveedor coincide (ESSAP) @facturas @web-vs-api",
+          "file": "specs/facturas/T_RF_G3_01_WEB_VS_API.spec.ts",
+          "tests": [
+            {
+              "projectName": "chromium",
+              "status": "expected",
+              "duration": 5,
+              "results": [
+                {
+                  "retry": 0,
+                  "status": "passed",
+                  "duration": 5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "campo numero_factura coincide (FAC-2026-0024) @facturas @web-vs-api",
+          "file": "specs/facturas/T_RF_G3_01_WEB_VS_API.spec.ts",
+          "tests": [
+            {
+              "projectName": "chromium",
+              "status": "expected",
+              "duration": 5,
+              "results": [
+                {
+                  "retry": 0,
+                  "status": "passed",
+                  "duration": 5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "campo monto coincide (358837.00) @facturas @web-vs-api",
+          "file": "specs/facturas/T_RF_G3_01_WEB_VS_API.spec.ts",
+          "tests": [
+            {
+              "projectName": "chromium",
+              "status": "expected",
+              "duration": 5,
+              "results": [
+                {
+                  "retry": 0,
+                  "status": "passed",
+                  "duration": 5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "campo fecha_vencimiento coincide (2026-08-19) @facturas @web-vs-api",
+          "file": "specs/facturas/T_RF_G3_01_WEB_VS_API.spec.ts",
+          "tests": [
+            {
+              "projectName": "chromium",
+              "status": "expected",
+              "duration": 5,
+              "results": [
+                {
+                  "retry": 0,
+                  "status": "passed",
+                  "duration": 5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "campo estado coincide (pendiente) @facturas @web-vs-api",
+          "file": "specs/facturas/T_RF_G3_01_WEB_VS_API.spec.ts",
+          "tests": [
+            {
+              "projectName": "chromium",
+              "status": "expected",
+              "duration": 5,
+              "results": [
+                {
+                  "retry": 0,
+                  "status": "passed",
+                  "duration": 5
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
