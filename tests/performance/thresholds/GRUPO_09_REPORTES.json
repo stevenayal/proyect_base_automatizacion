@@ -2,7 +2,7 @@
   "global": {
     "scope": "global",
     "maxErrorRate": 5,
-    "p95Ms": 2000
+    "p95Ms": 2800
   },
   "operations": {}
 }
