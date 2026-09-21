@@ -1,0 +1,83 @@
+{
+  "verdict": "PASS",
+  "global": {
+    "metrics": {
+      "samples": 12,
+      "successes": 12,
+      "failures": 0,
+      "errorRatePercent": 0.0,
+      "throughputPerSecond": 0.568,
+      "averageMs": 317.75,
+      "minMs": 177,
+      "maxMs": 1322,
+      "p50Ms": 199,
+      "p90Ms": 407,
+      "p95Ms": 1322,
+      "p99Ms": 1322,
+      "errors": {}
+    },
+    "threshold": {
+      "scope": "global",
+      "maxErrorRate": 1,
+      "p95Ms": 3000,
+      "p99Ms": 5000
+    },
+    "verdict": "PASS",
+    "failedThresholds": [],
+    "notes": []
+  },
+  "operations": {
+    "GET - Consultar sesiones por usuario (Gloria)": {
+      "metrics": {
+        "samples": 6,
+        "successes": 6,
+        "failures": 0,
+        "errorRatePercent": 0.0,
+        "throughputPerSecond": 0.317,
+        "averageMs": 416.667,
+        "minMs": 183,
+        "maxMs": 1322,
+        "p50Ms": 186,
+        "p90Ms": 1322,
+        "p95Ms": 1322,
+        "p99Ms": 1322,
+        "errors": {}
+      },
+      "threshold": {
+        "scope": "GET - Consultar sesiones por usuario (Gloria)",
+        "maxErrorRate": 1,
+        "p95Ms": 3000,
+        "p99Ms": 5000
+      },
+      "verdict": "PASS",
+      "failedThresholds": [],
+      "notes": []
+    },
+    "POST - Crear sesion (David)": {
+      "metrics": {
+        "samples": 6,
+        "successes": 6,
+        "failures": 0,
+        "errorRatePercent": 0.0,
+        "throughputPerSecond": 0.328,
+        "averageMs": 218.833,
+        "minMs": 177,
+        "maxMs": 315,
+        "p50Ms": 199,
+        "p90Ms": 315,
+        "p95Ms": 315,
+        "p99Ms": 315,
+        "errors": {}
+      },
+      "threshold": {
+        "scope": "POST - Crear sesion (David)",
+        "maxErrorRate": 1,
+        "p95Ms": 3000,
+        "p99Ms": 5000
+      },
+      "verdict": "PASS",
+      "failedThresholds": [],
+      "notes": []
+    }
+  }
+}

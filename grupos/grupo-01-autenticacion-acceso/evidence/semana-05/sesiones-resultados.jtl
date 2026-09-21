@@ -1,0 +1,13 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1789866675218,1322,GET - Consultar sesiones por usuario (Gloria),200,OK,Grupo de Hilos - Carga moderada 1-1,text,true,,19173,239,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sesiones?usuarioId=1,1319,0,360
+1789866678030,214,POST - Crear sesion (David),201,Created,Grupo de Hilos - Carga moderada 1-1,text,true,,566,380,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sesiones,214,0,0
+1789866679471,184,GET - Consultar sesiones por usuario (Gloria),200,OK,Grupo de Hilos - Carga moderada 1-1,text,true,,8236,239,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sesiones?usuarioId=2,183,0,0
+1789866681561,315,POST - Crear sesion (David),201,Created,Grupo de Hilos - Carga moderada 1-1,text,true,,568,382,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sesiones,314,0,0
+1789866683107,183,GET - Consultar sesiones por usuario (Gloria),200,OK,Grupo de Hilos - Carga moderada 1-1,text,true,,3867,239,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sesiones?usuarioId=3,183,0,0
+1789866684784,229,POST - Crear sesion (David),201,Created,Grupo de Hilos - Carga moderada 1-1,text,true,,581,395,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sesiones,229,0,0
+1789866686977,218,GET - Consultar sesiones por usuario (Gloria),200,OK,Grupo de Hilos - Carga moderada 1-1,text,true,,2496,239,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sesiones?usuarioId=5,218,0,0
+1789866688231,177,POST - Crear sesion (David),201,Created,Grupo de Hilos - Carga moderada 1-1,text,true,,585,399,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sesiones,176,0,0
+1789866690342,407,GET - Consultar sesiones por usuario (Gloria),200,OK,Grupo de Hilos - Carga moderada 1-1,text,true,,1478,239,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sesiones?usuarioId=6,407,0,0
+1789866692720,199,POST - Crear sesion (David),201,Created,Grupo de Hilos - Carga moderada 1-1,text,true,,566,380,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sesiones,199,0,0
+1789866694159,186,GET - Consultar sesiones por usuario (Gloria),200,OK,Grupo de Hilos - Carga moderada 1-1,text,true,,1675,239,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sesiones?usuarioId=7,186,0,0
+1789866696335,179,POST - Crear sesion (David),201,Created,Grupo de Hilos - Carga moderada 1-1,text,true,,565,379,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sesiones,179,0,0
