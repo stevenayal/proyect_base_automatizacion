@@ -70,13 +70,13 @@ jobs:
             -Jloops="${{ inputs.loops || '2' }}"
 
       - name: Configurar Python (captura de monitoreo)
-        if: ${{ inputs.monitoring_dashboard_url != '' }}
+        if: ${{ always() }}
         uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
       - name: Capturar evidencia del dashboard de monitoreo
-        if: ${{ inputs.monitoring_dashboard_url != '' }}
+        if: ${{ always() }}
         run: |
           pip install selenium
           mkdir -p "${RESULTS_DIR}/evidence"
@@ -85,7 +85,7 @@ jobs:
           tar -xzf "$CAPTURE" package/dist/monitoring/python/capture_dashboard.py
 
           python3 package/dist/monitoring/python/capture_dashboard.py \
-            --url "${{ inputs.monitoring_dashboard_url }}" \
+            --url "https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958" \
             --output "${RESULTS_DIR}/evidence/EVIDENCIA_MONITOREO.png" \
             --wait-seconds 8 \
             --timeout-seconds 180
