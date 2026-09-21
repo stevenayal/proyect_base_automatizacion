@@ -107,7 +107,10 @@ d={'passed':True,'failures':[],'requests':[],'assertions':[],
  'stats':{'requests':{'total':12,'failed':0},'assertions':{'total':18,'failed':0}},
  'diagnostics':['G7-S3 rechazo {"antes":{"ordenes":0,"items":0},"despues":{"ordenes":0,"items":0}}']}
 for case,code in [(POS,201),(NEG,400)]:
- for n in range(6):d['requests'].append({'case':case,'method':'POST','url':'https://sandbox/api/v1/'+('ordenes' if n==3 else 'sql/select'),'status':code if n==3 else 200})
+ for n in range(6):
+  row={'method':'POST','url':'https://sandbox/api/v1/'+('ordenes' if n==3 else 'sql/select'),'status':code if n==3 else 200}
+  if n==3:row['case']=case
+  d['requests'].append(row)
  for name in EXPECTED[case]:d['assertions'].append({'case':case,'name':name,'passed':True})
 assert sql(d)['absence_of_insertions']
 bad=[]
@@ -115,6 +118,7 @@ x=copy.deepcopy(d);x['passed']=False;bad.append(x)
 x=copy.deepcopy(d);x['requests'][-1]['status']=429;bad.append(x)
 x=copy.deepcopy(d);x['assertions'].pop();bad.append(x)
 x=copy.deepcopy(d);x['diagnostics']=[];bad.append(x)
+x=copy.deepcopy(d);x['requests'][3],x['requests'][4]=x['requests'][4],x['requests'][3];bad.append(x)
 for x in bad:
  try:sql(x)
  except AssertionError:pass

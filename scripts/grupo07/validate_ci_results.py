@@ -29,9 +29,15 @@ def sql(document):
     assert document.get('passed') is True and document.get('failures') == [], 'SQL failed/missing failures'
     requests = document['requests']
     assert len(requests) == 12, 'Expected all 12 HTTP requests'
-    for case, code in [(POS, 201), (NEG, 400)]:
-        rows = [r for r in requests if r.get('case') == case]
+    for offset, case, code in [(0, POS, 201), (6, NEG, 400)]:
+        # Newman omits args.item on pm.sendRequest events. The existing runner
+        # preserves event order: three SQL preconditions, business POST, two
+        # SQL postconditions per case. Only the business event names the case.
+        rows = requests[offset:offset + 6]
         assert len(rows) == 6, 'Expected 6 HTTP per SQL case'
+        assert [urllib.parse.urlsplit(r['url']).path for r in rows] == [
+            '/api/v1/sql/select'] * 3 + ['/api/v1/ordenes'] + ['/api/v1/sql/select'] * 2
+        assert rows[3].get('case') == case, 'Wrong business case/order'
         business = [r for r in rows if urllib.parse.urlsplit(r['url']).path == '/api/v1/ordenes']
         aux = [r for r in rows if urllib.parse.urlsplit(r['url']).path == '/api/v1/sql/select']
         assert len(business) == 1 and business[0]['status'] == code
