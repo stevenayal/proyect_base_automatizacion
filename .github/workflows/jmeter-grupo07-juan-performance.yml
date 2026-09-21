@@ -1,22 +1,18 @@
 name: JMeter - Grupo 07 - Juan Barreto
 
 on:
-  push:
-    branches: [grupo-07-carrito-ecommerce-entrega]
-    paths:
-      - .github/workflows/jmeter-grupo07-juan-performance.yml
-      - scripts/grupo07/jmeter_report.py
-      - tests/performance/plans/P_GRUPO_07_ORDENES_*.jmx
-      - tests/performance/properties/GRUPO_07_ORDENES_*.properties
-      - tests/performance/data/D_GRUPO_07_ORDENES_CSV.csv
-      - tests/performance/thresholds/GRUPO_07_ORDENES_BASELINE.json
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
   workflow_call:
+    inputs:
+      tested_sha:
+        required: true
+        type: string
+      deadline:
+        required: true
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 env:
   JMETER_VERSION: 5.6.3
@@ -24,13 +20,12 @@ env:
 
 jobs:
   jmeter-juan:
-    if: github.event_name != 'pull_request' || github.head_ref == 'grupo-07-carrito-ecommerce-entrega'
     name: Juan Barreto - baseline y CSV completos
-    concurrency:
-      group: grupo07-juan-sandbox
-      cancel-in-progress: false
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CI_DEADLINE: ${{ inputs.deadline }}
     steps:
       - name: Verificar API_KEY
         id: config
@@ -43,6 +38,8 @@ jobs:
           fi
 
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tested_sha }}
 
       - uses: actions/setup-java@v5
         with:
@@ -76,7 +73,7 @@ jobs:
           API_KEY: ${{ secrets.GRUPO07_API_KEY }}
         run: |
           # Allow a prior Juan run's rate window to expire; other users are not locked.
-          sleep 65
+          python scripts/grupo07/wait_sandbox_consumers.py
           "apache-jmeter-${JMETER_VERSION}/bin/jmeter" -n \
             -t tests/performance/plans/P_GRUPO_07_ORDENES_BASELINE.jmx \
             -q tests/performance/properties/GRUPO_07_ORDENES_BASELINE.properties \
@@ -97,7 +94,7 @@ jobs:
         env:
           API_KEY: ${{ secrets.GRUPO07_API_KEY }}
         run: |
-          sleep 65
+          python scripts/grupo07/wait_sandbox_consumers.py
           "apache-jmeter-${JMETER_VERSION}/bin/jmeter" -n \
             -t tests/performance/plans/P_GRUPO_07_ORDENES_CSV.jmx \
             -q tests/performance/properties/GRUPO_07_ORDENES_CSV.properties \

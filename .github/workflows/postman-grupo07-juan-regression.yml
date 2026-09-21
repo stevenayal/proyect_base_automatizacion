@@ -1,34 +1,27 @@
 name: Postman Regression - Grupo 07 - Juan Barreto
 
 on:
-  push:
-    branches: [grupo-07-carrito-ecommerce-entrega]
-    paths:
-      - .github/workflows/postman-grupo07-juan-regression.yml
-      - postman/grupo-07-juan-barreto-carrito-e-commerce.postman_collection.json
-      - scripts/grupo07/newman_report.py
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      suite:
-        description: Pruebas de Juan a ejecutar desde la rama seleccionada
-        type: choice
-        options: [postman, jmeter, all]
-        default: postman
+      tested_sha:
+        required: true
+        type: string
+      deadline:
+        required: true
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   newman-juan:
-    if: (github.event_name != 'workflow_dispatch' || inputs.suite != 'jmeter') && (github.event_name != 'pull_request' || github.head_ref == 'grupo-07-carrito-ecommerce-entrega')
-    concurrency:
-      group: grupo07-juan-sandbox
-      cancel-in-progress: false
     name: Juan Barreto - Newman + PDF
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CI_DEADLINE: ${{ inputs.deadline }}
     steps:
       - name: Verificar configuracion externa
         id: config
@@ -45,6 +38,8 @@ jobs:
 
       - name: Checkout del repositorio
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tested_sha }}
 
       - name: Configurar Node.js
         uses: actions/setup-node@v7
@@ -58,6 +53,9 @@ jobs:
 
       - name: Instalar ReportLab
         run: python -m pip install reportlab
+
+      - name: Verificar consumidores antes de Newman
+        run: python scripts/grupo07/wait_sandbox_consumers.py --check
 
       - name: Ejecutar Newman - Juan Barreto
         id: newman
@@ -115,10 +113,3 @@ jobs:
           test -s newman/results.json
           test -s newman/report.pdf
           echo "GREEN_REAL: Newman ejecutado; 3 requests, 14 assertions, cero fallos; JSON validado, PDF no vacio, artifact $ARTIFACT_ID publicado." >> "$GITHUB_STEP_SUMMARY"
-
-  # This dispatcher already exists on main. Its repaired entrega version can
-  # call the new workflow at the same commit before it is registered on main.
-  jmeter-manual:
-    if: github.event_name == 'workflow_dispatch' && (inputs.suite == 'jmeter' || inputs.suite == 'all')
-    uses: ./.github/workflows/jmeter-grupo07-juan-performance.yml
-    secrets: inherit
