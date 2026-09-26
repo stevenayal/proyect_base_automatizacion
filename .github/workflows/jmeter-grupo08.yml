@@ -37,7 +37,7 @@ jobs:
 
       - name: Instalar dependencias Python
         run: |
-          pip install pandas reportlab
+          pip install pandas reportlab selenium
 
       - name: Descargar Apache JMeter
         run: |
@@ -51,6 +51,11 @@ jobs:
             -t "grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/reservas_performance.jmx" \
             -l "grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/resultados/prueba_rate_limit.jtl"
 
+      - name: Capturar monitoreo Grafana
+        if: always()
+        run: |
+          python "grupos/grupo-08-reservas-turnos/Tarea 4 - Yessica Ferreira/monitoring/capture_grafana.py"
+
       - name: Generar reporte HTML JMeter
         if: always()
         run: |
@@ -60,7 +65,7 @@ jobs:
 
       - name: Crear carpeta de salida
         run: mkdir -p newman
-     
+
       - name: Generar reporte PDF
         if: always()
         run: |
