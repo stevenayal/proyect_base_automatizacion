@@ -41,6 +41,10 @@ env:
   JMETER_VERSION: 5.6.3
   RESULTS_DIR: test-results/performance/grupo07-andrea
   API_BASE: https://aiquaa-sandbox-api.vercel.app
+  # URL de monitoreo: el default aplica a TODOS los eventos (pull_request y
+  # workflow_dispatch). En un run por pull_request no existe inputs.*, por eso
+  # no se usa el default del input y la URL vive aca. El input solo la override.
+  MONITORING_URL: ${{ inputs.monitoring_dashboard_url || 'https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958' }}
   # La api key no vive en el .jmx. Si el secret no esta cargado se usa la key
   # publica del sandbox que se repartio en clase, para que el workflow siga
   # siendo ejecutable por cualquiera del grupo.
@@ -91,7 +95,7 @@ jobs:
             -Jloops="${{ inputs.loops || '20' }}"
 
       - name: Configurar Python (captura de monitoreo)
-        if: ${{ inputs.monitoring_dashboard_url != '' }}
+        if: ${{ env.MONITORING_URL != '' }}
         uses: actions/setup-python@v7
         with:
           python-version: "3.11"
@@ -100,14 +104,14 @@ jobs:
         # Chrome viene preinstalado en los runners ubuntu-latest, y Selenium Manager
         # resuelve el driver por su cuenta. La espera larga cubre el arranque en frio
         # de un stack de Grafana Cloud, que duerme cuando esta inactivo.
-        if: ${{ inputs.monitoring_dashboard_url != '' }}
+        if: ${{ env.MONITORING_URL != '' }}
         run: |
           pip install selenium
           mkdir -p "${RESULTS_DIR}/evidence"
           CAPTURE=$(npm pack aiquaa-performance-mcp-server --pack-destination . --silent)
           tar -xzf "$CAPTURE" package/dist/monitoring/python/capture_dashboard.py
           python3 package/dist/monitoring/python/capture_dashboard.py \
-            --url "${{ inputs.monitoring_dashboard_url }}" \
+            --url "${{ env.MONITORING_URL }}" \
             --output "${RESULTS_DIR}/evidence/EVIDENCIA_MONITOREO.png" \
             --wait-seconds 8 \
             --timeout-seconds 180
@@ -119,7 +123,7 @@ jobs:
           if [ -f "${RESULTS_DIR}/evidence/EVIDENCIA_MONITOREO.png" ]; then
             EVIDENCE_ARGS=(--evidence-image "${RESULTS_DIR}/evidence/EVIDENCIA_MONITOREO.png" \
               --evidence-label "Dashboard de monitoreo" \
-              --evidence-url "${{ inputs.monitoring_dashboard_url }}")
+              --evidence-url "${{ env.MONITORING_URL }}")
           fi
           # El generador sale con codigo 1 cuando el veredicto es FAIL. Aca solo
           # interesa producir el PDF; el gate del SLA es "Evaluar umbrales".
