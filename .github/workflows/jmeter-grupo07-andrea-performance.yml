@@ -19,6 +19,12 @@ on:
         description: "Iteraciones por thread"
         required: false
         default: "20"
+      monitoring_dashboard_url:
+        description: >-
+          URL publica de un dashboard de monitoreo (Grafana, etc.) a capturar como
+          evidencia post-ejecucion; dejar vacio para omitir la captura.
+        required: false
+        default: https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958
 
 permissions:
   contents: read
@@ -84,9 +90,37 @@ jobs:
             -Jthreads="${{ inputs.threads || '3' }}" \
             -Jloops="${{ inputs.loops || '20' }}"
 
+      - name: Configurar Python (captura de monitoreo)
+        if: ${{ inputs.monitoring_dashboard_url != '' }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Capturar evidencia del dashboard de monitoreo
+        # Chrome viene preinstalado en los runners ubuntu-latest, y Selenium Manager
+        # resuelve el driver por su cuenta. La espera larga cubre el arranque en frio
+        # de un stack de Grafana Cloud, que duerme cuando esta inactivo.
+        if: ${{ inputs.monitoring_dashboard_url != '' }}
+        run: |
+          pip install selenium
+          mkdir -p "${RESULTS_DIR}/evidence"
+          CAPTURE=$(npm pack aiquaa-performance-mcp-server --pack-destination . --silent)
+          tar -xzf "$CAPTURE" package/dist/monitoring/python/capture_dashboard.py
+          python3 package/dist/monitoring/python/capture_dashboard.py \
+            --url "${{ inputs.monitoring_dashboard_url }}" \
+            --output "${RESULTS_DIR}/evidence/EVIDENCIA_MONITOREO.png" \
+            --wait-seconds 8 \
+            --timeout-seconds 180
+
       - name: Generar informe PDF
         if: always()
         run: |
+          EVIDENCE_ARGS=()
+          if [ -f "${RESULTS_DIR}/evidence/EVIDENCIA_MONITOREO.png" ]; then
+            EVIDENCE_ARGS=(--evidence-image "${RESULTS_DIR}/evidence/EVIDENCIA_MONITOREO.png" \
+              --evidence-label "Dashboard de monitoreo" \
+              --evidence-url "${{ inputs.monitoring_dashboard_url }}")
+          fi
           # El generador sale con codigo 1 cuando el veredicto es FAIL. Aca solo
           # interesa producir el PDF; el gate del SLA es "Evaluar umbrales".
           set +e
@@ -101,7 +135,8 @@ jobs:
             --loops "${{ inputs.loops || '20' }}" \
             --author "${{ github.triggering_actor }}" \
             --api-version "${{ github.sha }}" \
-            --repo-url "${{ github.server_url }}/${{ github.repository }}"
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            "${EVIDENCE_ARGS[@]}"
           status=$?
           set -e
           if [ ! -f "${RESULTS_DIR}/INFORME_PERF_ORDENES.pdf" ]; then
