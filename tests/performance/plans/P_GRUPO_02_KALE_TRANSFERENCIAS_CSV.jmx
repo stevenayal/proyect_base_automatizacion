@@ -256,11 +256,11 @@ vars.put('cuentaDestinoId', props.get('g02.cuentaDestinoId'))</stringProp>
           <hashTree/>
           <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Es la transferencia creada" enabled="true">
             <stringProp name="JSON_PATH">$.data.id</stringProp>
-            <stringProp name="EXPECTED_VALUE">${transferenciaId}</stringProp>
+            <stringProp name="EXPECTED_VALUE">^${transferenciaId}$</stringProp>
             <boolProp name="JSONVALIDATION">true</boolProp>
             <boolProp name="EXPECT_NULL">false</boolProp>
             <boolProp name="INVERT">false</boolProp>
-            <boolProp name="ISREGEX">false</boolProp>
+            <boolProp name="ISREGEX">true</boolProp>
           </JSONPathAssertion>
           <hashTree/>
           <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="Responde en menos de 2000 ms" enabled="true">

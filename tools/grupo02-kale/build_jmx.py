@@ -31,7 +31,7 @@ def rc_assert(name, code):
           <hashTree/>"""
 
 
-def json_assert(name, path, value):
+def json_assert(name, path, value, regex=False):
     return f"""
           <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="{name}" enabled="true">
             <stringProp name="JSON_PATH">{path}</stringProp>
@@ -39,7 +39,7 @@ def json_assert(name, path, value):
             <boolProp name="JSONVALIDATION">true</boolProp>
             <boolProp name="EXPECT_NULL">false</boolProp>
             <boolProp name="INVERT">false</boolProp>
-            <boolProp name="ISREGEX">false</boolProp>
+            <boolProp name="ISREGEX">{"true" if regex else "false"}</boolProp>
           </JSONPathAssertion>
           <hashTree/>"""
 
@@ -151,7 +151,9 @@ post_tr = sampler(
 get_tr = sampler(
     "GET - Consultar transferencia creada (correlacion)", "GET", "/api/v1/transferencias/${transferenciaId}", None,
     rc_assert("Consulta responde 200", 200)
-    + json_assert("Es la transferencia creada", "$.data.id", "${transferenciaId}")
+    # La API del curso 1 devuelve los ids como string ("81"): se compara con una
+    # regex exacta para no depender del tipo (numero vs texto).
+    + json_assert("Es la transferencia creada", "$.data.id", "^${transferenciaId}$", regex=True)
     + duration(2000),
 )
 del_tr = sampler(
