@@ -3,7 +3,7 @@ import { chromium, request, type Browser } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import type { Grupo02World } from './world';
 
-setDefaultTimeout(60_000);
+setDefaultTimeout(180_000); // incluye esperas por rate limit (429)
 
 const BASE_URL = process.env.BASE_URL ?? 'https://aiquaa-sandbox-web.vercel.app';
 const API_URL = process.env.SANDBOX_API_URL ?? 'https://aiquaa-sandbox-api.vercel.app';

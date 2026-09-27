@@ -2,12 +2,17 @@
 # Copia SOLO los archivos del Grupo 02 al clon del repo del curso, sin pisar nada.
 #
 #   bash tools/grupo02-kale/copiar-al-repo-del-curso.sh ~/Documents/proyect_base_automatizacion
+#   bash tools/grupo02-kale/copiar-al-repo-del-curso.sh ~/Documents/proyect_base_automatizacion --actualizar
+#
+# --actualizar: permite reemplazar SOLO los archivos propios del Grupo 02 (Kale)
+#   que ya copiaste antes (sirve para subir correcciones). Nunca toca otros archivos.
 #
 # - No copia package.json, package-lock.json, tsconfig.json, README.md, .gitignore
 #   (son del repo del curso y los usan tus companeros).
 # - Si algun archivo ya existe en el destino, NO copia nada y te avisa.
 set -euo pipefail
 
+ACTUALIZAR="${2:-}"
 DEST="${1:?Uso: bash tools/grupo02-kale/copiar-al-repo-del-curso.sh <ruta-al-clon-del-repo-del-curso>}"
 SRC="$(cd "$(dirname "$0")/../.." && pwd)"
 DEST="$(cd "$DEST" && pwd)"
@@ -27,7 +32,7 @@ CONFLICTOS=()
 for f in $FILES; do
   if [ -e "$DEST/$f" ] && ! cmp -s "$f" "$DEST/$f"; then CONFLICTOS+=("$f"); fi
 done
-if [ ${#CONFLICTOS[@]} -gt 0 ]; then
+if [ ${#CONFLICTOS[@]} -gt 0 ] && [ "$ACTUALIZAR" != "--actualizar" ]; then
   echo "ERROR: estos archivos ya existen en el destino con otro contenido. No se copio nada:"
   printf '  %s\n' "${CONFLICTOS[@]}"
   exit 1
@@ -39,4 +44,5 @@ for f in $FILES; do
   cp -p "$f" "$DEST/$f"
   n=$((n+1))
 done
-echo "Listo: $n archivos del Grupo 02 copiados a $DEST (ningun archivo existente fue modificado)."
+if [ ${#CONFLICTOS[@]} -gt 0 ]; then echo "Actualizados (${#CONFLICTOS[@]}): ${CONFLICTOS[*]}"; fi
+if [ "$ACTUALIZAR" = "--actualizar" ]; then echo "Listo: $n archivos del Grupo 02 (Kale) sincronizados en $DEST (solo archivos propios del Grupo 02)."; else echo "Listo: $n archivos del Grupo 02 copiados a $DEST (ningun archivo existente fue modificado)."; fi

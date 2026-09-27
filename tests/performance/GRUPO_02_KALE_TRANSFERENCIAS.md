@@ -24,7 +24,7 @@ Se regenera con `python3 tools/grupo02-kale/build_jmx.py`.
 | `apiKey` | — | `x-api-key` (nunca se guarda en el repo) |
 | `csvPath` | `tests/performance/data/D_GRUPO_02_KALE_TRANSFERENCIAS.csv` | Datos de entrada |
 | `threads` / `loops` / `rampUp` | 2 / 3 / 4 | Carga |
-| `throughputPerMin` | 24.0 | Paceo por el rate limit |
+| `throughputPerMin` | 20.0 | Paceo por el rate limit |
 | `host` / `protocol` / `port` | sandbox / https / — | Destino (se puede apuntar al mock local) |
 | `runId` | timestamp | Trazabilidad de los datos creados |
 

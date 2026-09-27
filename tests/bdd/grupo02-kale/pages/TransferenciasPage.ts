@@ -1,4 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
+import { esperar, MAX_REINTENTOS_429 } from '../support/sandbox-db';
 
 /**
  * /transferencias: formulario "Nueva transferencia" + lista.
@@ -31,7 +32,16 @@ export class TransferenciasPage {
   }
 
   async enviar(): Promise<void> {
-    await this.transferir.click();
+    for (let intento = 0; ; intento++) {
+      await this.transferir.click();
+      // Si el sandbox responde "Rate limit exceeded" (429), se espera y se reintenta.
+      const limitado = await this.error
+        .filter({ hasText: /rate limit/i })
+        .waitFor({ state: 'visible', timeout: 4_000 })
+        .then(() => true, () => false);
+      if (!limitado || intento >= MAX_REINTENTOS_429) return;
+      await esperar(15);
+    }
   }
 
   async filtrarPorOrigen(id: string | number): Promise<void> {

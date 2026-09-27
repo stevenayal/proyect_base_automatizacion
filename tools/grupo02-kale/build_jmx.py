@@ -239,7 +239,7 @@ JMX = f"""<?xml version="1.0" encoding="UTF-8"?>
         <hashTree/>
         <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Paceo - respetar 30 req/min del sandbox" enabled="true">
           <intProp name="calcMode">2</intProp>
-          <stringProp name="throughput">${{__P(throughputPerMin,24.0)}}</stringProp>
+          <stringProp name="throughput">${{__P(throughputPerMin,20.0)}}</stringProp>
         </ConstantThroughputTimer>
         <hashTree/>{get_cuenta}{post_tr}
         <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Solo si se obtuvo el id" enabled="true">

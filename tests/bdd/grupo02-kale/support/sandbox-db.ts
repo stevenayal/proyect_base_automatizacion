@@ -12,6 +12,17 @@ export type TransferenciaRow = {
   activo: boolean;
 };
 
+export const MAX_REINTENTOS_429 = 5;
+
+export function segundosDeEspera(retryAfter?: string): number {
+  const n = Number(retryAfter);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 60) : 15;
+}
+
+export function esperar(segundos: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, segundos * 1000));
+}
+
 /**
  * Acceso de SOLO LECTURA a la BD del sandbox via POST /api/v1/sql/select
  * (consultas parametrizadas $1, $2...). Es la misma tecnica de datos
@@ -21,7 +32,13 @@ export class SandboxDb {
   constructor(private readonly api: APIRequestContext) {}
 
   async select<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-    const res = await this.api.post('/api/v1/sql/select', { data: { sql, params } });
+    let res = await this.api.post('/api/v1/sql/select', { data: { sql, params } });
+    // 429 = rate limit de 30 req/min de la API key (compartida en el curso):
+    // se espera lo que indica Retry-After y se reintenta.
+    for (let intento = 1; res.status() === 429 && intento <= MAX_REINTENTOS_429; intento++) {
+      await esperar(segundosDeEspera(res.headers()['retry-after']));
+      res = await this.api.post('/api/v1/sql/select', { data: { sql, params } });
+    }
     expect(res.status(), `SQL fallo: ${sql}\n${await res.text()}`).toBe(200);
     const body = (await res.json()) as { data: T[] };
     return body.data;

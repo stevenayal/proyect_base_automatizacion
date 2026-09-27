@@ -35,8 +35,14 @@ jobs:
   bdd:
     name: Cucumber + Playwright (Chromium)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
+      - name: Escalonar ejecucion (rate limit 30 req/min compartido)
+        # Los 3 workflows del Grupo 02 arrancan juntos en un push y comparten la
+        # API key: se espera 360 s para no pisarse con los otros.
+        if: github.event_name == 'push'
+        run: sleep 360
+
       - name: Obtener el codigo
         uses: actions/checkout@v4
 

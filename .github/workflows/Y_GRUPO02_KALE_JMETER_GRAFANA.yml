@@ -49,6 +49,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
+      - name: Escalonar ejecucion (rate limit 30 req/min compartido)
+        # Los 3 workflows del Grupo 02 arrancan juntos en un push y comparten la
+        # API key: se espera 180 s para no pisarse con los otros.
+        if: github.event_name == 'push'
+        run: sleep 180
+
       - name: Checkout del repositorio
         uses: actions/checkout@v4
 

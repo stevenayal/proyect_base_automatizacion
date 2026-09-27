@@ -15,6 +15,12 @@
 const http = require('node:http');
 
 const PORT = Number(process.env.PORT || 4010);
+// Simulacion opcional del rate limit del sandbox: RATE_LIMIT=N pedidos por
+// ventana de RATE_WINDOW segundos (el real es 30 por 60 s). Responde 429 con
+// Retry-After, igual que la API real. Sin RATE_LIMIT no limita.
+const RATE_LIMIT = Number(process.env.RATE_LIMIT || 0);
+const RATE_WINDOW = Number(process.env.RATE_WINDOW || 60);
+let hits = [];
 const now = () => new Date().toISOString();
 
 const cuentas = [];
@@ -150,6 +156,16 @@ const server = http.createServer((req, res) => {
     if (url.pathname === '/health') return send(200, { ok: true });
     if (!req.headers['x-api-key']) {
       return send(401, err('UNAUTHORIZED', 'Invalid or inactive credentials. Send an x-api-key header or an Authorization: Bearer <token>.'));
+    }
+    if (RATE_LIMIT) {
+      const t = Date.now();
+      hits = hits.filter((h) => t - h < RATE_WINDOW * 1000);
+      if (hits.length >= RATE_LIMIT) {
+        const retry = Math.max(1, Math.ceil((RATE_WINDOW * 1000 - (t - hits[0])) / 1000));
+        res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': String(retry) });
+        return res.end(JSON.stringify(err('RATE_LIMITED', `Rate limit exceeded. Max ${RATE_LIMIT} requests per ${RATE_WINDOW} seconds.`)));
+      }
+      hits.push(t);
     }
     let body;
     try { body = raw ? JSON.parse(raw) : undefined; } catch { return send(400, err('VALIDATION_ERROR', 'Invalid JSON body.')); }

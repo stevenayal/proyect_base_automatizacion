@@ -49,8 +49,19 @@ def req(name, method, path, *, body=None, query=None, pre=None, test=None, auth=
     if pre:
         events.append(ev("prerequest", pre))
     if test:
-        events.append(ev("test", test))
+        events.append(ev("test", wrap_429(test)))
     return {"name": name, "event": events, "request": r, "response": []}
+
+
+def wrap_429(code):
+    """Los tests del request solo corren si la respuesta NO es un 429: en ese
+    caso el Tests de la coleccion reintenta el mismo request (setNextRequest)."""
+    body = "\n".join("  " + l if l else l for l in code.strip("\n").split("\n"))
+    return (
+        "// Si la API respondio 429 (rate limit), la coleccion reintenta este request.\n"
+        "if (!pm.variables.get(\"reintentando\")) {\n"
+        + body + "\n}\n"
+    )
 
 
 def folder(name, desc, items):
@@ -87,6 +98,24 @@ utils = {
       body: { mode: "raw", raw: JSON.stringify({ sql: sql, params: params || [] }) }
     };
   },
+  // Igual que bodySqlRest + pm.sendRequest, pero si la API responde 429
+  // (rate limit de 30 req/min por API key, compartida en el curso) espera
+  // lo que indica Retry-After y reintenta (hasta 5 veces).
+  // Recibe el `pm` y el `setTimeout` del script que lo llama: asi Postman/Newman
+  // espera la respuesta (y el reintento) dentro de ese script, no en el de la
+  // coleccion, que ya termino.
+  sql: function (pmCaller, timer, sql, params, cb, intento) {
+    intento = intento || 0;
+    pmCaller.sendRequest(utils.bodySqlRest(sql, params), function (err, res) {
+      if (!err && res.code === 429 && intento < 5) {
+        var espera = (Number(res.headers.get("Retry-After")) || 15) * 1000;
+        console.log("SQL 429 (rate limit) - reintento " + (intento + 1) + " en " + espera + " ms");
+        timer(function () { utils.sql(pmCaller, timer, sql, params, cb, intento + 1); }, espera);
+        return;
+      }
+      cb(err, res);
+    });
+  },
   // En el curso 1 la API devuelve bigint/numeric como string ("1", "250.00").
   num: function (v) { return Number(v); }
 };
@@ -107,7 +136,27 @@ pm.collectionVariables.set("descripcion", "G02-E2E-" + pm.collectionVariables.ge
 """
 
 COLLECTION_TEST = r"""
+// Reintento ante 429 (rate limit de la API key compartida del curso): espera
+// Retry-After y vuelve a ejecutar el MISMO request (hasta 4 veces). Los tests
+// del request se saltean en el intento con 429 (ver wrap_429 en build_postman.py).
+if (pm.response.code === 429) {
+  var n = Number(pm.variables.get("reintentos429") || 0);
+  if (n < 4) {
+    pm.variables.set("reintentos429", n + 1);
+    var espera = (Number(pm.response.headers.get("Retry-After")) || 20) * 1000;
+    console.log("429 en '" + pm.info.requestName + "' - reintento " + (n + 1) + " en " + espera + " ms");
+    setTimeout(function () {}, espera);
+    postman.setNextRequest(pm.info.requestName);
+    pm.variables.set("reintentando", true);
+  } else {
+    pm.variables.set("reintentando", false);
+  }
+} else {
+  pm.variables.set("reintentos429", 0);
+  pm.variables.set("reintentando", false);
+}
 // Validaciones comunes a TODAS las respuestas de la coleccion.
+if (!pm.variables.get("reintentando")) {
 pm.test("[comun] Tiempo de respuesta menor a " + (pm.variables.get("maxResponseMs") || 3000) + " ms", function () {
   pm.expect(pm.response.responseTime).to.be.below(Number(pm.variables.get("maxResponseMs") || 3000));
 });
@@ -118,6 +167,7 @@ if (pm.response.code !== 204) {
   pm.test("[comun] Content-Type es JSON", function () {
     pm.expect(pm.response.headers.get("Content-Type")).to.include("application/json");
   });
+}
 }
 """
 
@@ -155,10 +205,10 @@ console.log("Cuentas dinamicas -> origen:", body.data[0].id, "destino:", body.da
 
 // Segunda consulta: una cuenta INACTIVA (para el escenario negativo TR-02)
 // y el mayor id de cuentas (para armar un id que seguro no existe, TR-07).
-pm.sendRequest(utils.bodySqlRest(
+utils.sql(pm, setTimeout, 
   "SELECT (SELECT id FROM cuentas WHERE activa = $1 ORDER BY id LIMIT 1) AS inactiva, (SELECT MAX(id) FROM cuentas) AS max_id",
   [false]
-), function (err, res) {
+, function (err, res) {
   pm.test("La BD devuelve una cuenta inactiva y el max(id) de cuentas", function () {
     pm.expect(err).to.eql(null);
     const row = res.json().data[0];
@@ -196,10 +246,10 @@ pm.test("Es la cuenta pedida y esta activa", function () {
 });
 
 // Post-request: la API y la BD deben coincidir en saldo y numero de cuenta.
-pm.sendRequest(utils.bodySqlRest(
+utils.sql(pm, setTimeout, 
   "SELECT numero_cuenta, saldo FROM cuentas WHERE id = $1",
   [utils.num(cuenta.id)]
-), function (err, res) {
+, function (err, res) {
   pm.test("La BD confirma numero de cuenta y saldo devueltos por la API", function () {
     pm.expect(err).to.eql(null);
     const row = res.json().data[0];
@@ -211,10 +261,10 @@ pm.sendRequest(utils.bodySqlRest(
 
 GET_CUENTA_INACTIVA_PRE = r"""
 // Precondicion en BD: la cuenta a consultar NO debe estar activa.
-pm.sendRequest(utils.bodySqlRest(
+utils.sql(pm, setTimeout, 
   "SELECT COUNT(*) AS activas FROM cuentas WHERE id = $1 AND activa = $2",
   [Number(pm.collectionVariables.get("cuentaInactivaId")), true]
-), function (err, res) {
+, function (err, res) {
   if (err) { console.error("Precondicion SQL fallo:", err); return; }
   pm.variables.set("precondActivas", res.json().data[0].activas);
 });
@@ -255,10 +305,10 @@ pm.test("Todas las cuentas son del usuario pedido y estan activas", function () 
 
 LIST_CUENTAS_PRE = r"""
 // Dato dinamico: el usuario duenho de la cuenta origen se lee de la BD.
-pm.sendRequest(utils.bodySqlRest(
+utils.sql(pm, setTimeout, 
   "SELECT usuario_id FROM cuentas WHERE id = $1",
   [Number(pm.collectionVariables.get("cuentaOrigenBase"))]
-), function (err, res) {
+, function (err, res) {
   if (err) { console.error(err); return; }
   pm.variables.set("usuarioIdOrigen", utils.num(res.json().data[0].usuario_id));
 });
@@ -276,20 +326,20 @@ const origen = Number(pm.collectionVariables.get("cuentaOrigenId"));
 const destino = Number(pm.collectionVariables.get("cuentaDestinoId"));
 const descripcion = pm.collectionVariables.get("descripcion");
 
-pm.sendRequest(utils.bodySqlRest(
+utils.sql(pm, setTimeout, 
   "SELECT id, activa FROM cuentas WHERE id IN ($1, $2)",
   [origen, destino]
-), function (err, res) {
+, function (err, res) {
   if (err) { console.error("Precondicion SQL fallo:", err); return; }
   const rows = res.json().data || [];
   const activas = rows.filter(function (r) { return r.activa === true; }).length;
   pm.variables.set("precondCuentasActivas", activas);
 });
 
-pm.sendRequest(utils.bodySqlRest(
+utils.sql(pm, setTimeout, 
   "SELECT COUNT(*) AS total FROM transferencias WHERE descripcion = $1",
   [descripcion]
-), function (err, res) {
+, function (err, res) {
   if (err) { console.error(err); return; }
   pm.variables.set("totalAntes", res.json().data[0].total);
 });
@@ -323,10 +373,10 @@ pm.test("La transferencia nace en estado 'pendiente' y activa", function () {
 pm.collectionVariables.set("transferenciaId", utils.num(t.id));
 
 // POST-REQUEST: relee la fila en la BD para confirmar el INSERT.
-pm.sendRequest(utils.bodySqlRest(
+utils.sql(pm, setTimeout, 
   "SELECT id, cuenta_origen_id, cuenta_destino_id, monto, descripcion, estado, activo FROM transferencias WHERE id = $1",
   [utils.num(t.id)]
-), function (err, res) {
+, function (err, res) {
   pm.test("La BD confirma el INSERT con los mismos datos", function () {
     pm.expect(err).to.eql(null);
     const row = res.json().data[0];
@@ -386,10 +436,10 @@ def negative(case_tag, override_js, expect_msg_regex, bdd_id, bdd_name):
 // alumnos que usan la misma BD compartida.
 pm.collectionVariables.set("descripcion", "G02-{case_tag}-" + pm.collectionVariables.get("runId"));
 
-pm.sendRequest(utils.bodySqlRest(
+utils.sql(pm, setTimeout, 
   "SELECT COUNT(*) AS total FROM transferencias WHERE descripcion = $1",
   [pm.collectionVariables.get("descripcion")]
-), function (err, res) {{
+, function (err, res) {{
   if (err) {{ console.error("Precondicion SQL fallo:", err); return; }}
   pm.variables.set("totalAntes", res.json().data[0].total);
 }});
@@ -406,10 +456,10 @@ pm.test("Error VALIDATION_ERROR con el motivo esperado", function () {{
 }});
 
 // POST-REQUEST: la BD NO debe haber cambiado.
-pm.sendRequest(utils.bodySqlRest(
+utils.sql(pm, setTimeout, 
   "SELECT COUNT(*) AS total FROM transferencias WHERE descripcion = $1",
   [pm.collectionVariables.get("descripcion")]
-), function (err, res) {{
+, function (err, res) {{
   pm.test("La BD no registro ninguna transferencia nueva (COUNT antes = despues)", function () {{
     pm.expect(err).to.eql(null);
     const totalDespues = Number(res.json().data[0].total);
@@ -460,10 +510,10 @@ DELETE_TEST = r"""
 pm.test("Status 204 No Content", function () {
   pm.response.to.have.status(204);
 });
-pm.sendRequest(utils.bodySqlRest(
+utils.sql(pm, setTimeout, 
   "SELECT activo FROM transferencias WHERE id = $1",
   [Number(pm.collectionVariables.get("transferenciaId"))]
-), function (err, res) {
+, function (err, res) {
   pm.test("La BD confirma el soft-delete (activo = false)", function () {
     pm.expect(err).to.eql(null);
     pm.expect(res.json().data[0].activo).to.eql(false);

@@ -123,7 +123,7 @@ if (json?.data != null &amp;&amp; json.data.size() &gt;= 2) {
         <hashTree/>
         <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Paceo - respetar 30 req/min del sandbox" enabled="true">
           <intProp name="calcMode">2</intProp>
-          <stringProp name="throughput">${__P(throughputPerMin,24.0)}</stringProp>
+          <stringProp name="throughput">${__P(throughputPerMin,20.0)}</stringProp>
         </ConstantThroughputTimer>
         <hashTree/>
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET - Consultar cuenta origen" enabled="true">
