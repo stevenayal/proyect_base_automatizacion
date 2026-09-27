@@ -1,0 +1,96 @@
+name: Grupo 02 (Kale) - Cucumber + Playwright E2E (BDD + reporte + CI/CD)
+
+# Tarea: "Cucumber con Playwright con Agentes + Reporteria + CI / CD"
+# Ejecuta los .feature del Grupo 02 contra aiquaa-sandbox-web, clasifica los
+# fallos y publica reporte HTML de Cucumber, informe PDF, capturas y traces.
+
+on:
+  push:
+    branches: ["main", "grupo-02/**"]
+    paths:
+      - "tests/bdd/grupo02-kale/**"
+      - "reporter/grupo02-kale/bdd/**"
+      - ".github/workflows/Y_GRUPO02_KALE_CUCUMBER_PLAYWRIGHT.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tests/bdd/grupo02-kale/**"
+      - "reporter/grupo02-kale/bdd/**"
+      - ".github/workflows/Y_GRUPO02_KALE_CUCUMBER_PLAYWRIGHT.yml"
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: "Expresion de tags de Cucumber (ej: @happy_path)"
+        required: false
+        default: "not @wip"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: grupo02-bdd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bdd:
+    name: Cucumber + Playwright (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Obtener el codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Configurar Python (informe PDF)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: |
+          npm ci
+          pip install -r reporter/grupo02-kale/bdd/requirements.txt
+
+      - name: Instalar Chromium de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Validar steps (dry-run, sin navegador)
+        run: npx cucumber-js --config tests/bdd/grupo02-kale/cucumber.js --profile dryrun
+
+      - name: Ejecutar escenarios BDD
+        env:
+          CI: "true"
+          BASE_URL: ${{ vars.AIQUAA_SANDBOX_BASE_URL || 'https://aiquaa-sandbox-web.vercel.app' }}
+          SANDBOX_API_KEY: ${{ secrets.GRUPO02_API_KEY || 'sbx_demo_f581ca21e68a347288c94d71' }}
+          BDD_TAGS: ${{ inputs.tags || 'not @wip' }}
+          BDD_RETRY: "1"
+        run: npx cucumber-js --config tests/bdd/grupo02-kale/cucumber.js --profile default
+
+      - name: Clasificar fallos (agente de triage)
+        if: always()
+        run: node tests/bdd/grupo02-kale/scripts/classify-failures.mjs --input results/cucumber-grupo02.json --out results/CLASIF_BDD_GRUPO02.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Generar informe PDF BDD
+        if: always() && hashFiles('results/cucumber-grupo02.json') != ''
+        run: >
+          python reporter/grupo02-kale/bdd/bdd_report.py
+          --results results/cucumber-grupo02.json
+          --output results/INFORME_BDD_GRUPO02.pdf
+          --grupo "Grupo 02 - Transferencias entre Cuentas"
+          --author "${{ github.triggering_actor }}"
+          --repo-url "${{ github.server_url }}/${{ github.repository }}"
+
+      - name: Publicar reportes y evidencias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grupo02-bdd-${{ github.run_number }}
+          path: |
+            results/
+          if-no-files-found: warn
+          retention-days: 14
