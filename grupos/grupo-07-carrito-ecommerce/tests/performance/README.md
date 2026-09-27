@@ -40,8 +40,37 @@ $env:JAVA_HOME = "C:\Program Files\Java\jdk-21"
 - Percentil p95: POST 540 ms / GET 774 ms.
 - SLA (`thresholds.json`): **veredicto PASS** (error 0%, p95 < 2000 ms).
 
+## Resultados de la corrida CI/CD (Semana 5, con Grafana)
+
+- **120 requests** (60 POST -> 201, 60 GET -> 200), 0 errores, **0% error rate**.
+- SLA (`thresholds.json`): **veredicto APROBADO** (error 0% < 5%, p95 < 2000 ms).
+- Evidencia de monitoreo: captura del dashboard de Grafana embebida en el PDF,
+  tomada post-ejecucion via Python + Selenium (mismo mecanismo que el workflow
+  generico de clase).
+- Corridas previas del dia fallaron por `429 Too Many Requests` del rate limit
+  compartido (30 req/min por api-key, key publica usada por toda la clase);
+  el gate cumplio su funcion y el rerun en una ventana libre paso limpio.
+
+## Criterio de detencion (Semana 5)
+
+Documentado explicitamente, no solo implicito en el threshold:
+
+- **`429` sostenidos:** si el error rate en vivo supera claramente el 5% por
+  `429 Too Many Requests` sostenidos (rate limit compartido del sandbox, no
+  errores funcionales de la API) → la corrida se corta y se reporta el
+  `RECHAZADO`. No se sigue insistiendo: se espera cupo (script
+  `scripts/esperar-cupo-api.sh`) y se reintenta en otra ventana.
+- **Timeout del runner:** si la corrida supera el `timeout-minutes` configurado
+  en el workflow (30 min), GitHub la corta sola y se reporta como corrida
+  incompleta.
+- **Sin reintento automatico por SLA:** una corrida fallida por SLA **no** se
+  reintenta sola hasta "dar verde" — el PDF y el `RECHAZADO` quedan como
+  evidencia real de esa ventana. El reintento es una decision manual.
+
 ## Evidencias
 
-- Informe PDF: `evidence/semana-04/informe-perf-ordenes-andrea.pdf` (generado con
-  `aiquaa-performance-mcp-server --report ... --author Andrea`).
+- Informe PDF (T4): `evidence/semana-04/informe-perf-ordenes-andrea.pdf`.
+- Informe PDF (T5, con Grafana): `evidence/semana-05/informe-perf-ordenes-andrea.pdf`
+  (generado con `aiquaa-performance-mcp-server --report`, incluye captura del
+  dashboard de monitoreo).
 - JTL y dashboard HTML: carpetas locales `test-results/` (no versionadas).
