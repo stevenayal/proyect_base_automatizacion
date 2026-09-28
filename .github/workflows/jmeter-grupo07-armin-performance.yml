@@ -8,7 +8,7 @@ on:
     branches: ["main"]
     paths:
       - "grupos/grupo-07-carrito-ecommerce/tests/performance/**"
-      - "jmeter-grupo07-armin-performance.yml"
+      - ".github/workflows/jmeter-grupo07-armin-performance.yml"
   workflow_dispatch:
     inputs:
       threads:
@@ -34,12 +34,12 @@ permissions:
 # serializan las corridas de este workflow en vez de cancelarlas, para que un
 # push seguido de otro no invalide la medicion.
 concurrency:
-  group: aiquaa-sandbox-grupo07-andrea
+  group: aiquaa-sandbox-grupo07-armin
   cancel-in-progress: false
 
 env:
   JMETER_VERSION: 5.6.3
-  RESULTS_DIR: test-results/performance/grupo07-andrea
+  RESULTS_DIR: test-results/performance/grupo07-armin
   API_BASE: https://aiquaa-sandbox-api.vercel.app
   # URL de monitoreo: el default aplica a TODOS los eventos (pull_request y
   # workflow_dispatch). En un run por pull_request no existe inputs.*, por eso
@@ -132,7 +132,7 @@ jobs:
             "${RESULTS_DIR}/crear_ordenes_armin.jtl" \
             grupos/grupo-07-carrito-ecommerce/tests/performance/thresholds/thresholds.json \
             "${RESULTS_DIR}/INFORME_PERF_ORDENES.pdf" \
-            --api-name "AIQUAA Sandbox API (ordenes - Grupo 07 Andrea)" \
+            --api-name "AIQUAA Sandbox API (ordenes - Grupo 07 Armin)" \
             --plan grupos/grupo-07-carrito-ecommerce/tests/performance/plans/crear_ordenes_armin.jmx \
             --test-type carga \
             --threads "${{ inputs.threads || '3' }}" \
@@ -159,6 +159,6 @@ jobs:
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: jmeter-grupo07-andrea-ordenes
-          path: test-results/performance/grupo07-andrea
+          name: jmeter-grupo07-armin-ordenes
+          path: test-results/performance/grupo07-armin
           retention-days: 7
