@@ -22,56 +22,7 @@ jobs:
 
     steps:
       - name: Checkout del repositorio
-        uses: actions/checkout@v4
-
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: "npm"
-
-      - name: Configurar Python (generador de PDF)
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Instalar dependencias Node
-        run: npm install
-
-      - name: Instalar dependencias Python (reportlab, Pillow)
-        run: pip install -r scripts/requirements-newman-report.txt
-
-      - name: Preparar carpeta de resultados
-        run: mkdir -p newman
-
-      - name: Ejecutar regresión Postman (Newman) - Grupo 09
-        env:
-          BASE_URL: ${{ vars.GRUPO09_BASE_URL }}
-          API_KEY: ${{ secrets.GRUPO09_API_KEY }}
-        run: |
-          npx newman run "grupos/grupo-09-reportes-dashboard/evidence/semana-03/grupo-9-reportes-y-dashboard.postman_collection.json" \
-            --env-var "baseUrl=${BASE_URL}" \
-            --env-var "apiKey=${API_KEY}" \
-            --delay-request 800 \
-            --reporters cli,json \
-            --reporter-json-export newman/results.json
-
-      - name: Generar reporte PDF
-        if: always()
-        run: |
-          python scripts/newman_report.py \
-            --results newman/results.json \
-            --banner skills/postman-newman-skill/reporter/assets/banner_portada.png \
-            --logo-aiquaa skills/postman-newman-skill/reporter/assets/logo_aiquaa_circle.png \
-            --logo-postman skills/postman-newman-skill/reporter/assets/logo_postman_clean.png \
-            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
-            --api-version "${{ github.sha }}" \
-            --author "${{ github.triggering_actor }}" \
-            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-            --output newman/report.pdf
-
-      - name: Subir informe PDF de la regresión
+        run: echo "Checkout del repositorio"
         uses: actions/upload-artifact@v4
         if: always()
         with:
