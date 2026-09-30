@@ -2,14 +2,16 @@ name: Postman Regression - Grupo 09 Reportes Dashboard (con reporte PDF en Pytho
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - "grupo-09-reportes-dashboard-avalosroman"
     paths:
-      - "postman/Grupo 9 - Reportes y Dashboard.postman_collection.json"
+      - "grupos/grupo-09-reportes-dashboard/evidence/semana-03/grupo-9-reportes-y-dashboard.postman_collection.json"
       - ".github/workflows/postman-grupo09-regression.yml"
   pull_request:
-    branches: ["main"]
+    branches:
+      - "grupo-09-reportes-dashboard-avalosroman"
     paths:
-      - "postman/Grupo 9 - Reportes y Dashboard.postman_collection.json"
+      - "grupos/grupo-09-reportes-dashboard/evidence/semana-03/grupo-9-reportes-y-dashboard.postman_collection.json"
       - ".github/workflows/postman-grupo09-regression.yml"
   workflow_dispatch:
 
@@ -48,7 +50,7 @@ jobs:
           BASE_URL: ${{ vars.GRUPO09_BASE_URL }}
           API_KEY: ${{ secrets.GRUPO09_API_KEY }}
         run: |
-          npx newman run "postman/Grupo 9 - Reportes y Dashboard.postman_collection.json" \
+          npx newman run "grupos/grupo-09-reportes-dashboard/evidence/semana-03/grupo-9-reportes-y-dashboard.postman_collection.json" \
             --env-var "baseUrl=${BASE_URL}" \
             --env-var "apiKey=${API_KEY}" \
             --delay-request 800 \
