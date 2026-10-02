@@ -42,7 +42,7 @@ jobs:
           npx newman run postman/grupo-06-notificaciones-alertas.postman_collection.json
           --env-var "baseUrl=${{ vars.GRUPO06_BASE_URL }}"
           --env-var "apiKey=${{ secrets.GRUPO06_API_KEY }}"
-          --delay-request 800
+          --delay-request 2500
           --reporters cli,json
           --reporter-json-export newman/results.json
 
