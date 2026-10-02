@@ -53,7 +53,7 @@ jobs:
         run: mkdir -p results
 
       - name: Ejecutar escenarios BDD del Grupo 06 (Cucumber + Playwright)
-        run: npx cucumber-js "grupos/grupo-06-notificaciones-alertas/features/**/*.feature" --tags "@grupo06"
+        run: npx cucumber-js --profile grupo06 --tags "@grupo06"
         continue-on-error: true
 
       - name: Instalar dependencia del informe PDF
