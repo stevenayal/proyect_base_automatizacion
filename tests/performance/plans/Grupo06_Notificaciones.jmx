@@ -89,6 +89,7 @@ vars.put('mensajeUnico', vars.get('mensaje') + ' (' + suffix + ')')</stringProp>
                 <stringProp name="Argument.value">{&#xd;
   &quot;usuarioId&quot;: ${usuarioId},&#xd;
   &quot;canal&quot;: &quot;${canal}&quot;,&#xd;
+  &quot;asunto&quot;: &quot;${asunto}&quot;,&#xd;
   &quot;mensaje&quot;: &quot;${mensajeUnico}&quot;&#xd;
 }</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
