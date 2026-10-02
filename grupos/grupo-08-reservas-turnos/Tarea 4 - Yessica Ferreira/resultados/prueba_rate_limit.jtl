@@ -1,0 +1,47 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1789861076575,1871,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-1,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,1870,0,1302
+1789861078464,611,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-1,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/69,611,0,0
+1789861079561,640,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-2,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,640,0,372
+1789861080202,277,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-2,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/70,277,0,0
+1789861082560,1537,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-3,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,1537,0,1271
+1789861084099,367,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-3,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/71,367,0,0
+1789861085559,606,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-4,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,605,0,298
+1789861086166,308,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-4,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/72,308,0,0
+1789861091560,568,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-6,text,true,,598,386,2,2,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,568,0,182
+1789861088561,3762,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-5,text,true,,598,386,2,2,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,3762,0,3482
+1789861092129,296,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-6,text,true,,606,230,2,2,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/73,296,0,0
+1789861092324,260,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-5,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/74,260,0,0
+1789861094558,565,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-7,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,565,0,266
+1789861095124,438,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-7,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/75,438,0,0
+1789861097557,358,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-8,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,358,0,98
+1789861097916,261,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-8,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/76,261,0,0
+1789861100558,1717,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-9,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,1717,0,947
+1789861102275,397,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-9,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/77,396,0,0
+1789861103558,1350,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-10,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,1350,0,753
+1789861104909,364,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-10,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/78,364,0,0
+1789861106557,485,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-11,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,485,0,167
+1789861107043,260,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-11,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/79,260,0,0
+1789861109559,355,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-12,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,354,0,97
+1789861109914,268,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-12,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/80,268,0,0
+1789861112559,486,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-13,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,486,0,176
+1789861113046,322,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-13,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/81,322,0,0
+1789861115559,590,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-14,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,590,0,297
+1789861116150,280,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-14,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/82,279,0,0
+1789861118560,549,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-15,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,549,0,262
+1789861119110,1610,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-15,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/83,1610,0,0
+1789861121559,430,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-16,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,430,0,120
+1789861121989,319,GET - Consultar Reserva,200,OK,Reserva - Prueba de Rendimiento 1-16,text,true,,606,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/84,319,0,0
+1789861124559,491,POST - Crear Reserva,201,Created,Reserva - Prueba de Rendimiento 1-17,text,true,,598,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,491,0,199
+1789861125051,271,GET - Consultar Reserva,429,Too Many Requests,Reserva - Prueba de Rendimiento 1-17,text,false,,604,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/85,271,0,0
+1789861127558,280,POST - Crear Reserva,429,Too Many Requests,Reserva - Prueba de Rendimiento 1-18,text,false,,591,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,280,0,89
+1789861127839,277,GET - Consultar Reserva,429,Too Many Requests,Reserva - Prueba de Rendimiento 1-18,text,false,,1004,455,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,90,0,0
+1789861127839,90,GET - Consultar Reserva-0,308,Permanent Redirect,Reserva - Prueba de Rendimiento 1-18,text,true,,405,228,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/,90,0,0
+1789861127929,187,GET - Consultar Reserva-1,429,Too Many Requests,Reserva - Prueba de Rendimiento 1-18,text,false,,599,227,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,187,0,0
+1789861130557,479,POST - Crear Reserva,429,Too Many Requests,Reserva - Prueba de Rendimiento 1-19,text,false,,591,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,479,0,262
+1789861131038,461,GET - Consultar Reserva,429,Too Many Requests,Reserva - Prueba de Rendimiento 1-19,text,false,,1003,455,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,62,0,0
+1789861131038,63,GET - Consultar Reserva-0,308,Permanent Redirect,Reserva - Prueba de Rendimiento 1-19,text,true,,405,228,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/,62,0,0
+1789861131101,398,GET - Consultar Reserva-1,429,Too Many Requests,Reserva - Prueba de Rendimiento 1-19,text,false,,598,227,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,398,0,0
+1789861133558,444,POST - Crear Reserva,429,Too Many Requests,Reserva - Prueba de Rendimiento 1-20,text,false,,590,386,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,444,0,210
+1789861134002,566,GET - Consultar Reserva,429,Too Many Requests,Reserva - Prueba de Rendimiento 1-20,text,false,,1003,455,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,378,0,0
+1789861134002,378,GET - Consultar Reserva-0,308,Permanent Redirect,Reserva - Prueba de Rendimiento 1-20,text,true,,405,228,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas/,378,0,0
+1789861134380,188,GET - Consultar Reserva-1,429,Too Many Requests,Reserva - Prueba de Rendimiento 1-20,text,false,,598,227,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/reservas,188,0,0

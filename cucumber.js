@@ -33,5 +33,3 @@ module.exports = {
     publishQuiet: true,
   },
 };
-
-// Trigger CI BDD Grupo 06
