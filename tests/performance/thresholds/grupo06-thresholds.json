@@ -1,0 +1,19 @@
+{
+  "global": {
+    "scope": "global",
+    "maxErrorRate": 1,
+    "p95Ms": 1500
+  },
+  "operations": {
+    "POST /api/v1/notificaciones": {
+      "scope": "POST /api/v1/notificaciones",
+      "maxErrorRate": 1,
+      "p95Ms": 1500
+    },
+    "GET /api/v1/notificaciones": {
+      "scope": "GET /api/v1/notificaciones",
+      "maxErrorRate": 1,
+      "p95Ms": 800
+    }
+  }
+}

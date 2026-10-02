@@ -1,0 +1,4 @@
+usuarioId,canal,mensaje
+1,push,Tu transferencia fue acreditada
+1,email,Tu pago de servicios fue procesado
+2,sms,Tu tarjeta fue utilizada en una compra
