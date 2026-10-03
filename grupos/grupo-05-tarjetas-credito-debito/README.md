@@ -86,6 +86,50 @@ ejecutado en CI por [`jmeter-grupo05-performance.yml`](../../.github/workflows/j
 | `tests/performance/data/grupo05_emision_tarjetas.csv` | `usuarioId,tipo,marca,codigoEsperado` para el POST. |
 | `tests/performance/properties/local.properties` | Host, carga y rutas para correr en local con `jmeter -p`. |
 | `tests/performance/thresholds/thresholds.json` | SLA propio del grupo: global y por operación. |
+| `scripts/capturar-dashboard.js` | Captura el dashboard de monitoreo como evidencia del informe. |
+
+### Pipeline, monitoreo y reportería (semana 5)
+
+El workflow [`jmeter-grupo05-performance.yml`](../../.github/workflows/jmeter-grupo05-performance.yml)
+encadena la corrida de carga, el monitoreo y el informe en un solo pipeline:
+
+1. espera cupo en el rate limit del sandbox (la API key es compartida por toda la clase);
+2. ejecuta el plan JMeter headless (`-n -t … -l … -e -o dashboard`);
+3. **captura el dashboard de Grafana** del sandbox
+   ([`aiquaa Sandbox API - qa_training`](https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958))
+   justo después de la corrida, cuando ya refleja la carga generada;
+4. genera el informe PDF con
+   [`aiquaa-performance-mcp-server`](https://github.com/stevenayal/aiquaa-performance-mcp-server)
+   (`--report`), incrustando esa captura con `--evidence-image`, `--evidence-label` y
+   `--evidence-url`;
+5. evalúa los umbrales del SLA (`--evaluate`), que es el gate que hace fallar el job;
+6. publica el PDF como artefacto propio y la carpeta completa de resultados (JTL, dashboard HTML
+   y evidencia) como un segundo artefacto.
+
+La captura usa Playwright, que ya es dependencia del repositorio, en vez del script Selenium que
+trae el MCP server: evita sumar Python y chromedriver al runner. El paso es `continue-on-error`,
+así que si Grafana no responde el informe igual se genera, sin el anexo, y el job avisa con un
+`::warning::`.
+
+```bash
+# correr la captura a mano (por ejemplo para revisar el encuadre)
+node grupos/grupo-05-tarjetas-credito-debito/scripts/capturar-dashboard.js \
+  --url "https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958" \
+  --output test-results/performance/grupo05/evidence/EVIDENCIA_MONITOREO.png
+
+# generar el informe desde un .jtl existente, con la evidencia adjunta
+npx -y aiquaa-performance-mcp-server --report \
+  test-results/performance/grupo05/R_GRUPO05_TARJETAS.jtl \
+  grupos/grupo-05-tarjetas-credito-debito/tests/performance/thresholds/thresholds.json \
+  test-results/performance/grupo05/INFORME_PERF_GRUPO05.pdf \
+  --api-name "AIQUAA Sandbox API (tarjetas credito/debito)" --test-type carga \
+  --evidence-image test-results/performance/grupo05/evidence/EVIDENCIA_MONITOREO.png \
+  --evidence-label "Dashboard de monitoreo - aiquaa Sandbox API"
+```
+
+El pipeline corre en cada PR a `main` que toque el plan, los CSV, el script de captura o el
+propio workflow, y a demanda por `workflow_dispatch`, donde se pueden ajustar `threads`, `loops`
+y la URL del dashboard a capturar.
 
 ### Qué cubre
 
