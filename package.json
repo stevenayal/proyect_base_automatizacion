@@ -12,7 +12,11 @@
     "test:bdd:demo": "cucumber-js --profile demo",
     "test:bdd:sandbox": "node tests/bdd/sandbox-pom/scripts/run-sandbox.cjs",
     "smoke": "playwright test tests/e2e/smoke.spec.ts",
-    "verify": "npm run test:api && npm run test:e2e"
+    "verify": "npm run test:api && npm run test:e2e",
+    "test:bdd:ordenes-andrea": "cucumber-js --config tests/bdd/grupo07-ordenes-andrea/cucumber.js --profile default",
+    "test:bdd:ordenes-andrea:dryrun": "cucumber-js --config tests/bdd/grupo07-ordenes-andrea/cucumber.js --profile dryrun",
+    "test:bdd:ordenes-andrea:classify": "node tests/bdd/grupo07-ordenes-andrea/scripts/classify-failures.mjs --input results/grupo07-andrea/cucumber-grupo07-andrea.json --out results/grupo07-andrea/CLASIF_GRUPO07-ANDREA.json",
+    "test:bdd:ordenes-andrea:smoke": "node tests/bdd/grupo07-ordenes-andrea/scripts/smoke-locators.mjs"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^11.0.1",
