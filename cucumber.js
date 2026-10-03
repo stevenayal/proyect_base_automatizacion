@@ -20,4 +20,14 @@ module.exports = {
     formatOptions: { snippetInterface: 'async-await' },
     publishQuiet: true,
   },
+  // Perfil acotado solo al feature del Grupo 09 - Reportes y Dashboard.
+  // Uso: npx cucumber-js --profile grupo09
+  grupo09: {
+    paths: ['grupos/grupo-09-reportes-dashboard/features/**/*.feature'],
+    require: ['tests/bdd/steps/**/*.ts', 'tests/bdd/support/**/*.ts'],
+    requireModule: ['ts-node/register'],
+    format: ['progress'],
+    formatOptions: { snippetInterface: 'async-await' },
+    publishQuiet: true,
+  },
 };
