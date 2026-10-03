@@ -118,7 +118,11 @@ jobs:
         continue-on-error: true
         env:
           CI: "true"
-        run: npx playwright test grupos/grupo-05-tarjetas-credito-debito
+        # La salida se guarda para el diagnostico del paso final.
+        run: |
+          mkdir -p results
+          npx playwright test grupos/grupo-05-tarjetas-credito-debito 2>&1 | tee results/playwright-output.txt
+          exit "${PIPESTATUS[0]}"
 
       - name: Generar informe PDF E2E con evidencias
         if: always() && hashFiles('results/playwright-results.json') != ''
@@ -157,11 +161,25 @@ jobs:
 
       # Los pasos de ejecucion usan continue-on-error para que los informes y la
       # evidencia se publiquen siempre; el job falla aqui si alguno no paso.
+      # El diagnostico sale como anotaciones, visibles en el resumen del run y
+      # en los checks del PR sin descargar artefactos.
       - name: Verificar resultado de las corridas
         if: always()
         run: |
-          echo "BDD: ${{ steps.cucumber.outcome }}"
-          echo "Playwright: ${{ steps.playwright.outcome }}"
+          echo "::notice title=Resultado::BDD=${{ steps.cucumber.outcome }} Playwright=${{ steps.playwright.outcome }}"
+          CLASIF="${EVIDENCE_DIR}/CLASIF_BDD_GRUPO05.json"
+          if [ -f "$CLASIF" ]; then
+            node -e '
+              const r = require(process.argv[1]);
+              const enc = (s) => String(s ?? "").replace(/%/g, "%25").replace(/\r/g, "").replace(/\n/g, "%0A");
+              console.log(`::notice title=Classifier::${enc(JSON.stringify(r.summary.byCategory))}`);
+              for (const f of r.failures) {
+                console.log(`::error title=BDD ${enc(f.category)} - ${enc(f.title)}::${enc(f.step)}%0A${enc(f.error)}`);
+              }' "$(pwd)/$CLASIF"
+          fi
+          if [ "${{ steps.playwright.outcome }}" != "success" ] && [ -f results/playwright-output.txt ]; then
+            echo "::error title=Playwright (ultimas lineas)::$(tail -n 30 results/playwright-output.txt | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')"
+          fi
           if [ "${{ steps.cucumber.outcome }}" != "success" ] || [ "${{ steps.playwright.outcome }}" != "success" ]; then
             echo "::error::Hay corridas fallidas; revisar CLASIF_BDD_GRUPO05.json y los artefactos."
             exit 1
