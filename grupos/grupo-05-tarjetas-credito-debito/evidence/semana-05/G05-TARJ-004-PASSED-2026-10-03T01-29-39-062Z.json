@@ -2,7 +2,7 @@
   "escenario": "Consulta de una tarjeta inexistente",
   "id": "G05-TARJ-004",
   "estado": "PASSED",
-  "ejecutado": "2026-10-03T00:44:07.945Z",
+  "ejecutado": "2026-10-03T01:29:39.063Z",
   "ultimaRespuesta": {
     "status": 404,
     "body": {

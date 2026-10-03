@@ -1,4 +1,4 @@
-name: BDD + UI - Grupo 05 Tarjetas Credito/Debito
+name: AIQUAA BDD - Grupo 05 Tarjetas Credito/Debito
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - "tests/bdd/**"
       - "playwright/pages/**"
       - "cucumber.js"
-      - ".github/workflows/bdd-grupo05-tarjetas.yml"
+      - ".github/workflows/Y_GRUPO05_bdd.yml"
   pull_request:
     branches: ["main"]
     paths:
@@ -18,7 +18,7 @@ on:
       - "tests/bdd/**"
       - "playwright/pages/**"
       - "cucumber.js"
-      - ".github/workflows/bdd-grupo05-tarjetas.yml"
+      - ".github/workflows/Y_GRUPO05_bdd.yml"
   workflow_dispatch:
 
 # El rate limit del sandbox es de 30 req/min POR API-KEY. Este workflow comparte
@@ -101,19 +101,19 @@ jobs:
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: evidencia-bdd-grupo05
+          name: aiquaa-bdd-grupo05-${{ github.run_number }}
           path: |
             ${{ env.EVIDENCE_DIR }}
             results/cucumber-grupo05.json
-          retention-days: 7
+          retention-days: 14
 
       - name: Subir reporte HTML de Playwright
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: playwright-report-grupo05
+          name: aiquaa-bdd-grupo05-playwright-${{ github.run_number }}
           path: playwright-report
-          retention-days: 7
+          retention-days: 14
 
       # Los pasos de ejecucion usan continue-on-error para que el informe y la
       # evidencia se publiquen siempre; el job falla aqui si alguno no paso.

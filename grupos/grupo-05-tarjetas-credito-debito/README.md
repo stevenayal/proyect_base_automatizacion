@@ -243,7 +243,7 @@ el sandbox real y dejan evidencia trazable por ID.
 | Smoke Playwright | [`tests/e2e/tarjetas-credito-debito.spec.ts`](tests/e2e/tarjetas-credito-debito.spec.ts) |
 | Ejecución manual | [`docs/EJECUCION-MANUAL.md`](docs/EJECUCION-MANUAL.md) |
 | Defectos | [`docs/DEFECTOS.md`](docs/DEFECTOS.md) |
-| CI | [`.github/workflows/bdd-grupo05-tarjetas.yml`](../../.github/workflows/bdd-grupo05-tarjetas.yml) |
+| CI | [`.github/workflows/Y_GRUPO05_bdd.yml`](../../.github/workflows/Y_GRUPO05_bdd.yml) |
 | Evidencia | [`evidence/semana-05/`](evidence/semana-05/) |
 | Informe PDF | [`evidence/semana-05/INFORME_BDD_GRUPO_05.pdf`](evidence/semana-05/INFORME_BDD_GRUPO_05.pdf) — incluye el anexo con las evidencias incrustadas |
 
@@ -365,7 +365,7 @@ Variables de entorno relevantes (`.env`):
 
 ### Integración continua
 
-[`.github/workflows/bdd-grupo05-tarjetas.yml`](../../.github/workflows/bdd-grupo05-tarjetas.yml)
+[`.github/workflows/Y_GRUPO05_bdd.yml`](../../.github/workflows/Y_GRUPO05_bdd.yml)
 corre en cada push y PR a `main` que toque los features, steps, Page Objects o `cucumber.js`, y
 también a demanda (`workflow_dispatch`):
 
