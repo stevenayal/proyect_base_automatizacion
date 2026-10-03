@@ -1,0 +1,84 @@
+name: Semana 06 - Grupo 01 - Cucumber Playwright
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'semana-06/**']
+    paths:
+      - 'grupos/grupo-01-autenticacion-acceso/features/semana-06/**'
+      - 'grupos/grupo-01-autenticacion-acceso/tests/bdd/**/semana-06/**'
+      - 'grupos/grupo-01-autenticacion-acceso/playwright/pages/semana-06/**'
+      - 'grupos/grupo-01-autenticacion-acceso/README-semana06.md'
+      - 'cucumber.semana06.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'reporters/*semana06*'
+      - '.github/workflows/semana06-grupo01-cucumber-playwright.yml'
+  pull_request:
+    paths:
+      - 'grupos/grupo-01-autenticacion-acceso/features/semana-06/**'
+      - 'grupos/grupo-01-autenticacion-acceso/tests/bdd/**/semana-06/**'
+      - 'grupos/grupo-01-autenticacion-acceso/playwright/pages/semana-06/**'
+      - 'grupos/grupo-01-autenticacion-acceso/README-semana06.md'
+      - 'cucumber.semana06.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'reporters/*semana06*'
+      - '.github/workflows/semana06-grupo01-cucumber-playwright.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: semana06-grupo01-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cucumber-bdd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Instalar dependencias
+        run: |
+          npm ci
+          python -m pip install -r reporters/requirements-semana06.txt
+          npx playwright install --with-deps chromium
+      - name: Validar TypeScript y reporter
+        run: |
+          npx tsc --noEmit
+          python -m unittest discover -s reporters -p 'test_semana06_report.py'
+      - name: Verificar steps definidos sin ambiguedad
+        run: npm run test:semana06:dry
+      - name: Eliminar reportes de ejecuciones anteriores en el checkout de CI
+        run: |
+          rm -f grupos/grupo-01-autenticacion-acceso/reports/semana-06/cucumber-report.json
+          rm -f grupos/grupo-01-autenticacion-acceso/reports/semana-06/cucumber-report.html
+          rm -f grupos/grupo-01-autenticacion-acceso/reports/semana-06/INFORME_SEMANA06.pdf
+      - name: Ejecutar suite real
+        id: bdd
+        env:
+          BASE_URL: https://aiquaa-sandbox-web.vercel.app
+        run: npm run test:semana06
+      - name: Generar PDF aun si fallan escenarios
+        if: ${{ !cancelled() && steps.bdd.outcome != 'skipped' && hashFiles('grupos/grupo-01-autenticacion-acceso/reports/semana-06/cucumber-report.json') != '' }}
+        run: npm run report:semana06 -- --environment 'GitHub Actions'
+      - name: Publicar reportes y evidencias
+        if: ${{ !cancelled() && steps.bdd.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: semana06-grupo01-${{ github.run_number }}
+          path: |
+            grupos/grupo-01-autenticacion-acceso/reports/semana-06/
+            grupos/grupo-01-autenticacion-acceso/evidence/semana-06/
+          if-no-files-found: error
+          retention-days: 14

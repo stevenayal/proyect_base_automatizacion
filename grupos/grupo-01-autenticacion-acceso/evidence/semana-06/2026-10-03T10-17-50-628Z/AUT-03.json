@@ -1,0 +1,8 @@
+{
+  "runId": "2026-10-03T10-17-50-628Z",
+  "scenario": "Login con campo email vacio",
+  "status": "PASSED",
+  "observedAt": "2026-10-03T10:17:55.651Z",
+  "url": "https://aiquaa-sandbox-web.vercel.app/auth/login",
+  "loginRequests": []
+}

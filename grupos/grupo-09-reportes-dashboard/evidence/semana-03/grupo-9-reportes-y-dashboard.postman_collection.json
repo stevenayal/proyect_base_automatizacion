@@ -1,0 +1,246 @@
+{
+  "info": {
+    "_postman_id": "e7b52f7d-eb92-4a1f-a866-00f5e780cecd",
+    "name": "grupo-9-reportes-y-dashboard",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "58509024",
+    "_collection_link": "https://go.postman.co/collection/58509024-e7b52f7d-eb92-4a1f-a866-00f5e780cecd?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "RF-G9-01 — Reporte de movimientos agrupados",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// ============================================================\r\n// PRE-REQUEST — RF-G9-01 Reporte de movimientos agrupados\r\n// Todas las variables viven en pm.collectionVariables\r\n// ============================================================\r\n\r\nconst sqlBaseUrl = pm.collectionVariables.get('sqlSandboxBaseUrl');\r\nconst sqlApiKey  = pm.collectionVariables.get('sqlSandboxApiKey');\r\n\r\nfunction querySandbox(sql, params, callback) {\r\n    pm.sendRequest({\r\n        url: `${sqlBaseUrl}/api/v1/sql/select`,\r\n        method: 'POST',\r\n        header: {\r\n            'Content-Type': 'application/json',\r\n            'x-api-key': sqlApiKey\r\n        },\r\n        body: {\r\n            mode: 'raw',\r\n            raw: JSON.stringify({ sql, params: params || [] })\r\n        }\r\n    }, (err, res) => {\r\n        if (err) return callback(err, null);\r\n        if (res.code !== 200) {\r\n            return callback(new Error(`SQL ${res.code}: ${JSON.stringify(res.json())}`), null);\r\n        }\r\n        callback(null, res.json().data || []);\r\n    });\r\n}\r\n\r\n// PASO 1 — elegir usuarioId con movimientos reales\r\nquerySandbox(\r\n    `SELECT usuario_id, COUNT(*) AS total_movs\r\n     FROM movimientos\r\n     GROUP BY usuario_id\r\n     ORDER BY total_movs DESC\r\n     LIMIT 1`,\r\n    [],\r\n    (err, rows) => {\r\n        if (err) {\r\n            console.error('❌ Pre-request paso 1 falló:', err.message);\r\n            pm.execution.skipRequest();\r\n            return;\r\n        }\r\n        if (!rows.length) {\r\n            console.warn('⚠️ No hay movimientos; se aborta el request');\r\n            pm.execution.skipRequest();\r\n            return;\r\n        }\r\n\r\n        const usuarioId = rows[0].usuario_id;\r\n        pm.collectionVariables.set('g9_usuario_id', usuarioId);\r\n        pm.collectionVariables.set('g9_movs_esperados', Number(rows[0].total_movs));\r\n        console.log(`✅ usuarioId capturado: ${usuarioId} (${rows[0].total_movs} movimientos)`);\r\n\r\n        // PASO 2 — rango real de fechas\r\n        querySandbox(\r\n            `SELECT MIN(created_at) AS desde, MAX(created_at) AS hasta\r\n             FROM movimientos\r\n             WHERE usuario_id = $1`,\r\n            [usuarioId],\r\n            (err2, rows2) => {\r\n                if (err2) {\r\n                    console.error('❌ Pre-request paso 2 falló:', err2.message);\r\n                    pm.execution.skipRequest();\r\n                    return;\r\n                }\r\n\r\n                if (rows2.length) {\r\n                    pm.collectionVariables.set('g9_desde', rows2[0].desde);\r\n                    pm.collectionVariables.set('g9_hasta', rows2[0].hasta);\r\n                    console.log(`✅ Rango: ${rows2[0].desde} → ${rows2[0].hasta}`);\r\n                }\r\n\r\n                // PASO 3 — tipos de movimiento esperados\r\n                querySandbox(\r\n                    `SELECT DISTINCT tipo_movimiento\r\n                     FROM movimientos\r\n                     WHERE usuario_id = $1`,\r\n                    [usuarioId],\r\n                    (err3, rows3) => {\r\n                        if (err3) {\r\n                            console.error('❌ Pre-request paso 3 falló:', err3.message);\r\n                            pm.execution.skipRequest();\r\n                            return;\r\n                        }\r\n                        const tipos = rows3.map(r => r.tipo_movimiento);\r\n                        pm.collectionVariables.set('g9_tipos_esperados', JSON.stringify(tipos));\r\n                        console.log(`✅ Tipos: ${tipos.join(', ')}`);\r\n                    }\r\n                );\r\n            }\r\n        );\r\n    }\r\n);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// ============================================================\r\n// POST-REQUEST — RF-G9-01 (v2 — fixes tipo string)\r\n// ============================================================\r\n\r\nconst sqlBaseUrl    = pm.collectionVariables.get('sqlSandboxBaseUrl');\r\nconst sqlApiKey     = pm.collectionVariables.get('sqlSandboxApiKey');\r\nconst usuarioId     = pm.collectionVariables.get('g9_usuario_id');\r\nconst movsEsperados = Number(pm.collectionVariables.get('g9_movs_esperados'));\r\nconst tiposEsperados = JSON.parse(pm.collectionVariables.get('g9_tipos_esperados') || '[]');\r\n\r\nfunction querySandbox(sql, params, callback) {\r\n    pm.sendRequest({\r\n        url: `${sqlBaseUrl}/api/v1/sql/select`,\r\n        method: 'POST',\r\n        header: { 'Content-Type': 'application/json', 'x-api-key': sqlApiKey },\r\n        body: {\r\n            mode: 'raw',\r\n            raw: JSON.stringify({ sql, params: params || [] })\r\n        }\r\n    }, (err, res) => {\r\n        if (err) return callback(err, null);\r\n        if (res.code !== 200) {\r\n            return callback(new Error(`SQL ${res.code}: ${JSON.stringify(res.json())}`), null);\r\n        }\r\n        callback(null, res.json());\r\n    });\r\n}\r\n\r\n// --- AC-G9-01a: Status ---\r\npm.test(\"AC-G9-01a: Status 200\", () => {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\nconst jsonData = pm.response.json();\r\n\r\npm.test(\"AC-G9-01a: Devuelve array de agregados\", () => {\r\n    pm.expect(jsonData.data).to.be.an('array');\r\n    pm.expect(jsonData.data.length).to.be.at.least(1);\r\n});\r\n\r\npm.test(\"AC-G9-01a: Cada item tiene tipo_movimiento, cantidad y total\", () => {\r\n    jsonData.data.forEach((item, i) => {\r\n        pm.expect(item, `item[${i}]`).to.have.property('tipo_movimiento');\r\n        pm.expect(item, `item[${i}]`).to.have.property('cantidad');\r\n        pm.expect(item, `item[${i}]`).to.have.property('total');\r\n\r\n        // ✅ Postgres devuelve NUMERIC como string\r\n        pm.expect(item.cantidad, `cantidad[${i}]`).to.be.a('string');\r\n        pm.expect(item.total, `total[${i}]`).to.be.a('string');\r\n        pm.expect(isNaN(parseFloat(item.cantidad))).to.be.false;\r\n        pm.expect(isNaN(parseFloat(item.total))).to.be.false;\r\n    });\r\n});\r\n\r\npm.test(\"AC-G9-01a: Los tipos devueltos son los esperados según DB\", () => {\r\n    const tiposRecibidos = jsonData.data.map(i => i.tipo_movimiento);\r\n    tiposEsperados.forEach(tipo => {\r\n        pm.expect(tiposRecibidos).to.include(tipo);\r\n    });\r\n});\r\n\r\n// --- AC-G9-01b: filtro por usuarioId (COUNT cruzado con DB) ---\r\npm.test(\"AC-G9-01b: Suma de cantidades == COUNT(*) en DB\", function (done) {\r\n    const sumaCantidades = jsonData.data.reduce(\r\n        (acc, x) => acc + Number(x.cantidad), 0\r\n    );\r\n\r\n    querySandbox(\r\n        `SELECT COUNT(*) AS total FROM movimientos WHERE usuario_id = $1`,\r\n        [usuarioId],\r\n        (err, res) => {\r\n            if (err) {\r\n                done(err);\r\n                return;\r\n            }\r\n            const rows = res.data || [];\r\n            const totalDB = Number(rows[0].total);\r\n\r\n            pm.expect(sumaCantidades, \r\n                `suma response=${sumaCantidades} vs COUNT DB=${totalDB}`\r\n            ).to.eql(totalDB);\r\n\r\n            pm.expect(totalDB).to.eql(movsEsperados,\r\n                `COUNT DB=${totalDB} vs capturado=${movsEsperados}`\r\n            );\r\n            done();\r\n        }\r\n    );\r\n});\r\n\r\n// --- AC-G9-01c: rango desde/hasta ---\r\npm.test(\"AC-G9-01c: Suma con rango == COUNT(*) con rango en DB\", function (done) {\r\n    const desde = pm.collectionVariables.get('g9_desde');\r\n    const hasta = pm.collectionVariables.get('g9_hasta');\r\n    const sumaCantidades = jsonData.data.reduce(\r\n        (acc, x) => acc + Number(x.cantidad), 0\r\n    );\r\n\r\n    querySandbox(\r\n        `SELECT COUNT(*) AS total\r\n         FROM movimientos\r\n         WHERE usuario_id = $1\r\n           AND created_at >= $2\r\n           AND created_at <= $3`,\r\n        [usuarioId, desde, hasta],\r\n        (err, res) => {\r\n            if (err) {\r\n                done(err);\r\n                return;\r\n            }\r\n            const rows = res.data || [];\r\n            const totalDBRango = Number(rows[0].total);\r\n\r\n            pm.expect(sumaCantidades,\r\n                `suma response=${sumaCantidades} vs COUNT con rango=${totalDBRango}`\r\n            ).to.eql(totalDBRango);\r\n            done();\r\n        }\r\n    );\r\n});\r\n\r\n// --- AC-G9-01c: totales por tipo coinciden con DB ---\r\npm.test(\"AC-G9-01c: Totales por tipo coinciden con DB\", function (done) {\r\n    querySandbox(\r\n        `SELECT tipo_movimiento, COUNT(*) AS cantidad, SUM(monto) AS total\r\n         FROM movimientos\r\n         WHERE usuario_id = $1\r\n         GROUP BY tipo_movimiento\r\n         ORDER BY tipo_movimiento`,\r\n        [usuarioId],\r\n        (err, res) => {\r\n            if (err) {\r\n                done(err);\r\n                return;\r\n            }\r\n            const rows = res.data || [];\r\n\r\n            const dbPorTipo = {};\r\n            rows.forEach(r => {\r\n                dbPorTipo[r.tipo_movimiento] = {\r\n                    cantidad: Number(r.cantidad),\r\n                    total: Number(r.total)      // ✅ normalizado\r\n                };\r\n            });\r\n\r\n            jsonData.data.forEach(item => {\r\n                const db = dbPorTipo[item.tipo_movimiento];\r\n                pm.expect(db, \r\n                    `Tipo ${item.tipo_movimiento} debe existir en DB`\r\n                ).to.exist;\r\n\r\n                pm.expect(Number(item.cantidad),\r\n                    `cantidad de ${item.tipo_movimiento}`\r\n                ).to.eql(db.cantidad);\r\n\r\n                pm.expect(parseFloat(item.total),\r\n                    `total de ${item.tipo_movimiento}`\r\n                ).to.eql(db.total);\r\n            });\r\n            done();\r\n        }\r\n    );\r\n});\r\n\r\nconsole.log('ℹ️ BR-G9-01 se cubre con el request negativo RF-G9-01-neg');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "sbx_demo_f581ca21e68a347288c94d71"
+          }
+        ],
+        "url": {
+          "raw": "https://aiquaa-sandbox-api.vercel.app/api/v1/reportes/movimientos",
+          "protocol": "https",
+          "host": [
+            "aiquaa-sandbox-api",
+            "vercel",
+            "app"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "reportes",
+            "movimientos"
+          ],
+          "query": [
+            {
+              "key": "hasta",
+              "value": "2026-07-21T17:32:28Z",
+              "disabled": true
+            },
+            {
+              "key": "desde",
+              "value": "2017-07-21T17:32:28Z",
+              "disabled": true
+            },
+            {
+              "key": "usuarioId",
+              "value": "13",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "RF-G9-02 — Resumen de movimientos del usuario",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// ============================================================\r\n// PRE-REQUEST — RF-G9-02 Resumen de movimientos\r\n// Objetivo: obtener un usuarioId real y sus valores esperados desde la DB\r\n// ============================================================\r\n\r\nconst sqlBaseUrl = pm.collectionVariables.get('sqlSandboxBaseUrl');\r\nconst sqlApiKey  = pm.collectionVariables.get('sqlSandboxApiKey');\r\n\r\nfunction querySandbox(sql, params, callback) {\r\n    pm.sendRequest({\r\n        url: `${sqlBaseUrl}/api/v1/sql/select`,\r\n        method: 'POST',\r\n        header: {\r\n            'Content-Type': 'application/json',\r\n            'x-api-key': sqlApiKey\r\n        },\r\n        body: {\r\n            mode: 'raw',\r\n            raw: JSON.stringify({ sql, params: params || [] })\r\n        }\r\n    }, (err, res) => {\r\n        if (err) return callback(err, null);\r\n        if (res.code !== 200) {\r\n            return callback(new Error(`SQL ${res.code}: ${JSON.stringify(res.json())}`), null);\r\n        }\r\n        callback(null, res.json().data || []);\r\n    });\r\n}\r\n\r\n// ------------------------------------------------------------\r\n// PASO 1: elegir un usuarioId que tenga movimientos reales\r\n// ------------------------------------------------------------\r\nquerySandbox(\r\n    `SELECT usuario_id, COUNT(*) AS total_movs\r\n     FROM movimientos\r\n     GROUP BY usuario_id\r\n     ORDER BY total_movs DESC\r\n     LIMIT 1`,\r\n    [],\r\n    (err, rows) => {\r\n        if (err) {\r\n            console.error('❌ Pre-request paso 1 falló:', err.message);\r\n            pm.execution.skipRequest();\r\n            return;\r\n        }\r\n        if (!rows.length) {\r\n            console.warn('⚠️ No hay movimientos en qa_training');\r\n            pm.execution.skipRequest();\r\n            return;\r\n        }\r\n\r\n        const usuarioId = rows[0].usuario_id;\r\n        pm.collectionVariables.set('g9_usuario_id', usuarioId);\r\n        console.log(`✅ usuarioId capturado: ${usuarioId} (${rows[0].total_movs} movimientos)`);\r\n\r\n        // ------------------------------------------------------------\r\n        // PASO 2: capturar resumen real desde la DB para comparar después\r\n        // (cantidad, total, primero, ultimo)\r\n        // ------------------------------------------------------------\r\n        querySandbox(\r\n            `SELECT\r\n                COUNT(*) AS cantidad_movimientos,\r\n                COALESCE(SUM(monto), 0) AS total,\r\n                MIN(created_at) AS primero,\r\n                MAX(created_at) AS ultimo\r\n             FROM movimientos\r\n             WHERE usuario_id = $1`,\r\n            [usuarioId],\r\n            (err2, rows2) => {\r\n                if (err2) {\r\n                    console.error('❌ Pre-request paso 2 falló:', err2.message);\r\n                    pm.execution.skipRequest();\r\n                    return;\r\n                }\r\n\r\n                const resumenDB = rows2[0] || {};\r\n                pm.collectionVariables.set('g9_resumen_cantidad', String(resumenDB.cantidad_movimientos ?? 0));\r\n                pm.collectionVariables.set('g9_resumen_total',    String(resumenDB.total ?? 0));\r\n                pm.collectionVariables.set('g9_resumen_primero',  resumenDB.primero || '');\r\n                pm.collectionVariables.set('g9_resumen_ultimo',   resumenDB.ultimo  || '');\r\n\r\n                console.log('✅ Resumen DB capturado:', {\r\n                    cantidad: resumenDB.cantidad_movimientos,\r\n                    total:    resumenDB.total,\r\n                    primero:  resumenDB.primero,\r\n                    ultimo:   resumenDB.ultimo\r\n                });\r\n            }\r\n        );\r\n    }\r\n);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// ============================================================\r\n// POST-REQUEST — RF-G9-02 Resumen de movimientos\r\n// Valida AC-G9-02a/b/c/d/e cruzando datos con la DB\r\n// ============================================================\r\n\r\nconst sqlBaseUrl = pm.collectionVariables.get('sqlSandboxBaseUrl');\r\nconst sqlApiKey  = pm.collectionVariables.get('sqlSandboxApiKey');\r\nconst usuarioId  = pm.collectionVariables.get('g9_usuario_id');\r\n\r\nconst esperadoCantidad = Number(pm.collectionVariables.get('g9_resumen_cantidad'));\r\nconst esperadoTotal    = parseFloat(pm.collectionVariables.get('g9_resumen_total'));\r\nconst esperadoPrimero  = pm.collectionVariables.get('g9_resumen_primero');\r\nconst esperadoUltimo   = pm.collectionVariables.get('g9_resumen_ultimo');\r\n\r\nfunction querySandbox(sql, params, callback) {\r\n    pm.sendRequest({\r\n        url: `${sqlBaseUrl}/api/v1/sql/select`,\r\n        method: 'POST',\r\n        header: { 'Content-Type': 'application/json', 'x-api-key': sqlApiKey },\r\n        body: {\r\n            mode: 'raw',\r\n            raw: JSON.stringify({ sql, params: params || [] })\r\n        }\r\n    }, (err, res) => {\r\n        if (err) return callback(err, null);\r\n        if (res.code !== 200) return callback(new Error(`SQL ${res.code}`), null);\r\n        callback(null, res.json().data || []);\r\n    });\r\n}\r\n\r\n// ------------------------------------------------------------\r\n// AC-G9-02a — Status 200 y shape correcto\r\n// ------------------------------------------------------------\r\npm.test('AC-G9-02a: Status 200', () => {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\nconst jsonData = pm.response.json();\r\nconst resumen = jsonData.data || {};\r\n\r\npm.test('AC-G9-02a: data tiene cantidad_movimientos, total, primero y ultimo', () => {\r\n    pm.expect(resumen, 'data debe existir').to.be.an('object');\r\n    pm.expect(resumen).to.have.property('cantidad_movimientos');\r\n    pm.expect(resumen).to.have.property('total');\r\n    pm.expect(resumen).to.have.property('primero');\r\n    pm.expect(resumen).to.have.property('ultimo');\r\n});\r\n\r\npm.test('AC-G9-02a: cantidad_movimientos y total son numéricos', () => {\r\n    pm.expect(isNaN(Number(resumen.cantidad_movimientos)),\r\n        `cantidad_movimientos (${resumen.cantidad_movimientos}) debe ser numérico`\r\n    ).to.be.false;\r\n    pm.expect(isNaN(parseFloat(resumen.total)),\r\n        `total (${resumen.total}) debe ser numérico`\r\n    ).to.be.false;\r\n});\r\n\r\n// ------------------------------------------------------------\r\n// AC-G9-02b — cantidad_movimientos == COUNT(*) en DB\r\n// ------------------------------------------------------------\r\npm.test('AC-G9-02b: cantidad_movimientos coincide con COUNT(*) en DB', function (done) {\r\n    querySandbox(\r\n        `SELECT COUNT(*) AS total FROM movimientos WHERE usuario_id = $1`,\r\n        [usuarioId],\r\n        (err, rows) => {\r\n            if (err) { done(err); return; }\r\n            const totalDB = Number(rows[0].total);\r\n\r\n            pm.expect(Number(resumen.cantidad_movimientos),\r\n                `response=${resumen.cantidad_movimientos} vs DB=${totalDB}`\r\n            ).to.eql(totalDB);\r\n\r\n            pm.expect(totalDB).to.eql(esperadoCantidad,\r\n                `DB=${totalDB} vs capturado en pre-request=${esperadoCantidad}`\r\n            );\r\n            done();\r\n        }\r\n    );\r\n});\r\n\r\n// ------------------------------------------------------------\r\n// AC-G9-02c — total == SUM(monto) en DB\r\n// ------------------------------------------------------------\r\npm.test('AC-G9-02c: total coincide con SUM(monto) en DB', function (done) {\r\n    querySandbox(\r\n        `SELECT COALESCE(SUM(monto), 0) AS total\r\n         FROM movimientos\r\n         WHERE usuario_id = $1`,\r\n        [usuarioId],\r\n        (err, rows) => {\r\n            if (err) { done(err); return; }\r\n            const totalDB = parseFloat(rows[0].total);\r\n\r\n            pm.expect(parseFloat(resumen.total),\r\n                `response=${resumen.total} vs DB=${totalDB}`\r\n            ).to.eql(totalDB);\r\n\r\n            pm.expect(totalDB).to.eql(esperadoTotal,\r\n                `DB=${totalDB} vs capturado=${esperadoTotal}`\r\n            );\r\n            done();\r\n        }\r\n    );\r\n});\r\n\r\n// ------------------------------------------------------------\r\n// AC-G9-02d — primero y ultimo == MIN/MAX(created_at) en DB\r\n// ------------------------------------------------------------\r\npm.test('AC-G9-02d: primero coincide con MIN(created_at) en DB', function (done) {\r\n    querySandbox(\r\n        `SELECT MIN(created_at) AS primero, MAX(created_at) AS ultimo\r\n         FROM movimientos\r\n         WHERE usuario_id = $1`,\r\n        [usuarioId],\r\n        (err, rows) => {\r\n            if (err) { done(err); return; }\r\n\r\n            const minDB = rows[0].primero;\r\n            const maxDB = rows[0].ultimo;\r\n\r\n            // Comparar como timestamps (evita problemas de formato/ms)\r\n            pm.expect(\r\n                new Date(resumen.primero).getTime(),\r\n                `primero response=${resumen.primero} vs DB=${minDB}`\r\n            ).to.eql(new Date(minDB).getTime());\r\n\r\n            pm.expect(\r\n                new Date(resumen.ultimo).getTime(),\r\n                `ultimo response=${resumen.ultimo} vs DB=${maxDB}`\r\n            ).to.eql(new Date(maxDB).getTime());\r\n\r\n            done();\r\n        }\r\n    );\r\n});\r\n\r\n// ------------------------------------------------------------\r\n// AC-G9-02e — El filtro por usuarioId es respetado\r\n// Verificación cruzada: el conteo debe ser MENOR que el total global\r\n// (si el endpoint ignorara el filtro, devolvería el mismo número para todos)\r\n// ------------------------------------------------------------\r\npm.test('AC-G9-02e: cantidad_movimientos es específica del usuario (no global)', function (done) {\r\n    querySandbox(\r\n        `SELECT COUNT(*) AS total_global FROM movimientos`,\r\n        [],\r\n        (err, rows) => {\r\n            if (err) { done(err); return; }\r\n            const totalGlobal = Number(rows[0].total_global);\r\n            const cantidadResp = Number(resumen.cantidad_movimientos);\r\n\r\n            pm.expect(cantidadResp,\r\n                `cantidad response=${cantidadResp} debe ser ≤ total global=${totalGlobal}`\r\n            ).to.be.at.most(totalGlobal);\r\n\r\n            // Si hay más de un usuario con movimientos, la cantidad del usuario\r\n            // debe ser estrictamente menor al total global.\r\n            querySandbox(\r\n                `SELECT COUNT(DISTINCT usuario_id) AS usuarios FROM movimientos`,\r\n                [],\r\n                (err2, rows2) => {\r\n                    if (err2) { done(err2); return; }\r\n                    const usuariosDistintos = Number(rows2[0].usuarios);\r\n\r\n                    if (usuariosDistintos > 1) {\r\n                        pm.expect(cantidadResp,\r\n                            `Si hay ${usuariosDistintos} usuarios, la cantidad del usuario debe ser < total global (${totalGlobal})`\r\n                        ).to.be.below(totalGlobal);\r\n                    }\r\n                    done();\r\n                }\r\n            );\r\n        }\r\n    );\r\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "sbx_demo_f581ca21e68a347288c94d71"
+          }
+        ],
+        "url": {
+          "raw": "https://aiquaa-sandbox-api.vercel.app/api/v1/reportes/resumen?usuarioId={{g9_usuario_id}}",
+          "protocol": "https",
+          "host": [
+            "aiquaa-sandbox-api",
+            "vercel",
+            "app"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "reportes",
+            "resumen"
+          ],
+          "query": [
+            {
+              "key": "usuarioId",
+              "value": "{{g9_usuario_id}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "RF-G9-03 — Listado de movimientos del usuario",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// ============================================================\r\n// PRE-REQUEST — RF-G9-03 Listado de movimientos\r\n// Objetivo: obtener un usuarioId real y sus valores esperados desde la DB\r\n// ============================================================\r\n\r\nconst sqlBaseUrl = pm.collectionVariables.get('sqlSandboxBaseUrl');\r\nconst sqlApiKey  = pm.collectionVariables.get('sqlSandboxApiKey');\r\n\r\nfunction querySandbox(sql, params, callback) {\r\n    pm.sendRequest({\r\n        url: `${sqlBaseUrl}/api/v1/sql/select`,\r\n        method: 'POST',\r\n        header: {\r\n            'Content-Type': 'application/json',\r\n            'x-api-key': sqlApiKey\r\n        },\r\n        body: {\r\n            mode: 'raw',\r\n            raw: JSON.stringify({ sql, params: params || [] })\r\n        }\r\n    }, (err, res) => {\r\n        if (err) return callback(err, null);\r\n        if (res.code !== 200) {\r\n            return callback(new Error(`SQL ${res.code}: ${JSON.stringify(res.json())}`), null);\r\n        }\r\n        callback(null, res.json().data || []);\r\n    });\r\n}\r\n\r\n// ------------------------------------------------------------\r\n// PASO 1: elegir un usuarioId que tenga movimientos reales\r\n// ------------------------------------------------------------\r\nquerySandbox(\r\n    `SELECT usuario_id, COUNT(*) AS total_movs\r\n     FROM movimientos\r\n     GROUP BY usuario_id\r\n     ORDER BY total_movs DESC\r\n     LIMIT 1`,\r\n    [],\r\n    (err, rows) => {\r\n        if (err) {\r\n            console.error('❌ Pre-request paso 1 falló:', err.message);\r\n            pm.execution.skipRequest();\r\n            return;\r\n        }\r\n        if (!rows.length) {\r\n            console.warn('⚠️ No hay movimientos en qa_training');\r\n            pm.execution.skipRequest();\r\n            return;\r\n        }\r\n\r\n        const usuarioId = rows[0].usuario_id;\r\n        pm.collectionVariables.set('g9_usuario_id', usuarioId);\r\n        pm.collectionVariables.set('g9_movs_count', Number(rows[0].total_movs));\r\n        console.log(`✅ usuarioId capturado: ${usuarioId} (${rows[0].total_movs} movimientos)`);\r\n\r\n        // ------------------------------------------------------------\r\n        // PASO 2: capturar el listado real desde la DB para comparar después\r\n        // Guardamos solo los IDs y un hash de campos clave para validar 1:1\r\n        // ------------------------------------------------------------\r\n        querySandbox(\r\n            `SELECT id, usuario_id, tipo_movimiento, monto, created_at\r\n             FROM movimientos\r\n             WHERE usuario_id = $1\r\n             ORDER BY id`,\r\n            [usuarioId],\r\n            (err2, rows2) => {\r\n                if (err2) {\r\n                    console.error('❌ Pre-request paso 2 falló:', err2.message);\r\n                    pm.execution.skipRequest();\r\n                    return;\r\n                }\r\n\r\n                const idsDB = rows2.map(r => Number(r.id));\r\n                pm.collectionVariables.set('g9_movs_ids_db', JSON.stringify(idsDB));\r\n\r\n                // Snapshot para comparar 1:1 por id (clave: id → {tipo, monto})\r\n                const snapshot = {};\r\n                rows2.forEach(r => {\r\n                    snapshot[String(r.id)] = {\r\n                        usuario_id: Number(r.usuario_id),\r\n                        tipo_movimiento: r.tipo_movimiento,\r\n                        monto: parseFloat(r.monto)\r\n                    };\r\n                });\r\n                pm.collectionVariables.set('g9_movs_snapshot_db', JSON.stringify(snapshot));\r\n\r\n                console.log(`✅ Snapshot DB capturado: ${rows2.length} movimientos`);\r\n            }\r\n        );\r\n    }\r\n);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// ============================================================\r\n// POST-REQUEST — RF-G9-03 Listado de movimientos\r\n// Valida AC-G9-03a/b/c/d/e cruzando datos con la DB\r\n// ============================================================\r\n\r\nconst sqlBaseUrl = pm.collectionVariables.get('sqlSandboxBaseUrl');\r\nconst sqlApiKey  = pm.collectionVariables.get('sqlSandboxApiKey');\r\nconst usuarioId  = pm.collectionVariables.get('g9_usuario_id');\r\n\r\nconst movsCountEsperado = Number(pm.collectionVariables.get('g9_movs_count'));\r\nconst idsDB             = JSON.parse(pm.collectionVariables.get('g9_movs_ids_db') || '[]');\r\nconst snapshotDB        = JSON.parse(pm.collectionVariables.get('g9_movs_snapshot_db') || '{}');\r\n\r\nfunction querySandbox(sql, params, callback) {\r\n    pm.sendRequest({\r\n        url: `${sqlBaseUrl}/api/v1/sql/select`,\r\n        method: 'POST',\r\n        header: { 'Content-Type': 'application/json', 'x-api-key': sqlApiKey },\r\n        body: {\r\n            mode: 'raw',\r\n            raw: JSON.stringify({ sql, params: params || [] })\r\n        }\r\n    }, (err, res) => {\r\n        if (err) return callback(err, null);\r\n        if (res.code !== 200) return callback(new Error(`SQL ${res.code}`), null);\r\n        callback(null, res.json().data || []);\r\n    });\r\n}\r\n\r\n// ------------------------------------------------------------\r\n// AC-G9-03a — Status 200 y shape correcto\r\n// ------------------------------------------------------------\r\npm.test('AC-G9-03a: Status 200', () => {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\nconst jsonData = pm.response.json();\r\nconst movimientos = jsonData.data || [];\r\n\r\npm.test('AC-G9-03a: data es un array', () => {\r\n    pm.expect(jsonData.data, 'data debe ser un array').to.be.an('array');\r\n});\r\n\r\npm.test('AC-G9-03a: Cada item tiene todos los campos esperados', () => {\r\n    movimientos.forEach((item, i) => {\r\n        ['id', 'usuario_id', 'tipo_movimiento', 'monto',\r\n         'referencia_id', 'descripcion', 'created_at'].forEach(campo => {\r\n            pm.expect(item, `item[${i}]`).to.have.property(campo);\r\n        });\r\n    });\r\n});\r\n\r\npm.test('AC-G9-03a: Los campos numéricos son parseables', () => {\r\n    movimientos.forEach((item, i) => {\r\n        pm.expect(isNaN(Number(item.id)),\r\n            `id[${i}]=\"${item.id}\" debe ser numérico`).to.be.false;\r\n        pm.expect(isNaN(Number(item.usuario_id)),\r\n            `usuario_id[${i}]=\"${item.usuario_id}\" debe ser numérico`).to.be.false;\r\n        pm.expect(isNaN(parseFloat(item.monto)),\r\n            `monto[${i}]=\"${item.monto}\" debe ser numérico`).to.be.false;\r\n    });\r\n});\r\n\r\n// ------------------------------------------------------------\r\n// AC-G9-03b — Cantidad de items == COUNT(*) en DB\r\n// ------------------------------------------------------------\r\npm.test('AC-G9-03b: Cantidad de items coincide con COUNT(*) en DB', function (done) {\r\n    querySandbox(\r\n        `SELECT COUNT(*) AS total FROM movimientos WHERE usuario_id = $1`,\r\n        [usuarioId],\r\n        (err, rows) => {\r\n            if (err) { done(err); return; }\r\n            const totalDB = Number(rows[0].total);\r\n\r\n            pm.expect(movimientos.length,\r\n                `items=${movimientos.length} vs DB=${totalDB}`\r\n            ).to.eql(totalDB);\r\n\r\n            pm.expect(totalDB).to.eql(movsCountEsperado,\r\n                `DB=${totalDB} vs capturado=${movsCountEsperado}`\r\n            );\r\n            done();\r\n        }\r\n    );\r\n});\r\n\r\n// ------------------------------------------------------------\r\n// AC-G9-03c — Cada id devuelto existe en DB y pertenece al usuario\r\n// ------------------------------------------------------------\r\npm.test('AC-G9-03c: Los ids devueltos coinciden con los de la DB', () => {\r\n    const idsResponse = movimientos.map(m => Number(m.id)).sort((a, b) => a - b);\r\n    const idsOrdenados = [...idsDB].sort((a, b) => a - b);\r\n\r\n    pm.expect(idsResponse,\r\n        `ids response=${JSON.stringify(idsResponse)} vs DB=${JSON.stringify(idsOrdenados)}`\r\n    ).to.eql(idsOrdenados);\r\n});\r\n\r\npm.test('AC-G9-03c: Todos los items pertenecen al usuarioId solicitado', () => {\r\n    movimientos.forEach((item, i) => {\r\n        pm.expect(Number(item.usuario_id),\r\n            `item[${i}] usuario_id debe ser ${usuarioId}`\r\n        ).to.eql(Number(usuarioId));\r\n    });\r\n});\r\n\r\n// ------------------------------------------------------------\r\n// AC-G9-03d — Campos clave coinciden con la DB (1:1 por id)\r\n// ------------------------------------------------------------\r\npm.test('AC-G9-03d: tipo_movimiento y monto coinciden con la DB para cada id', () => {\r\n    movimientos.forEach(item => {\r\n        const db = snapshotDB[String(item.id)];\r\n        pm.expect(db, `id ${item.id} debe existir en el snapshot DB`).to.exist;\r\n\r\n        pm.expect(item.tipo_movimiento,\r\n            `tipo_movimiento del id ${item.id}`\r\n        ).to.eql(db.tipo_movimiento);\r\n\r\n        pm.expect(parseFloat(item.monto),\r\n            `monto del id ${item.id}`\r\n        ).to.eql(db.monto);\r\n\r\n        pm.expect(Number(item.usuario_id),\r\n            `usuario_id del id ${item.id}`\r\n        ).to.eql(db.usuario_id);\r\n    });\r\n});\r\n\r\n// ------------------------------------------------------------\r\n// AC-G9-03e — Filtro por usuarioId respetado (verificación cruzada)\r\n// Si el endpoint ignorara el filtro, traería movimientos de otros usuarios\r\n// ------------------------------------------------------------\r\npm.test('AC-G9-03e: No hay movimientos de otros usuarios', function (done) {\r\n    querySandbox(\r\n        `SELECT COUNT(*) AS total FROM movimientos WHERE usuario_id <> $1`,\r\n        [usuarioId],\r\n        (err, rows) => {\r\n            if (err) { done(err); return; }\r\n            const otrosUsuarios = Number(rows[0].total);\r\n\r\n            // Si hay movimientos de otros usuarios, el response NO debe traerlos\r\n            if (otrosUsuarios > 0) {\r\n                const idsAjenos = movimientos.filter(\r\n                    m => Number(m.usuario_id) !== Number(usuarioId)\r\n                ).map(m => m.id);\r\n\r\n                pm.expect(idsAjenos,\r\n                    `No debe haber movimientos ajenos, pero se encontraron ids: ${JSON.stringify(idsAjenos)}`\r\n                ).to.eql([]);\r\n            }\r\n            done();\r\n        }\r\n    );\r\n});\r\n\r\n// ------------------------------------------------------------\r\n// BR-G9-03d — Usuario sin movimientos → 200 con array vacío\r\n// (comentado: requiere un usuarioId \"vacío\" específico)\r\n// ------------------------------------------------------------\r\n// console.log('ℹ️ BR-G9-03d se cubre en el request RF-G9-03-vacio');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "sbx_demo_f581ca21e68a347288c94d71"
+          }
+        ],
+        "url": {
+          "raw": "https://aiquaa-sandbox-api.vercel.app/api/v1/movimientos?usuarioId={{g9_usuario_id}}",
+          "protocol": "https",
+          "host": [
+            "aiquaa-sandbox-api",
+            "vercel",
+            "app"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "movimientos"
+          ],
+          "query": [
+            {
+              "key": "usuarioId",
+              "value": "{{g9_usuario_id}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "RF-G9-04 — Crear movimiento del usuario",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// ============================================================\r\n// PRE-REQUEST — RF-G9-04 Crear movimiento\r\n// Objetivo: obtener un usuarioId real y contar movimientos antes del POST\r\n// ============================================================\r\n\r\nconst sqlBaseUrl = pm.collectionVariables.get('sqlSandboxBaseUrl');\r\nconst sqlApiKey  = pm.collectionVariables.get('sqlSandboxApiKey');\r\n\r\nfunction querySandbox(sql, params, callback) {\r\n    pm.sendRequest({\r\n        url: `${sqlBaseUrl}/api/v1/sql/select`,\r\n        method: 'POST',\r\n        header: {\r\n            'Content-Type': 'application/json',\r\n            'x-api-key': sqlApiKey\r\n        },\r\n        body: {\r\n            mode: 'raw',\r\n            raw: JSON.stringify({ sql, params: params || [] })\r\n        }\r\n    }, (err, res) => {\r\n        if (err) return callback(err, null);\r\n        if (res.code !== 200) {\r\n            return callback(new Error(`SQL ${res.code}: ${JSON.stringify(res.json())}`), null);\r\n        }\r\n        callback(null, res.json().data || []);\r\n    });\r\n}\r\n\r\n// ------------------------------------------------------------\r\n// PASO 1: elegir un usuarioId real que exista en qa_training\r\n// ------------------------------------------------------------\r\nquerySandbox(\r\n    `SELECT id\r\n     FROM usuarios\r\n     ORDER BY id\r\n     LIMIT 1`,\r\n    [],\r\n    (err, rows) => {\r\n        if (err) {\r\n            console.error('❌ Pre-request paso 1 falló:', err.message);\r\n            pm.execution.skipRequest();\r\n            return;\r\n        }\r\n        if (!rows.length) {\r\n            console.warn('⚠️ No hay usuarios en qa_training');\r\n            pm.execution.skipRequest();\r\n            return;\r\n        }\r\n\r\n        const usuarioId = rows[0].id;\r\n        pm.collectionVariables.set('g9_usuario_id', usuarioId);\r\n        console.log(`✅ usuarioId capturado: ${usuarioId}`);\r\n\r\n        // ------------------------------------------------------------\r\n        // PASO 2: contar movimientos ANTES del POST (baseline)\r\n        // ------------------------------------------------------------\r\n        querySandbox(\r\n            `SELECT COUNT(*) AS total FROM movimientos WHERE usuario_id = $1`,\r\n            [usuarioId],\r\n            (err2, rows2) => {\r\n                if (err2) {\r\n                    console.error('❌ Pre-request paso 2 falló:', err2.message);\r\n                    pm.execution.skipRequest();\r\n                    return;\r\n                }\r\n                const countAntes = Number(rows2[0].total);\r\n                pm.collectionVariables.set('g9_movs_antes', countAntes);\r\n                console.log(`✅ Movimientos ANTES: ${countAntes}`);\r\n\r\n                // ------------------------------------------------------------\r\n                // PASO 3: generar datos únicos para el nuevo movimiento\r\n                // (evita colisiones si se corre el test múltiples veces)\r\n                // ------------------------------------------------------------\r\n                const timestamp = Date.now();\r\n                const monto = Number((Math.random() * 100 + 1).toFixed(2));\r\n                const tiposValidos = ['transferencia', 'pago_factura', 'compra_ecommerce', 'cargo_tarjeta'];\r\n                const tipoMovimiento = tiposValidos[timestamp % tiposValidos.length];\r\n                const descripcion = `test-auto-${timestamp}`;\r\n\r\n                pm.collectionVariables.set('g9_nuevo_monto', monto);\r\n                pm.collectionVariables.set('g9_nuevo_tipo', tipoMovimiento);\r\n                pm.collectionVariables.set('g9_nueva_descripcion', descripcion);\r\n                pm.collectionVariables.set('g9_nuevo_referencia', Math.floor(Math.random() * 1000) + 1);\r\n\r\n                console.log('✅ Datos del nuevo movimiento:', {\r\n                    usuarioId,\r\n                    tipoMovimiento,\r\n                    monto,\r\n                    descripcion\r\n                });\r\n            }\r\n        );\r\n    }\r\n);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// ============================================================\r\n// POST-REQUEST — RF-G9-04 Crear movimiento\r\n// Valida AC-G9-04a/b/c/d/e + BR-G9-04e cruzando datos con la DB\r\n// ============================================================\r\n\r\nconst sqlBaseUrl = pm.collectionVariables.get('sqlSandboxBaseUrl');\r\nconst sqlApiKey  = pm.collectionVariables.get('sqlSandboxApiKey');\r\nconst usuarioId  = pm.collectionVariables.get('g9_usuario_id');\r\n\r\nconst montoEsperado  = parseFloat(pm.collectionVariables.get('g9_nuevo_monto'));\r\nconst tipoEsperado   = pm.collectionVariables.get('g9_nuevo_tipo');\r\nconst descEsperada   = pm.collectionVariables.get('g9_nueva_descripcion');\r\nconst refEsperada    = Number(pm.collectionVariables.get('g9_nuevo_referencia'));\r\nconst movsAntes      = Number(pm.collectionVariables.get('g9_movs_antes'));\r\n\r\nfunction querySandbox(sql, params, callback) {\r\n    pm.sendRequest({\r\n        url: `${sqlBaseUrl}/api/v1/sql/select`,\r\n        method: 'POST',\r\n        header: { 'Content-Type': 'application/json', 'x-api-key': sqlApiKey },\r\n        body: {\r\n            mode: 'raw',\r\n            raw: JSON.stringify({ sql, params: params || [] })\r\n        }\r\n    }, (err, res) => {\r\n        if (err) return callback(err, null);\r\n        if (res.code !== 200) return callback(new Error(`SQL ${res.code}`), null);\r\n        callback(null, res.json().data || []);\r\n    });\r\n}\r\n\r\n// ------------------------------------------------------------\r\n// AC-G9-04a — Status 201 y shape correcto\r\n// ------------------------------------------------------------\r\npm.test('AC-G9-04a: Status 201', () => {\r\n    pm.response.to.have.status(201);\r\n});\r\n\r\nconst jsonData = pm.response.json();\r\nconst creado = jsonData.data || {};\r\n\r\npm.test('AC-G9-04a: data tiene todos los campos esperados', () => {\r\n    pm.expect(creado, 'data debe existir').to.be.an('object');\r\n    ['id', 'usuario_id', 'tipo_movimiento', 'monto',\r\n     'referencia_id', 'descripcion', 'created_at'].forEach(campo => {\r\n        pm.expect(creado, `data.${campo}`).to.have.property(campo);\r\n    });\r\n});\r\n\r\npm.test('AC-G9-04a: id es numérico positivo', () => {\r\n    const idNum = Number(creado.id);\r\n    pm.expect(isNaN(idNum), `id=\"${creado.id}\" debe ser numérico`).to.be.false;\r\n    pm.expect(idNum).to.be.above(0);\r\n});\r\n\r\n// Guardar el id creado para los requests siguientes (GET/PUT/DELETE)\r\npm.collectionVariables.set('g9_movimiento_id', creado.id);\r\nconsole.log(`✅ ID del movimiento creado: ${creado.id}`);\r\n\r\n// ------------------------------------------------------------\r\n// AC-G9-04d — created_at válido y cercano a \"ahora\"\r\n// ------------------------------------------------------------\r\npm.test('AC-G9-04d: created_at es fecha válida y reciente', () => {\r\n    const createdDate = new Date(creado.created_at);\r\n    pm.expect(isNaN(createdDate.getTime()),\r\n        `created_at=\"${creado.created_at}\" debe ser fecha válida`\r\n    ).to.be.false;\r\n\r\n    const ahora = Date.now();\r\n    const diff = Math.abs(ahora - createdDate.getTime());\r\n    pm.expect(diff,\r\n        `Diferencia con \"ahora\" = ${diff}ms, debe ser ≤ 5000ms`\r\n    ).to.be.at.most(5000);\r\n});\r\n\r\n// ------------------------------------------------------------\r\n// AC-G9-04b/c — El movimiento existe en DB con los campos correctos\r\n// ------------------------------------------------------------\r\npm.test('AC-G9-04b/c: El movimiento existe en DB con los campos enviados', function (done) {\r\n    querySandbox(\r\n        `SELECT id, usuario_id, tipo_movimiento, monto, referencia_id, descripcion\r\n         FROM movimientos\r\n         WHERE id = $1`,\r\n        [creado.id],\r\n        (err, rows) => {\r\n            if (err) { done(err); return; }\r\n\r\n            pm.expect(rows.length, `Debe existir 1 fila con id=${creado.id}`).to.eql(1);\r\n            const db = rows[0];\r\n\r\n            pm.expect(Number(db.usuario_id),\r\n                `usuario_id DB=${db.usuario_id} vs enviado=${usuarioId}`\r\n            ).to.eql(Number(usuarioId));\r\n\r\n            pm.expect(db.tipo_movimiento,\r\n                `tipo_movimiento DB=${db.tipo_movimiento} vs enviado=${tipoEsperado}`\r\n            ).to.eql(tipoEsperado);\r\n\r\n            pm.expect(parseFloat(db.monto),\r\n                `monto DB=${db.monto} vs enviado=${montoEsperado}`\r\n            ).to.be.closeTo(montoEsperado, 0.01);\r\n\r\n            pm.expect(Number(db.referencia_id),\r\n                `referencia_id DB=${db.referencia_id} vs enviado=${refEsperada}`\r\n            ).to.eql(refEsperada);\r\n\r\n            pm.expect(db.descripcion,\r\n                `descripcion DB=${db.descripcion} vs enviada=${descEsperada}`\r\n            ).to.eql(descEsperada);\r\n\r\n            done();\r\n        }\r\n    );\r\n});\r\n\r\n// ------------------------------------------------------------\r\n// AC-G9-04e — COUNT(*) se incrementó en 1\r\n// ------------------------------------------------------------\r\npm.test('AC-G9-04e: El COUNT(*) aumentó exactamente en 1', function (done) {\r\n    querySandbox(\r\n        `SELECT COUNT(*) AS total FROM movimientos WHERE usuario_id = $1`,\r\n        [usuarioId],\r\n        (err, rows) => {\r\n            if (err) { done(err); return; }\r\n            const countDespues = Number(rows[0].total);\r\n            const diff = countDespues - movsAntes;\r\n\r\n            pm.expect(diff,\r\n                `COUNT antes=${movsAntes}, después=${countDespues}, diff=${diff} (esperado 1)`\r\n            ).to.eql(1);\r\n\r\n            console.log(`✅ COUNT incrementó: ${movsAntes} → ${countDespues}`);\r\n            done();\r\n        }\r\n    );\r\n});\r\n\r\n// ------------------------------------------------------------\r\n// BR-G9-04e — Comportamiento con campos opcionales (referencia_id)\r\n// Verificación: si se envió referencia_id, debe persistir\r\n// ------------------------------------------------------------\r\npm.test('BR-G9-04e: referencia_id persiste si se envía', () => {\r\n    pm.expect(Number(creado.referencia_id),\r\n        `referencia_id=${creado.referencia_id} debe coincidir con enviado=${refEsperada}`\r\n    ).to.eql(refEsperada);\r\n});\r\n\r\nconsole.log('ℹ️ Los demás BR (04a-b-c-d-f-g) se cubren con requests negativos');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "sbx_demo_f581ca21e68a347288c94d71"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuarioId\": 1,\n  \"tipoMovimiento\": \"transferencia\",\n  \"monto\": 9999,\n  \"referenciaId\": 1,\n  \"descripcion\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://aiquaa-sandbox-api.vercel.app/api/v1/movimientos",
+          "protocol": "https",
+          "host": [
+            "aiquaa-sandbox-api",
+            "vercel",
+            "app"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "movimientos"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
