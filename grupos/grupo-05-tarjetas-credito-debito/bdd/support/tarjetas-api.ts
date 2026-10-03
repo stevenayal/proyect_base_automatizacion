@@ -13,6 +13,19 @@ export interface RespuestaApi {
 /** Columnas de `tarjetas` que los escenarios pueden verificar en la base. */
 const COLUMNAS_VERIFICABLES = new Set(['estado', 'marca', 'tipo']);
 
+/**
+ * Separación mínima entre llamadas a la API, compartida por todo el proceso.
+ * 2,5 s deja la suite en ~24 peticiones/minuto, bajo el techo de 30.
+ */
+const INTERVALO_MINIMO_MS = Number(process.env.API_MIN_INTERVAL_MS ?? 2500);
+let ultimaLlamada = 0;
+
+async function espaciar(): Promise<void> {
+  const espera = ultimaLlamada + INTERVALO_MINIMO_MS - Date.now();
+  if (espera > 0) await new Promise((r) => setTimeout(r, espera));
+  ultimaLlamada = Date.now();
+}
+
 export class TarjetasApi {
   constructor(private readonly request: APIRequestContext) {}
 
@@ -51,14 +64,18 @@ export class TarjetasApi {
   }
 
   /**
-   * Ejecuta la petición reintentando ante 429: el sandbox limita a 30
-   * peticiones por minuto por api-key y una suite completa roza ese techo.
+   * Ejecuta la petición respetando el rate limit del sandbox (30 peticiones
+   * por minuto por api-key, compartido con la web y con otros grupos que usen
+   * la key demo). Espacia las llamadas y, ante 429, reintenta hasta cubrir la
+   * ventana completa de 60 s: en CI el runner es rápido y la suite la agota.
    */
   private async enviar(peticion: () => Promise<APIResponse>): Promise<RespuestaApi> {
     const esperaMs = Number(process.env.RATE_LIMIT_WAIT_MS ?? 20000);
+    await espaciar();
     let respuesta = await peticion();
-    for (let intento = 0; respuesta.status() === 429 && intento < 2; intento++) {
+    for (let intento = 0; respuesta.status() === 429 && intento < 4; intento++) {
       await new Promise((r) => setTimeout(r, esperaMs));
+      await espaciar();
       respuesta = await peticion();
     }
     const texto = await respuesta.text();

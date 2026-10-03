@@ -6,8 +6,9 @@ import { Before, After, Status, setDefaultTimeout, ITestCaseHookParameter } from
 import { Grupo05World } from './world';
 
 // El sandbox es una app Next.js desplegada en Vercel: el arranque en frío y la
-// hidratación superan con holgura los 5 s por defecto de Cucumber.
-setDefaultTimeout(Number(process.env.STEP_TIMEOUT_MS ?? 75000));
+// hidratación, más las esperas por rate limit (hasta ~90 s), superan con
+// holgura los 5 s por defecto de Cucumber.
+setDefaultTimeout(Number(process.env.STEP_TIMEOUT_MS ?? 150000));
 
 const EVIDENCE_DIR = process.env.EVIDENCE_DIR
   || 'grupos/grupo-05-tarjetas-credito-debito/evidence/semana-06';

@@ -1,6 +1,7 @@
 import { test, expect, request } from '@playwright/test';
 import { LoginPage } from '../../playwright/pages/LoginPage';
 import { TarjetasPage } from '../../playwright/pages/TarjetasPage';
+import { TarjetasApi } from '../../bdd/support/tarjetas-api';
 
 /**
  * Smoke UI del módulo Tarjetas (Grupo 05).
@@ -21,19 +22,22 @@ const EMAIL_CLIENTE = process.env.SANDBOX_EMAIL_CLIENTE || 'bruno.ramirez@exampl
 test.describe('Grupo 05 — Tarjetas de Crédito/Débito', () => {
   test.skip(!API_KEY, 'requiere SANDBOX_API_KEY en .env');
 
+  // Las esperas por rate limit del sandbox (hasta ~90 s) no entran en los 30 s
+  // por defecto del repo.
+  test.describe.configure({ timeout: 180_000 });
+
   let tarjetaId: string;
 
   test.beforeAll(async () => {
-    const api = await request.newContext({
+    const contexto = await request.newContext({
       baseURL: API_URL,
       extraHTTPHeaders: { 'x-api-key': API_KEY },
     });
-    const respuesta = await api.post('/api/v1/tarjetas', {
-      data: { usuarioId: Number(USUARIO_ID), tipo: 'credito', marca: 'visa' },
-    });
-    expect(respuesta.status(), 'no se pudo sembrar la tarjeta de prueba').toBe(201);
-    tarjetaId = (await respuesta.json()).data.id;
-    await api.dispose();
+    // TarjetasApi espacia las llamadas y reintenta ante 429, igual que el BDD.
+    const alta = await new TarjetasApi(contexto).crear(Number(USUARIO_ID), 'credito', 'visa');
+    expect(alta.status, `no se pudo sembrar la tarjeta de prueba: ${JSON.stringify(alta.body)}`).toBe(201);
+    tarjetaId = String(alta.body.data.id);
+    await contexto.dispose();
   });
 
   test('el cliente consulta su tarjeta en el listado y abre su detalle', async ({ page }) => {

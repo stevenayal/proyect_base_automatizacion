@@ -31,14 +31,18 @@ export class BasePage {
    */
   async esperarSinRateLimit(reaplicarFiltros?: () => Promise<void>): Promise<void> {
     const espera = Number(process.env.RATE_LIMIT_WAIT_MS ?? 20000);
-    for (let intento = 0; intento < 3; intento++) {
+    // 4 reintentos de 20 s cubren la ventana completa de 60 s del rate limit.
+    for (let intento = 0; intento < 4; intento++) {
+      // La pantalla carga los datos después de hidratar: se espera a que la red
+      // se calme antes de decidir si el sandbox respondió con rate limit.
+      await this.page.waitForLoadState('networkidle').catch(() => undefined);
       const contenido = await this.page.locator('body').innerText();
       if (!contenido.includes('Rate limit exceeded')) return;
       await this.page.waitForTimeout(espera);
       await this.page.reload();
       await reaplicarFiltros?.();
     }
-    throw new Error('El sandbox sigue respondiendo "Rate limit exceeded" tras 3 intentos');
+    throw new Error('El sandbox sigue respondiendo "Rate limit exceeded" tras 4 intentos');
   }
 
   /** Espera a que la red esté inactiva (útil tras navegación). */

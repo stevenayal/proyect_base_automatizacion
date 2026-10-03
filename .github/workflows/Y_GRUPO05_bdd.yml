@@ -45,7 +45,7 @@ env:
   SANDBOX_EMAIL_CLIENTE: bruno.ramirez@example.com
   BDD_DIR: grupos/grupo-05-tarjetas-credito-debito/bdd
   EVIDENCE_DIR: grupos/grupo-05-tarjetas-credito-debito/evidence/semana-06
-  STEP_TIMEOUT_MS: "75000"
+  STEP_TIMEOUT_MS: "150000"
   RATE_LIMIT_WAIT_MS: "20000"
 
 jobs:
@@ -110,6 +110,14 @@ jobs:
           --grupo "Grupo 05 - Tarjetas de Credito/Debito"
           --author "${{ github.triggering_actor }}"
           --repo-url "${{ github.server_url }}/${{ github.repository }}"
+
+      # Cucumber acaba de consumir la ventana del rate limit: sin esta espera el
+      # alta de la tarjeta del smoke recibe 429.
+      - name: Esperar cupo antes del smoke
+        if: always()
+        run: >
+          bash grupos/grupo-05-tarjetas-credito-debito/scripts/esperar-cupo-api.sh
+          "${SANDBOX_API_KEY}" "${API_URL}"
 
       # Sin --reporter: la config del repo escribe results/playwright-results.json,
       # que es lo que lee el generador de PDF.
