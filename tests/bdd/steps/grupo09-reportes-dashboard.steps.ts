@@ -4,7 +4,7 @@ import { expect } from '@playwright/test';
 // El login (navegar + detectar pantalla de curso + completar email) puede
 // tardar mas que el timeout por defecto de Cucumber (5s), especialmente en
 // la primera carga de la SPA. Lo subimos a 20s para este set de steps.
-setDefaultTimeout(45 * 1000);
+setDefaultTimeout(90 * 1000);
 import { SandboxCoursePage } from '../../../grupos/grupo-09-reportes-dashboard/playwright/pages/SandboxCoursePage';
 import { SandboxLoginPage } from '../../../grupos/grupo-09-reportes-dashboard/playwright/pages/SandboxLoginPage';
 import { ReportesPage } from '../../../grupos/grupo-09-reportes-dashboard/playwright/pages/ReportesPage';
@@ -55,7 +55,7 @@ function sleep(ms: number): Promise<void> {
  */
 async function requestWithRetry(
   doRequest: () => Promise<any>,
-  maxAttempts: number = 4,
+  maxAttempts: number = 6,
 ): Promise<any> {
   let lastResponse: any;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -63,7 +63,7 @@ async function requestWithRetry(
     if (lastResponse.status() !== 429) {
       return lastResponse;
     }
-    const waitMs = attempt * 2000; // 2s, 4s, 6s...
+    const waitMs = Math.min(attempt * 3000, 15000); // 3s, 6s, 9s, 12s, 15s, 15s
     await sleep(waitMs);
   }
   return lastResponse;
