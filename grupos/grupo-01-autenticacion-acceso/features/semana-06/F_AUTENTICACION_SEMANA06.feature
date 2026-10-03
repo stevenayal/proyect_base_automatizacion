@@ -2,22 +2,22 @@
 Feature: Autenticacion y Acceso - Semana 06
   Como estudiante del curso de Automatizacion QA
   Quiero validar el formulario de login del sandbox AIQUAA
-  Para asegurar que la autenticacion maneja correctamente errores y validaciones
+  Para asegurar que la autenticacion permite el acceso valido y maneja errores y validaciones
 
   Background:
     Given el navegador esta abierto en el sandbox AIQUAA
 
-  # ── Email valido con backend caido ─────────────────────────────────────────
+  # ── Email valido de usuario activo ─────────────────────────────────────────
 
-  @AUT-01 @negativo
-  Scenario: Login fallido con email valido cuando el backend responde error
+  @AUT-01 @positivo @smoke
+  Scenario: Login exitoso con email de usuario activo
     Given el usuario navega a la pagina de seleccion de curso
     When selecciona el curso "Automatizacion"
     And presiona el boton Continuar
     And ingresa el email "ana.torres@example.com"
     And presiona el boton Ingresar
-    Then el sistema debe mostrar un mensaje de error
-    And el usuario permanece en la pagina de login
+    Then el sistema debe autenticar al usuario activo
+    And el usuario accede a la pagina de inicio con su sesion
 
   # ── Email no registrado ────────────────────────────────────────────────────
 
