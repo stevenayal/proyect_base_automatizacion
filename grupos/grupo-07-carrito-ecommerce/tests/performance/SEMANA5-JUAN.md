@@ -112,13 +112,20 @@ capacidad maxima. La corrida funcional manual ya conseguida (1 POST 201, 1 GET
 correlacionado 200, 0 errores) valida el escenario, pero no constituye una
 baseline estadistica.
 
-La ejecucion oficial se inicia manualmente con GitHub Actions → **JMeter - Grupo
-07 - Juan - Semana 5** → `workflow_dispatch`. No hay trigger de PR/push: el
-sandbox y su cuota son compartidos, por lo que una carga automatica ante cada
-cambio podria interferir con otros alumnos. El workflow usa `-n -t -q -l -j -e
--o`, sobrescribe `threads=1`, `loops=10` y `targetRpm=10`, y lee la credencial
-unicamente de `GRUPO07_API_KEY` en el entorno del proceso Java. No usa
-`-JapiKey`; el secreto no se escribe a archivos ni se incluye en outputs.
+La entrega de Semana 5 está integrada directamente en la rama
+`grupo-07-carrito-ecommerce-entrega` de
+`stevenayal/proyect_base_automatizacion`. El PR grupal #84 lleva esa rama hacia
+`main`. **JMeter - Grupo 07 - Juan - Semana 5** se ejecuta automáticamente por
+`pull_request` hacia `main` cuando cambian los paths de performance del Grupo 07
+o este workflow; `workflow_dispatch` permanece como fallback manual. No usa
+`pull_request_target`, no se ejecuta en el fork y CI no depende de
+`jmbarret/proyect_base_automatizacion`. Usa el secret
+`GRUPO07_API_KEY` del repositorio oficial upstream.
+
+El workflow usa `-n -t -q -l -j -e -o`, mantiene `threads=1`, `loops=10` y
+`targetRpm=10`, y lee la credencial únicamente desde `GRUPO07_API_KEY` en el
+entorno del proceso Java. No usa `-JapiKey`; el secreto no se escribe a archivos
+ni se incluye en outputs.
 
 Para ejecucion local autorizada, desde la raiz, comprobar la presencia sin
 imprimir el valor y ejecutar el mismo JMX con los paths propios. El workflow de
@@ -237,7 +244,7 @@ por el perfil controlado de diez iteraciones descrito arriba.
 - `scripts/grupo07_juan_semana5_report.py`: lectura fail-closed de JTL, métricas, decisión y summary/PDF.
 - `scripts/grupo07_juan_semana5_preflight.py`: GET autenticado read-only acotado y comprobación de cuota.
 - `scripts/test_grupo07_juan_semana5_report.py` y `scripts/test_grupo07_juan_semana5_preflight.py`: pruebas offline.
-- `.github/workflows/jmeter-grupo07-juan-semana5.yml`: workflow independiente y manual.
+- `.github/workflows/jmeter-grupo07-juan-semana5.yml`: workflow del repositorio oficial, automático por `pull_request` hacia `main` para paths de performance del Grupo 07 y con `workflow_dispatch` como fallback.
 
 ### Thresholds, p95 y gate
 
@@ -284,11 +291,15 @@ cancelar el workflow y no repetirlo hasta revisar la evidencia.
 
 ### CI/CD, outputs, HTML y PDF
 
-El workflow tiene solo `workflow_dispatch`; no se activa automáticamente en
-PR/push para evitar consumo inesperado de una cuota compartida. La concurrencia
-`grupo07-juan-semana5` serializa las corridas y `cancel-in-progress: false`
-evita cancelar una carga ya iniciada. `GRUPO07_API_KEY` se asigna como variable
-de entorno solo a los pasos de preflight y JMeter; no se pasa por `-JapiKey`.
+El workflow se activa automáticamente en `pull_request` hacia `main` cuando el
+PR cambia los paths de performance del Grupo 07 o el propio workflow; no tiene
+trigger `push`, evitando una ejecución duplicada al sincronizar el PR grupal #84.
+`workflow_dispatch` queda como fallback. Se ejecuta en
+`stevenayal/proyect_base_automatizacion`, sin `pull_request_target` ni
+dependencia del fork. La concurrencia `grupo07-juan-semana5` serializa las
+corridas y `cancel-in-progress: false` evita cancelar una carga ya iniciada.
+`GRUPO07_API_KEY` del repositorio upstream se asigna como variable de entorno
+solo a los pasos de preflight y JMeter; no se pasa por `-JapiKey`.
 
 La ejecución headless produce en
 `test-results/performance/grupo07-juan-semana5/`:

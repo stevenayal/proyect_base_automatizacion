@@ -1,6 +1,12 @@
 name: JMeter - Grupo 07 - Juan - Semana 5
 
 on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/**"
+      - ".github/workflows/jmeter-grupo07-juan-semana5.yml"
   workflow_dispatch:
 
 permissions:
