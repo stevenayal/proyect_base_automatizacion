@@ -23,7 +23,7 @@ def timestamp(value):
     return None
 
 
-def summarize(document):
+def summarize(document, expected_requests=None, expected_assertions=None):
     run = document["run"]
     stats = mapping(run.get("stats"))
     executions = run.get("executions")
@@ -44,6 +44,16 @@ def summarize(document):
     errors = bool(run.get("failures")) or any(
         count(mapping(value).get("failed")) > 0 for value in stats.values()
     )
+    # Cross-check actual executions, not only aggregate counters. A stale or
+    # incomplete report must not certify that the requested scope ran.
+    errors = errors or any(c.get("error") or c.get("skipped") for c in checks)
+    if expected_requests is not None or expected_assertions is not None:
+        errors = errors or requests != len(executions) or total != len(checks)
+        errors = errors or any(not mapping(e).get("response") for e in executions)
+    if expected_requests is not None:
+        errors = errors or requests != expected_requests
+    if expected_assertions is not None:
+        errors = errors or total != expected_assertions
     verdict = "PASS" if requests > 0 and total > 0 and passed == total and not errors else "FAIL"
 
     timings = mapping(run.get("timings"))
@@ -107,6 +117,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results", type=Path, default=Path("newman/results.json"))
     parser.add_argument("--output", type=Path, default=Path("newman/report.pdf"))
+    parser.add_argument("--expected-requests", type=int)
+    parser.add_argument("--expected-assertions", type=int)
     args = parser.parse_args()
     try:
         with args.results.open(encoding="utf-8-sig") as source:
@@ -119,9 +131,14 @@ def main():
         parser.error("Unable to read the Newman results JSON as UTF-8.")
     if not isinstance(document, dict) or not isinstance(document.get("run"), dict):
         parser.error("Newman results JSON must contain a run object.")
-    summary = summarize(document)
+    for expected in (args.expected_requests, args.expected_assertions):
+        if expected is not None and expected <= 0:
+            parser.error("Expected counts must be positive.")
+    summary = summarize(document, args.expected_requests, args.expected_assertions)
     try:
         write_pdf(summary, args.output)
+        if args.output.stat().st_size == 0:
+            parser.error("The PDF output is empty.")
     except ImportError:
         parser.error("ReportLab is required: install it with python -m pip install reportlab.")
     except OSError:

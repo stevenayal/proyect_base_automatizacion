@@ -1,69 +1,215 @@
 name: Postman Regression - Grupo 07 Carrito (con reporte PDF en Python)
 
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - "postman/grupo-07-carrito-ecommerce.postman_collection.json"
-      - ".github/workflows/postman-grupo07-regression.yml"
   pull_request:
-    branches: ["main"]
-    paths:
-      - "postman/grupo-07-carrito-ecommerce.postman_collection.json"
-      - ".github/workflows/postman-grupo07-regression.yml"
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      profile:
+        description: Suites seleccionadas (JMeter nunca automatico)
+        type: choice
+        options: [postman, jmeter, all]
+        default: postman
+  workflow_call:
+    inputs:
+      profile:
+        type: string
+        default: sin-reporte
+
+permissions:
+  contents: read
+  actions: read
+
+# Only the latest PR HEAD needs certification. Superseded pending runs may
+# intentionally be replaced; never use a previous SHA's green for current HEAD.
+# Workers do not acquire this lock again.
+concurrency:
+  group: grupo07-ci-coordinado${{ github.event_name == 'pull_request' && github.head_ref != 'grupo-07-carrito-ecommerce-entrega' && format('-fuera-alcance-{0}', github.run_id) || '' }}
+  cancel-in-progress: false
 
 jobs:
-  newman-regression:
-    name: Newman + reporte PDF (Python)
+  plan:
+    if: github.event_name != 'pull_request' || (github.head_ref == 'grupo-07-carrito-ecommerce-entrega' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      profile: ${{ steps.plan.outputs.profile }}
+      sha: ${{ steps.plan.outputs.sha }}
+      branch: ${{ steps.plan.outputs.branch }}
+      deadline: ${{ steps.plan.outputs.deadline }}
     steps:
-      - name: Checkout del repositorio
-        uses: actions/checkout@v7
+      - id: plan
+        env:
+          PROFILE: ${{ inputs.profile || 'postman' }}
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          case "$PROFILE" in postman|sin-reporte|jmeter|all) ;; *) exit 1 ;; esac
+          echo "profile=$PROFILE" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "deadline=$(( $(date +%s) + 3600 ))" >> "$GITHUB_OUTPUT"
+          echo "Profile: $PROFILE; tested HEAD: $SHA" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Configurar Node.js
-        uses: actions/setup-node@v7
+  initial_window:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 41
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - name: Esperar 70 segundos continuos sin consumidores
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_DEADLINE: ${{ needs.plan.outputs.deadline }}
+        run: python scripts/grupo07/wait_sandbox_consumers.py
+
+  juan:
+    needs: [plan, initial_window]
+    if: needs.plan.outputs.profile == 'postman' || needs.plan.outputs.profile == 'all'
+    uses: ./.github/workflows/postman-grupo07-juan-regression.yml
+    with:
+      tested_sha: ${{ needs.plan.outputs.sha }}
+      deadline: ${{ needs.plan.outputs.deadline }}
+    secrets: inherit
+
+  general:
+    needs: [plan, initial_window, juan]
+    if: ${{ !cancelled() && needs.initial_window.result == 'success' && ((needs.plan.outputs.profile == 'sin-reporte') || ((needs.plan.outputs.profile == 'postman' || needs.plan.outputs.profile == 'all') && needs.juan.result == 'success')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PROFILE: ${{ needs.plan.outputs.profile }}
+      BASE_URL: ${{ vars.GRUPO07_BASE_URL }}
+      API_KEY: ${{ secrets.GRUPO07_API_KEY }}
+      GH_TOKEN: ${{ github.token }}
+      CI_DEADLINE: ${{ needs.plan.outputs.deadline }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
-
-      - name: Configurar Python (generador de PDF)
-        uses: actions/setup-python@v7
+      - uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
-
-      - name: Instalar dependencias Node
-        run: npm install
-
-      - name: Instalar dependencias Python (reportlab, Pillow)
-        run: pip install -r skills/postman-newman-skill/reporter/requirements.txt
-
-      - name: Ejecutar regresión Postman (Newman) - Grupo 07
-        run: >
-          npx newman run postman/grupo-07-carrito-ecommerce.postman_collection.json
-          --env-var "baseUrl=${{ vars.GRUPO07_BASE_URL }}"
-          --env-var "apiKey=${{ secrets.GRUPO07_API_KEY }}"
-          --delay-request 800
-          --reporters cli,json
-          --reporter-json-export newman/results.json
-
-      - name: Generar reporte PDF
-        if: always()
-        run: >
-          python skills/postman-newman-skill/reporter/newman_report.py
-          --results newman/results.json
-          --banner skills/postman-newman-skill/reporter/assets/banner_portada.png
-          --logo-aiquaa skills/postman-newman-skill/reporter/assets/logo_aiquaa_circle.png
-          --logo-postman skills/postman-newman-skill/reporter/assets/logo_postman_clean.png
-          --repo-url "${{ github.server_url }}/${{ github.repository }}"
-          --api-version "${{ github.sha }}"
-          --author "${{ github.triggering_actor }}"
-          --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          --output newman/report.pdf
-
-      - name: Subir informe PDF de la regresión
+          python-version: '3.11'
+      - name: Instalar dependencias y preparar 20 originales
+        run: |
+          test -n "$BASE_URL"
+          test -n "$API_KEY"
+          npm ci
+          if [[ "$PROFILE" != "sin-reporte" ]]; then
+            pip install -r skills/postman-newman-skill/reporter/requirements.txt
+          fi
+          node scripts/grupo07/prepare_base_collection.cjs
+      - name: Reconsultar consumidores antes de base
+        run: python scripts/grupo07/wait_sandbox_consumers.py --check
+      - name: Ejecutar base 20 (sin SQL)
+        id: base
+        run: |
+          mkdir -p newman
+          npx --no-install newman run test-results/grupo07-ci/base.collection.json \
+            --env-var "baseUrl=$BASE_URL" --env-var "apiKey=$API_KEY" \
+            --delay-request 800 --reporters cli,json,junit \
+            --reporter-json-export newman/results.json \
+            --reporter-junit-export newman/results.xml
+      - name: Validar alcance y assertions base
+        id: base_validation
+        run: python scripts/grupo07/validate_ci_results.py base
+      - name: Generar reporte correspondiente
+        id: report
+        run: |
+          if [[ "$PROFILE" == "sin-reporte" ]]; then
+            test -s newman/results.xml
+          else
+            python skills/postman-newman-skill/reporter/newman_report.py \
+              --results newman/results.json \
+              --banner skills/postman-newman-skill/reporter/assets/banner_portada.png \
+              --logo-aiquaa skills/postman-newman-skill/reporter/assets/logo_aiquaa_circle.png \
+              --logo-postman skills/postman-newman-skill/reporter/assets/logo_postman_clean.png \
+              --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+              --api-version "${{ needs.plan.outputs.sha }}" \
+              --author "${{ github.triggering_actor }}" \
+              --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --output newman/report.pdf
+            test -s newman/report.pdf
+          fi
+      - name: Nueva ventana limpia DESPUES de base
+        run: python scripts/grupo07/wait_sandbox_consumers.py
+      - name: Ejecutar solamente los dos casos SQL
+        id: sql
+        run: node grupos/grupo-07-carrito-ecommerce/run-sql-newman.cjs
+      - name: Validar SQL completo y ausencia de inserciones
+        id: sql_validation
+        run: python scripts/grupo07/validate_ci_results.py sql
+      - name: Publicar evidencia sin credenciales
+        id: upload
+        if: ${{ !cancelled() && steps.base.outcome != 'skipped' }}
         uses: actions/upload-artifact@v7
-        if: always()
         with:
-          name: informe-regresion-grupo07
-          path: newman/report.pdf
+          name: ${{ needs.plan.outputs.profile == 'sin-reporte' && 'newman-resultados-grupo07-sin-reporte' || 'informe-regresion-grupo07' }}
+          # Raw Newman JSON is never uploaded; only its redacted copy.
+          path: |
+            newman/report.pdf
+            newman/results.xml
+            newman/results.redacted.json
+            test-results/grupo07-sql/semana-3-newman.json
+          if-no-files-found: error
           retention-days: 7
+      - name: Certificar base SQL reporte y artifact
+        if: ${{ always() }}
+        env:
+          BASE: ${{ steps.base.outcome }}
+          BASE_VALIDATION: ${{ steps.base_validation.outcome }}
+          SQL: ${{ steps.sql.outcome }}
+          SQL_VALIDATION: ${{ steps.sql_validation.outcome }}
+          REPORT: ${{ steps.report.outcome }}
+          UPLOAD: ${{ steps.upload.outcome }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+        run: python scripts/grupo07/validate_ci_results.py general
+
+  jmeter_window:
+    needs: [plan, initial_window, general]
+    if: ${{ !cancelled() && needs.initial_window.result == 'success' && (needs.plan.outputs.profile == 'jmeter' || (needs.plan.outputs.profile == 'all' && needs.general.result == 'success')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 41
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - name: Ventana limpia antes de JMeter
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_DEADLINE: ${{ needs.plan.outputs.deadline }}
+        run: python scripts/grupo07/wait_sandbox_consumers.py
+
+  jmeter:
+    needs: [plan, jmeter_window]
+    if: ${{ !cancelled() && needs.jmeter_window.result == 'success' }}
+    uses: ./.github/workflows/jmeter-grupo07-juan-performance.yml
+    with:
+      tested_sha: ${{ needs.plan.outputs.sha }}
+      deadline: ${{ needs.plan.outputs.deadline }}
+    secrets: inherit
+
+  certification:
+    needs: [plan, initial_window, juan, general, jmeter_window, jmeter]
+    if: ${{ always() && needs.plan.result != 'skipped' }}
+    name: Grupo 07 - Certificacion del perfil y HEAD
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha || github.sha }}
+      - name: Ninguna suite seleccionada puede estar skipped
+        env:
+          PROFILE: ${{ needs.plan.outputs.profile }}
+          TESTED_SHA: ${{ needs.plan.outputs.sha }}
+          TESTED_BRANCH: ${{ needs.plan.outputs.branch }}
+          CI_DEADLINE: ${{ needs.plan.outputs.deadline }}
+          GH_TOKEN: ${{ github.token }}
+          JOB_RESULTS: '{"plan":"${{ needs.plan.result }}","initial_window":"${{ needs.initial_window.result }}","juan":"${{ needs.juan.result }}","general":"${{ needs.general.result }}","jmeter_window":"${{ needs.jmeter_window.result }}","jmeter":"${{ needs.jmeter.result }}"}'
+        run: python scripts/grupo07/validate_ci_results.py final
