@@ -118,6 +118,16 @@
           "      });",
           "    },",
           "",
+          "    // Precondición que depende de datos sembrados que ya no quedan (la API no permite",
+          "    // crearlos): el escenario se OMITE, no falla. No se envía la request principal y sus",
+          "    // pasos quedan como omitidos en el reporte; vuelve a ejecutarse cuando haya datos.",
+          "    omitir: function (motivo) {",
+          "      pm.variables.set(\"G3_omitido\", motivo);",
+          "      console.warn(\"[G3] escenario omitido: \" + motivo);",
+          "      if (pm.execution && typeof pm.execution.skipRequest === \"function\") { pm.execution.skipRequest(); }",
+          "    },",
+          "    omitido: function () { return pm.variables.get(\"G3_omitido\") || \"\"; },",
+          "",
           "    fallaPrecondicion: function (detalle) {",
           "      var previo = pm.variables.get(\"G3_errorPrecondicion\");",
           "      pm.variables.set(\"G3_errorPrecondicion\", previo ? previo + \" | \" + detalle : detalle);",
@@ -244,6 +254,7 @@
           "",
           "// Estado propio de cada request (pm.variables es local).",
           "pm.variables.set(\"G3_errorPrecondicion\", \"\");",
+          "pm.variables.set(\"G3_omitido\", \"\");",
           "pm.variables.set(\"G3_creadas\", \"[]\");",
           "",
           "// Titular de la corrida (usuario con menos facturas pendientes) y turno de la",
@@ -366,6 +377,16 @@
           "        });",
           "      });",
           "    },",
+          "",
+          "    // Precondición que depende de datos sembrados que ya no quedan (la API no permite",
+          "    // crearlos): el escenario se OMITE, no falla. No se envía la request principal y sus",
+          "    // pasos quedan como omitidos en el reporte; vuelve a ejecutarse cuando haya datos.",
+          "    omitir: function (motivo) {",
+          "      pm.variables.set(\"G3_omitido\", motivo);",
+          "      console.warn(\"[G3] escenario omitido: \" + motivo);",
+          "      if (pm.execution && typeof pm.execution.skipRequest === \"function\") { pm.execution.skipRequest(); }",
+          "    },",
+          "    omitido: function () { return pm.variables.get(\"G3_omitido\") || \"\"; },",
           "",
           "    fallaPrecondicion: function (detalle) {",
           "      var previo = pm.variables.get(\"G3_errorPrecondicion\");",
@@ -648,7 +669,7 @@
                 "pagar"
               ]
             },
-            "description": "**PAG-01** · RF-G3-03 — Pagar una factura\n\n**Escenario BDD:** Pago exitoso de una factura pendiente\n\n**Tags:** `@smoke @RF-G3-03 @ande`\n\n**Criterio:** RF-G3-03 — una factura pendiente se paga con un medio válido (200 · data.factura.estado=pagada · data.pago.estado=procesado)\n\n```gherkin\nGiven el usuario tiene una factura de \"ANDE\" pendiente de pago\nWhen el usuario paga la factura con el medio de pago \"tarjeta\"\nThen la factura se paga correctamente\nAnd la factura queda en estado \"pagada\"\nAnd el pago queda en estado \"procesado\"\nAnd el pago se registra con el medio de pago \"tarjeta\"\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`",
+            "description": "**PAG-01** · RF-G3-03 — Pagar una factura\n\n**Escenario BDD:** Pago exitoso de una factura pendiente\n\n**Tags:** `@smoke @RF-G3-03 @ande @web`\n\n**Criterio:** RF-G3-03 — una factura pendiente se paga con un medio válido (200 · data.factura.estado=pagada · data.pago.estado=procesado)\n\n```gherkin\nGiven el usuario tiene una factura de \"ANDE\" pendiente de pago\nWhen el usuario paga la factura con el medio de pago \"tarjeta\"\nThen la factura se paga correctamente\nAnd la factura queda en estado \"pagada\"\nAnd el pago queda en estado \"procesado\"\nAnd el pago se registra con el medio de pago \"tarjeta\"\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"metodoPago\": \"tarjeta\"\n}",
@@ -1163,9 +1184,13 @@
                   "  if (f) {",
                   "    pm.variables.set(\"G3_factura_id\", f.id);",
                   "    pm.variables.set(\"G3_factura_monto\", f.monto);",
+                  "  } else if (!err && res && res.code === 200) {",
+                  "    // Sin vencidas sembradas el escenario se omite (cada pago consume una).",
+                  "    pm.variables.set(\"G3_factura_id\", 0);",
+                  "    g3.omitir(\"no quedan facturas vencidas sin pagar en los datos sembrados\");",
                   "  } else {",
                   "    pm.variables.set(\"G3_factura_id\", 0);",
-                  "    g3.fallaPrecondicion(\"no quedan facturas vencidas sin pagar en los datos sembrados\");",
+                  "    g3.fallaPrecondicion(\"no se pudo listar las facturas vencidas (\" + g3.motivo(err, res) + \")\");",
                   "  }",
                   "});"
                 ]
@@ -1177,6 +1202,12 @@
                 "type": "text/javascript",
                 "exec": [
                   "var g3 = G3(pm, typeof postman === \"undefined\" ? null : postman, console, setTimeout);",
+                  "if (g3.omitido()) {",
+                  "  pm.test.skip(\"Given existe una factura vencida sin pagar (omitido: \" + g3.omitido() + \")\", function () {});",
+                  "  pm.test.skip(\"Then la factura se paga correctamente (omitido: \" + g3.omitido() + \")\", function () {});",
+                  "  pm.test.skip(\"And la factura queda en estado \\\"pagada\\\" (omitido: \" + g3.omitido() + \")\", function () {});",
+                  "  pm.test.skip(\"And el monto pagado es igual al monto original de la factura, sin recargos (omitido: \" + g3.omitido() + \")\", function () {});",
+                  "} else",
                   "if (!g3.reintentarSi429()) {",
                   "  var body = g3.json(pm.response);",
                   "  g3.precondicion(\"Given existe una factura vencida sin pagar\");",
@@ -1897,7 +1928,7 @@
                 }
               ]
             },
-            "description": "**LIS-01** · RF-G3-01 — Listar facturas\n\n**Escenario BDD:** Listar facturas filtrando por estado pendiente\n\n**Tags:** `@smoke @RF-G3-01 @ande`\n\n**Criterio:** RF-G3-01 — al filtrar por estado pendiente, todas las facturas devueltas tienen ese estado (200 · data[].estado=pendiente)\n\n```gherkin\nGiven el usuario tiene una factura de \"ANDE\" pendiente de pago\nWhen el usuario consulta las facturas en estado \"pendiente\"\nThen el sistema devuelve el listado de facturas\nAnd todas las facturas del listado están en estado \"pendiente\"\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`"
+            "description": "**LIS-01** · RF-G3-01 — Listar facturas\n\n**Escenario BDD:** Listar facturas filtrando por estado pendiente\n\n**Tags:** `@smoke @RF-G3-01 @ande @web`\n\n**Criterio:** RF-G3-01 — al filtrar por estado pendiente, todas las facturas devueltas tienen ese estado (200 · data[].estado=pendiente)\n\n```gherkin\nGiven el usuario tiene una factura de \"ANDE\" pendiente de pago\nWhen el usuario consulta las facturas en estado \"pendiente\"\nThen el sistema devuelve el listado de facturas\nAnd todas las facturas del listado están en estado \"pendiente\"\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`"
           },
           "response": []
         },
@@ -1972,7 +2003,7 @@
                 }
               ]
             },
-            "description": "**LIS-02** · RF-G3-01 — Listar facturas\n\n**Escenario BDD:** Listar facturas combinando titular y estado\n\n**Tags:** `@RF-G3-01 @copaco`\n\n**Criterio:** RF-G3-01 — al combinar titular y estado se cumplen ambas condiciones (200 · data[].usuario_id = titular · data[].estado=pendiente)\n\n```gherkin\nGiven el usuario tiene una factura de \"COPACO\" pendiente de pago\nWhen el usuario consulta las facturas del titular en estado \"pendiente\"\nThen el sistema devuelve el listado de facturas\nAnd todas las facturas del listado pertenecen al titular\nAnd todas las facturas del listado están en estado \"pendiente\"\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`"
+            "description": "**LIS-02** · RF-G3-01 — Listar facturas\n\n**Escenario BDD:** Listar facturas combinando titular y estado\n\n**Tags:** `@RF-G3-01 @copaco @web`\n\n**Criterio:** RF-G3-01 — al combinar titular y estado se cumplen ambas condiciones (200 · data[].usuario_id = titular · data[].estado=pendiente)\n\n```gherkin\nGiven el usuario tiene una factura de \"COPACO\" pendiente de pago\nWhen el usuario consulta las facturas del titular en estado \"pendiente\"\nThen el sistema devuelve el listado de facturas\nAnd todas las facturas del listado pertenecen al titular\nAnd todas las facturas del listado están en estado \"pendiente\"\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`"
           },
           "response": []
         },
@@ -2128,7 +2159,7 @@
                 }
               ]
             },
-            "description": "**LIS-05** · RF-G3-01 — Listar facturas\n\n**Escenario BDD:** Listar facturas de un titular sin facturas\n\n**Tags:** `@RF-G3-01`\n\n**Criterio:** RF-G3-01 — un titular sin facturas devuelve una lista vacía, no un error (200 · data=[])\n\n```gherkin\nWhen el usuario consulta las facturas de un usuario que no tiene facturas\nThen el sistema devuelve el listado de facturas\nAnd el listado está vacío\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`"
+            "description": "**LIS-05** · RF-G3-01 — Listar facturas\n\n**Escenario BDD:** Listar facturas de un titular sin facturas\n\n**Tags:** `@RF-G3-01 @web`\n\n**Criterio:** RF-G3-01 — un titular sin facturas devuelve una lista vacía, no un error (200 · data=[])\n\n```gherkin\nWhen el usuario consulta las facturas de un usuario que no tiene facturas\nThen el sistema devuelve el listado de facturas\nAnd el listado está vacío\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`"
           },
           "response": []
         },
@@ -2249,7 +2280,7 @@
                 "{{G3_factura_id}}"
               ]
             },
-            "description": "**CON-01** · RF-G3-02 — Consultar una factura\n\n**Escenario BDD:** Consultar el detalle de una factura existente\n\n**Tags:** `@smoke @RF-G3-02 @personal`\n\n**Criterio:** RF-G3-02 — consultar una factura existente devuelve su detalle (200 · data.numero_factura · data.proveedor · data.estado)\n\n```gherkin\nGiven el usuario tiene una factura de \"Personal\" pendiente de pago\nWhen el usuario consulta el detalle de la factura\nThen el sistema devuelve el detalle de la factura\nAnd la factura tiene número de factura\nAnd la factura es del proveedor \"Personal\"\nAnd la factura está en estado \"pendiente\"\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`"
+            "description": "**CON-01** · RF-G3-02 — Consultar una factura\n\n**Escenario BDD:** Consultar el detalle de una factura existente\n\n**Tags:** `@smoke @RF-G3-02 @personal @web`\n\n**Criterio:** RF-G3-02 — consultar una factura existente devuelve su detalle (200 · data.numero_factura · data.proveedor · data.estado)\n\n```gherkin\nGiven el usuario tiene una factura de \"Personal\" pendiente de pago\nWhen el usuario consulta el detalle de la factura\nThen el sistema devuelve el detalle de la factura\nAnd la factura tiene número de factura\nAnd la factura es del proveedor \"Personal\"\nAnd la factura está en estado \"pendiente\"\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`"
           },
           "response": []
         },
@@ -2640,7 +2671,7 @@
                 }
               ]
             },
-            "description": "**CRE-03** · RF-G3-04 — Crear una factura\n\n**Escenario BDD:** La factura registrada aparece en el listado del titular\n\n**Tags:** `@RF-G3-04 @RF-G3-01 @tigo`\n\n**Criterio:** RF-G3-04 — la factura registrada aparece en el listado del titular (200 · data[] contiene la factura creada)\n\n```gherkin\nGiven el usuario tiene una factura de \"Tigo\" pendiente de pago\nWhen el usuario consulta las facturas del titular en estado \"pendiente\"\nThen el sistema devuelve el listado de facturas\nAnd la factura aparece en el listado\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`"
+            "description": "**CRE-03** · RF-G3-04 — Crear una factura\n\n**Escenario BDD:** La factura registrada aparece en el listado del titular\n\n**Tags:** `@RF-G3-04 @RF-G3-01 @tigo @web`\n\n**Criterio:** RF-G3-04 — la factura registrada aparece en el listado del titular (200 · data[] contiene la factura creada)\n\n```gherkin\nGiven el usuario tiene una factura de \"Tigo\" pendiente de pago\nWhen el usuario consulta las facturas del titular en estado \"pendiente\"\nThen el sistema devuelve el listado de facturas\nAnd la factura aparece en el listado\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`"
           },
           "response": []
         },
@@ -3623,7 +3654,7 @@
                 "{{G3_factura_id}}"
               ]
             },
-            "description": "**MOD-01** · RF-G3-05 — Reemplazar una factura\n\n**Escenario BDD:** Modificar el monto de una factura pendiente\n\n**Tags:** `@smoke @RF-G3-05 @ande`\n\n**Criterio:** RF-G3-05 — modificar el monto de una factura pendiente la actualiza y el estado sigue pendiente (200 · data.monto=275000.00 · data.estado=pendiente)\n\n```gherkin\nGiven el usuario tiene una factura de \"ANDE\" pendiente de pago\nWhen el usuario modifica el monto de la factura a 275000\nThen la factura se actualiza correctamente\nAnd la factura queda con monto 275000.00\nAnd la factura queda en estado \"pendiente\"\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`",
+            "description": "**MOD-01** · RF-G3-05 — Reemplazar una factura\n\n**Escenario BDD:** Modificar el monto de una factura pendiente\n\n**Tags:** `@smoke @RF-G3-05 @ande @web`\n\n**Criterio:** RF-G3-05 — modificar el monto de una factura pendiente la actualiza y el estado sigue pendiente (200 · data.monto=275000.00 · data.estado=pendiente)\n\n```gherkin\nGiven el usuario tiene una factura de \"ANDE\" pendiente de pago\nWhen el usuario modifica el monto de la factura a 275000\nThen la factura se actualiza correctamente\nAnd la factura queda con monto 275000.00\nAnd la factura queda en estado \"pendiente\"\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"proveedor\": \"ANDE\",\n  \"numeroFactura\": \"{{G3_factura_numero}}\",\n  \"monto\": 275000,\n  \"fechaVencimiento\": \"2026-12-31\"\n}",
@@ -4344,7 +4375,7 @@
                 }
               ]
             },
-            "description": "**BAJ-03** · RF-G3-06 — Dar de baja una factura\n\n**Escenario BDD:** Una factura dada de baja deja de aparecer en el listado\n\n**Tags:** `@RF-G3-06 @RF-G3-01 @copaco`\n\n**Criterio:** RF-G3-06 — tras la baja, la factura deja de aparecer en el listado (200 · data[] no contiene la factura)\n\n```gherkin\nGiven el usuario tiene una factura de \"COPACO\" pendiente de pago\nAnd la factura fue dada de baja\nWhen el usuario consulta las facturas del titular en estado \"pendiente\"\nThen el sistema devuelve el listado de facturas\nAnd la factura no aparece en el listado\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`"
+            "description": "**BAJ-03** · RF-G3-06 — Dar de baja una factura\n\n**Escenario BDD:** Una factura dada de baja deja de aparecer en el listado\n\n**Tags:** `@RF-G3-06 @RF-G3-01 @copaco @web`\n\n**Criterio:** RF-G3-06 — tras la baja, la factura deja de aparecer en el listado (200 · data[] no contiene la factura)\n\n```gherkin\nGiven el usuario tiene una factura de \"COPACO\" pendiente de pago\nAnd la factura fue dada de baja\nWhen el usuario consulta las facturas del titular en estado \"pendiente\"\nThen el sistema devuelve el listado de facturas\nAnd la factura no aparece en el listado\n```\n\nFeature: `grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature`"
           },
           "response": []
         },

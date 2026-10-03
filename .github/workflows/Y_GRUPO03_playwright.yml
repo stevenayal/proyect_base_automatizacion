@@ -77,19 +77,17 @@ jobs:
       - name: Checkout del repositorio
         uses: actions/checkout@v4
 
-      - name: Verificar secrets del login web
+      - name: Verificar el secret del login web
+        # El curso NO es secreto: va como variable (GRUPO03_WEB_CURSO, por defecto 1). Si fuera
+        # secret, GitHub enmascararía cada "1" del log y del resumen ("6***" en vez de "61").
         env:
           WEB_EMAIL: ${{ secrets.GRUPO03_WEB_EMAIL }}
-          WEB_CURSO: ${{ secrets.GRUPO03_WEB_CURSO }}
         run: |
-          faltan=""
-          [ -z "$WEB_EMAIL" ] && faltan="$faltan GRUPO03_WEB_EMAIL"
-          [ -z "$WEB_CURSO" ] && faltan="$faltan GRUPO03_WEB_CURSO"
-          if [ -n "$faltan" ]; then
-            echo "::error::Faltan los secrets:$faltan (Settings > Secrets and variables > Actions). Los escenarios @web los necesitan para iniciar sesión en la web."
+          if [ -z "$WEB_EMAIL" ]; then
+            echo "::error::Falta el secret GRUPO03_WEB_EMAIL (Settings > Secrets and variables > Actions). Los escenarios @web lo necesitan para iniciar sesión en la web."
             exit 1
           fi
-          echo "Secrets del login web presentes."
+          echo "Secret del login web presente."
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
@@ -120,7 +118,7 @@ jobs:
           G3_API_KEY: ${{ secrets.GRUPO03_API_KEY }}
           G3_API_URL: ${{ vars.GRUPO03_BASE_URL }}
           G3_WEB_EMAIL: ${{ secrets.GRUPO03_WEB_EMAIL }}
-          G3_WEB_CURSO: ${{ secrets.GRUPO03_WEB_CURSO }}
+          G3_WEB_CURSO: ${{ vars.GRUPO03_WEB_CURSO || '1' }}
           G3_RPM: ${{ inputs.req_por_minuto || '20' }}
           G3_TITULAR: ${{ inputs.usuario_titular_id }}
           SUITE: ${{ inputs.suite || 'g3-completa' }}
@@ -173,12 +171,16 @@ jobs:
           info = {}
           if os.path.exists(os.path.join(base, "run-info.json")):
               info = json.load(open(os.path.join(base, "run-info.json"), encoding="utf8"))
-          esc, fallas, web, web_ok = 0, [], 0, 0
+          esc, fallas, omitidos, web, web_ok = 0, [], [], 0, 0
           for feat in json.load(open(ruta, encoding="utf8")):
               for el in feat.get("elements", []):
                   esc += 1
                   tags = [t["name"] for t in el.get("tags", [])]
                   estados = [s.get("result", {}).get("status") for s in el.get("steps", [])]
+                  visibles = [s.get("result", {}).get("status") for s in el.get("steps", []) if not s.get("hidden")]
+                  if "skipped" in visibles and all(e in ("passed", "skipped") for e in estados):
+                      omitidos.append(el["name"])   # sin datos para la precondición (ver el informe)
+                      continue
                   ok = all(e in ("passed", "skipped") for e in estados) and "passed" in estados
                   if "@web" in tags:
                       web += 1; web_ok += ok
@@ -186,15 +188,18 @@ jobs:
                       paso = next((s for s in el["steps"] if s.get("result", {}).get("status") not in ("passed", "skipped")), {})
                       fallas.append(f'{el["name"]} › {paso.get("name") or paso.get("keyword", "")}')
           tit = (info.get("titular") or {}).get("id", "-")
-          print("| Escenarios | Pasan | Fallan | @web que coinciden con la API |")
-          print("|---:|---:|---:|---:|")
-          print(f"| {esc} | {esc - len(fallas)} | {len(fallas)} | {web_ok} de {web} |")
+          print("| Escenarios | Pasan | Fallan | Omitidos | @web que coinciden con la API |")
+          print("|---:|---:|---:|---:|---:|")
+          print(f"| {esc} | {esc - len(fallas) - len(omitidos)} | {len(fallas)} | {len(omitidos)} | {web_ok} de {web} |")
           print()
           print(f"Titular: usuario {tit} · {info.get('peticiones', '-')} peticiones a la API · "
                 f"{info.get('rechazos429', 0)} respuestas 429 reintentadas · {info.get('facturasLimpiadas', '-')} facturas limpiadas")
           if fallas:
               print(); print("**Escenarios que fallaron**"); print()
               for f in fallas[:40]: print(f"- {f}")
+          if omitidos:
+              print(); print("**Escenarios omitidos por falta de datos sembrados**"); print()
+              for o in omitidos: print(f"- {o}")
           print(); print("Informe PDF, reporte HTML de Cucumber y clasificación de fallos en el artifact.")
           EOF
 

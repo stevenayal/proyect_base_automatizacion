@@ -59,7 +59,7 @@ ANCHO = PAGE_W - 2 * MARGIN
 STATUS_COLOR = {"passed": GREEN_PASS, "failed": RED_FAIL, "pending": AMBER_WARN,
                 "undefined": AMBER_WARN, "ambiguous": RED_FAIL, "skipped": GRAY_MID}
 STATUS_TXT = {"passed": "PASS", "failed": "FAIL", "pending": "PEND", "undefined": "UNDEF",
-              "ambiguous": "AMBIG", "skipped": "SKIP"}
+              "ambiguous": "AMBIG", "skipped": "OMITIDO"}
 
 RF_NOMBRES = OrderedDict([
     ("@RF-G3-01", "Listar facturas"),
@@ -163,7 +163,9 @@ def estado_escenario(pasos):
     for e in ("failed", "ambiguous", "undefined", "pending"):
         if e in estados:
             return e
-    if estados and all(e == "skipped" for e in estados):
+    # Sin fallas, un paso visible omitido (p. ej. sin datos sembrados) deja el escenario omitido,
+    # igual que cucumber-js. Los hooks (pasos ocultos) no cuentan.
+    if "skipped" in [p.get("result", {}).get("status", "skipped") for p in pasos if not p.get("hidden")]:
         return "skipped"
     return "passed"
 
@@ -226,6 +228,8 @@ def veredicto(totales):
         return "PARCIAL — HAY PASOS SIN IMPLEMENTAR", AMBER_WARN, AMBER_BG
     if totales["escenarios"] == 0:
         return "SIN ESCENARIOS EJECUTADOS", AMBER_WARN, AMBER_BG
+    if totales["skipped"]:
+        return f'CRITERIOS CUMPLIDOS · {totales["skipped"]} OMITIDO(S) POR FALTA DE DATOS', GREEN_PASS, GREEN_BG
     return "CRITERIOS CUMPLIDOS", GREEN_PASS, GREEN_BG
 
 

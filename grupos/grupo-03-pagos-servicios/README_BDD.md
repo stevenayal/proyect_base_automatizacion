@@ -82,14 +82,19 @@ python grupos/grupo-03-pagos-servicios/reporter/g3_bdd_report.py --results test-
 | `G3_API_URL` | `https://aiquaa-sandbox-api.vercel.app` | API del sandbox |
 | `G3_WEB_URL` | `https://aiquaa-sandbox-web.vercel.app` | web del listado |
 | `G3_API_KEY` | clave demo de clase | API key (en CI: secret `GRUPO03_API_KEY`) |
-| `G3_WEB_EMAIL` / `G3_WEB_CURSO` | **obligatorias para @web** | login de la web (en CI: secrets; el `.bat` usa `admin@aiquaa.com` / `1`) |
+| `G3_WEB_EMAIL` / `G3_WEB_CURSO` | **obligatorias para @web** | login de la web (en CI: secret `GRUPO03_WEB_EMAIL` y variable `GRUPO03_WEB_CURSO`, por defecto `1`; el `.bat` usa `admin@aiquaa.com` / `1`) |
 | `G3_RPM` | `20` | peticiones por minuto de la corrida |
 | `G3_TITULAR` | vacío | titular fijo; vacío = el usuario activo con menos pendientes |
 | `G3_TAGS` | vacío | filtro extra para `g3-completa` (ej. `@RF-G3-03`) |
 | `G3_HEADED` | vacío | `1` = ver el navegador |
 
 `G3_WEB_CURSO` es el número de la opción de curso en la página de login: `curso-option-1`
-corresponde a "Curso 1 · Automatización".
+corresponde a "Curso 1 · Automatización". No es un dato secreto y **no debe cargarse como
+secret**: GitHub enmascara el valor de los secrets en todo el log, y con `1` cada "1" del
+resumen saldría como `***`.
+
+Si el proxy de la web responde 429 (comparte la API key), la verificación espera
+`Retry-After` y vuelve a abrir la página, con el mismo tope de reintentos que la API.
 
 ## Cómo funciona
 
@@ -154,8 +159,10 @@ La sesión guardada de la web se borra al terminar y nunca va a los resultados.
 
 - La corrida escribe datos reales en un sandbox compartido. La limpieza da de baja las
   facturas creadas, pero los pagos quedan registrados.
-- "Pago de una factura vencida" consume una factura vencida de los datos sembrados: se puede
-  repetir mientras queden.
+- "Pago de una factura vencida" consume una factura vencida de los datos sembrados, y la API
+  no permite crear otras. Cuando ya no quedan, el escenario se **omite** (no falla): el informe
+  y el resumen del run lo muestran como omitido, con el motivo. Vuelve a ejecutarse en cuanto
+  el sandbox tenga vencidas de nuevo.
 - Los escenarios `@web` dependen de que la web esté disponible. Si la web cambia sus
   `data-testid`, falla la verificación web y no la de la API: el fallo se clasifica y se
   corrige en `playwright/pages/`.

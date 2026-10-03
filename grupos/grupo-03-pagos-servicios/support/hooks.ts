@@ -95,7 +95,8 @@ After({ name: 'Evidencia: llamadas a la API del escenario' }, async function (th
 });
 
 // 1 · verificación en la web (corre primero, con las facturas todavía sin limpiar)
-After({ tags: '@web', name: 'Verificación en la web: /facturas muestra lo mismo que la API' }, async function (this: G3World, { result }) {
+// Timeout propio: con 429 en la web puede esperar hasta 3 × 61 s antes de comparar.
+After({ tags: '@web', name: 'Verificación en la web: /facturas muestra lo mismo que la API', timeout: 420_000 }, async function (this: G3World, { result }) {
   // Si el escenario ya falló por API, no tiene sentido comparar con la web.
   if (result?.status !== Status.PASSED) return;
   // La página consulta la misma API con la misma key: se reservan turnos para no pasarse del ritmo.

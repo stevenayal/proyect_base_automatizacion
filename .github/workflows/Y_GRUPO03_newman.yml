@@ -145,6 +145,19 @@ jobs:
           print(f"| Aserciones (pasos BDD) | {s['assertions']['total']} | {s['assertions']['failed']} |")
           print()
           print(f"Duración: {dur / 60:.1f} min")
+          # Omitidos: escenarios sin datos sembrados para su precondición (p. ej. PAG-05 sin
+          # facturas vencidas). La request no se envía o sus pasos quedan con pm.test.skip.
+          omitidos = []
+          for ex in run.get("executions", []):
+              asr = ex.get("assertions") or []
+              if (not ex.get("response") and not asr) or (asr and all(a.get("skipped") for a in asr)):
+                  omitidos.append(ex.get("item", {}).get("name", "?"))
+          if omitidos:
+              print()
+              print(f"**Escenarios omitidos por falta de datos sembrados: {len(omitidos)}** (no cuentan como fallas)")
+              print()
+              for o in omitidos:
+                  print(f"- {o}")
           fallas = [f for f in run.get("failures", []) if f["error"].get("name") == "AssertionError"]
           if fallas:
               print()

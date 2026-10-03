@@ -69,7 +69,7 @@ La colección trae los mismos valores como variables de colección, así funcion
 - **Titular de la corrida.** Al empezar, la colección elige como titular al usuario activo con **menos facturas pendientes** (consulta de solo lectura, ver *Verificación en base de datos*) y lo usa en toda la corrida. El listado está limitado a 100 registros ordenados por id: con un titular que ya tiene 100 pendientes, las facturas nuevas nunca aparecerían en su listado. La elección se renueva cada 30 minutos. Para fijar un usuario, completar `G3_usuarioTitularId` en el environment. Si la consulta falla, los pasos `Given` lo informan.
 - **Datos propios por escenario.** El pre-request crea las facturas que el escenario necesita para ese titular y las deja pagadas o dadas de baja si el `Given` lo pide. El BDD no depende de ids fijos.
 - **Limpieza.** Al terminar, cada request da de baja las facturas que creó. El listado está limitado a 100 registros ordenados por id: sin limpieza, tras varias corridas las facturas nuevas del titular quedarían fuera y los escenarios de listado darían falsos resultados.
-- **Factura vencida (PAG-05).** La API no permite dejar una factura en estado `vencida`, así que se usa la primera vencida de los datos sembrados. Pagarla la consume: el escenario solo puede repetirse mientras queden vencidas (si no quedan, falla la precondición con ese mensaje).
+- **Factura vencida (PAG-05).** La API no permite dejar una factura en estado `vencida`, así que se usa la primera vencida de los datos sembrados. Pagarla la consume: el escenario solo puede repetirse mientras queden vencidas (si no quedan, el escenario se **omite**: no se envía la request y sus pasos figuran como omitidos, sin fallar la corrida; vuelve a ejecutarse cuando el sandbox tenga vencidas de nuevo).
 - **Ids inexistentes.** `G3_facturaInexistenteId` y los usuarios inexistentes valen `999999999`.
 - **Escenarios de 401.** Usan el id inexistente: si la autenticación fallara, el `DELETE` no daría de baja ninguna factura real.
 
@@ -89,7 +89,7 @@ Cada paso `Given` que prepara datos tiene su propio `pm.test`. Si el pre-request
 
 #### PAG-01 · Pago exitoso de una factura pendiente
 
-`@smoke @RF-G3-03 @ande`
+`@smoke @RF-G3-03 @ande @web`
 
 **Criterio:** RF-G3-03 — una factura pendiente se paga con un medio válido (200 · data.factura.estado=pagada · data.pago.estado=procesado)
 
@@ -429,7 +429,7 @@ Examples:
 
 #### LIS-01 · Listar facturas filtrando por estado pendiente
 
-`@smoke @RF-G3-01 @ande`
+`@smoke @RF-G3-01 @ande @web`
 
 **Criterio:** RF-G3-01 — al filtrar por estado pendiente, todas las facturas devueltas tienen ese estado (200 · data[].estado=pendiente)
 
@@ -452,7 +452,7 @@ And todas las facturas del listado están en estado "pendiente"
 
 #### LIS-02 · Listar facturas combinando titular y estado
 
-`@RF-G3-01 @copaco`
+`@RF-G3-01 @copaco @web`
 
 **Criterio:** RF-G3-01 — al combinar titular y estado se cumplen ambas condiciones (200 · data[].usuario_id = titular · data[].estado=pendiente)
 
@@ -515,7 +515,7 @@ Then el sistema rechaza la consulta por datos inválidos
 
 #### LIS-05 · Listar facturas de un titular sin facturas
 
-`@RF-G3-01`
+`@RF-G3-01 @web`
 
 **Criterio:** RF-G3-01 — un titular sin facturas devuelve una lista vacía, no un error (200 · data=[])
 
@@ -559,7 +559,7 @@ And el listado tiene como máximo 100 facturas
 
 #### CON-01 · Consultar el detalle de una factura existente
 
-`@smoke @RF-G3-02 @personal`
+`@smoke @RF-G3-02 @personal @web`
 
 **Criterio:** RF-G3-02 — consultar una factura existente devuelve su detalle (200 · data.numero_factura · data.proveedor · data.estado)
 
@@ -718,7 +718,7 @@ And la factura queda en estado "pendiente"
 
 #### CRE-03 · La factura registrada aparece en el listado del titular
 
-`@RF-G3-04 @RF-G3-01 @tigo`
+`@RF-G3-04 @RF-G3-01 @tigo @web`
 
 **Criterio:** RF-G3-04 — la factura registrada aparece en el listado del titular (200 · data[] contiene la factura creada)
 
@@ -954,7 +954,7 @@ And se muestra el mensaje "Invalid JSON body."
 
 #### MOD-01 · Modificar el monto de una factura pendiente
 
-`@smoke @RF-G3-05 @ande`
+`@smoke @RF-G3-05 @ande @web`
 
 **Criterio:** RF-G3-05 — modificar el monto de una factura pendiente la actualiza y el estado sigue pendiente (200 · data.monto=275000.00 · data.estado=pendiente)
 
@@ -1192,7 +1192,7 @@ Then el sistema informa que la factura no fue encontrada
 
 #### BAJ-03 · Una factura dada de baja deja de aparecer en el listado
 
-`@RF-G3-06 @RF-G3-01 @copaco`
+`@RF-G3-06 @RF-G3-01 @copaco @web`
 
 **Criterio:** RF-G3-06 — tras la baja, la factura deja de aparecer en el listado (200 · data[] no contiene la factura)
 

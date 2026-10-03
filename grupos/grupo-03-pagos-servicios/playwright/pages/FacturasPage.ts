@@ -9,6 +9,9 @@
 // Celdas (sin data-testid, orden fijo): # · Usuario · Proveedor · Número · Monto · Vencimiento · Estado.
 // Monto y vencimiento traen el valor crudo de la API en span[data-value]; el estado es el texto del badge.
 //
+// Rate limit: el proxy de la web usa la misma API key compartida; si responde 429 el Page
+// Object lanza WebConRateLimit y VerificacionWeb espera Retry-After y vuelve a abrir.
+//
 // Espera: la web filtra llamando a GET /api/proxy/facturas (su proxy hacia la API, con los
 // mismos parámetros que GET /api/v1/facturas). El Page
 // Object espera ESA respuesta (no "red inactiva") y recién después lee la tabla: con la
@@ -39,6 +42,17 @@ export interface ResultadoWeb {
   vacio: boolean;
   contador: string | null;
   filas: FilaWeb[];
+}
+
+/**
+ * La web respondió 429: su proxy usa la misma API key compartida (30 req/min) y el límite
+ * se agotó. No es un fallo de la web ni de la prueba; quien llama espera y reintenta.
+ */
+export class WebConRateLimit extends Error {
+  constructor(readonly retryAfterSeg: number, readonly url: string) {
+    super(`La web recibió 429 (rate limit de la API key compartida) en ${url}; Retry-After ${retryAfterSeg} s`);
+    this.name = 'WebConRateLimit';
+  }
 }
 
 export class FacturasPage {
@@ -80,11 +94,19 @@ export class FacturasPage {
     );
   }
 
+  /** Si la página recibió 429, corta con WebConRateLimit (no tiene sentido esperar la tabla). */
+  private controlarLimite(r: Response): Response {
+    if (r.status() === 429) {
+      throw new WebConRateLimit(Number(r.headers()['retry-after']) || 10, new URL(r.url()).pathname);
+    }
+    return r;
+  }
+
   /** Abre /facturas y espera la primera carga (sin filtros). */
   async abrir(): Promise<void> {
     const carga = this.esperarListado({});
     await this.page.goto(this.webUrl + '/facturas');
-    await carga;
+    this.controlarLimite(await carga);
     await this.esperarTabla();
   }
 
@@ -100,13 +122,13 @@ export class FacturasPage {
       aplicados.estado = filtros.estado;
       const r = this.esperarListado(aplicados);
       await this.filtroEstado.selectOption(filtros.estado);
-      ultima = await r;
+      ultima = this.controlarLimite(await r);
     }
     if (filtros.usuarioId !== undefined && String(filtros.usuarioId) !== '') {
       aplicados.usuarioId = filtros.usuarioId;
       const r = this.esperarListado(aplicados);
       await this.filtroUsuario.fill(String(filtros.usuarioId));
-      ultima = await r;
+      ultima = this.controlarLimite(await r);
     }
     await this.esperarTabla();
 

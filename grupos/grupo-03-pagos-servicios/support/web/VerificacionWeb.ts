@@ -14,7 +14,8 @@
 // Adjunta siempre la captura y la tabla API vs web, también cuando todo coincide.
 
 import type { G3World } from '../world';
-import { FacturasPage, type FilaWeb, type FiltrosWeb, type ResultadoWeb } from '../../playwright/pages/FacturasPage';
+import { FacturasPage, WebConRateLimit, type FilaWeb, type FiltrosWeb, type ResultadoWeb } from '../../playwright/pages/FacturasPage';
+import { estadisticas } from '../api/ApiClient';
 import { config } from '../config';
 
 type Campo = 'usuario' | 'proveedor' | 'numero' | 'monto' | 'vencimiento' | 'estado';
@@ -32,8 +33,7 @@ export async function verificarEnWeb(world: G3World): Promise<void> {
   const pagina = new FacturasPage(world.page, config.webUrl);
   const filtros = filtrosDelEscenario(world);
 
-  await pagina.abrir();
-  const web = await pagina.filtrar(filtros);
+  const web = await abrirYFiltrar(pagina, filtros);
 
   const comparacion = comparar(world, filtros, web);
   // Solo para la evidencia: resalta en la captura la fila de la factura del escenario.
@@ -45,6 +45,27 @@ export async function verificarEnWeb(world: G3World): Promise<void> {
     throw new Error(
       'La web no muestra lo mismo que la API:\n- ' + comparacion.diferencias.join('\n- '),
     );
+  }
+}
+
+/**
+ * Abre /facturas y aplica los filtros. Si el proxy de la web responde 429 (la API key es
+ * compartida entre grupos), espera Retry-After y vuelve a empezar, igual que las llamadas
+ * por API: hasta config.reintentos429 veces y con tope config.esperaMax429Seg.
+ */
+async function abrirYFiltrar(pagina: FacturasPage, filtros: FiltrosWeb): Promise<ResultadoWeb> {
+  for (let reintentos = 0; ; reintentos++) {
+    try {
+      await pagina.abrir();
+      return await pagina.filtrar(filtros);
+    } catch (e) {
+      if (!(e instanceof WebConRateLimit) || reintentos >= config.reintentos429) throw e;
+      const espera = (Math.min(Math.max(e.retryAfterSeg, 1), config.esperaMax429Seg) + 1) * 1000;
+      estadisticas.rechazos429++;
+      estadisticas.esperas429Ms += espera;
+      console.warn(`[G3] 429 en la web (${e.url}): reintento ${reintentos + 1} de ${config.reintentos429} en ${espera / 1000} s`);
+      await new Promise((ok) => setTimeout(ok, espera));
+    }
   }
 }
 
