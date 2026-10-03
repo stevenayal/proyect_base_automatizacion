@@ -1,0 +1,61 @@
+name: Grupo 09 - BDD Cucumber + Playwright
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "grupos/grupo-09-reportes-dashboard/**"
+      - "tests/bdd/steps/grupo09-reportes-dashboard.steps.ts"
+      - ".github/workflows/grupo09-bdd-e2e.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "grupos/grupo-09-reportes-dashboard/**"
+      - "tests/bdd/steps/grupo09-reportes-dashboard.steps.ts"
+      - ".github/workflows/grupo09-bdd-e2e.yml"
+  workflow_dispatch:
+
+env:
+  BASE_URL: "https://aiquaa-sandbox-web.vercel.app"
+  API_URL: "https://aiquaa-sandbox-api.vercel.app"
+  # COMPLETAR: email del usuario de prueba y la api key del sandbox.
+  TEST_USER: "admin@aiquaa.com"
+  SANDBOX_API_KEY: "sbx_demo_f581ca21e68a347288c94d71"
+
+jobs:
+  bdd:
+    name: Cucumber + Playwright (Reportes y Dashboard)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v7
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar navegadores de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Ejecutar escenarios BDD del Grupo 09
+        run: >
+          npx cucumber-js "grupos/grupo-09-reportes-dashboard/features/**/*.feature"
+          --require "tests/bdd/steps/**/*.ts"
+          --require "tests/bdd/support/**/*.ts"
+          --require-module ts-node/register
+          --format progress
+          --format "json:grupos/grupo-09-reportes-dashboard/evidence/cucumber-report.json"
+
+      - name: Subir evidencias (reporte + capturas si las hay)
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: bdd-grupo09-reportes-dashboard
+          path: |
+            grupos/grupo-09-reportes-dashboard/evidence/**
+            playwright-report/**
+          retention-days: 7
