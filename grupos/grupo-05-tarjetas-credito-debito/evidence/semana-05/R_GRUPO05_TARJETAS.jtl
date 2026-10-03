@@ -1,0 +1,10 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1790990188420,965,GET - Obtener tarjeta por id,200,OK,Grupo de Hilos 1-1,text,true,,716,228,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/tarjetas/2,965,0,691
+1790990191585,300,POST - Emitir tarjeta,201,Created,Grupo de Hilos 1-1,text,true,,700,317,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/tarjetas,299,0,0
+1790990194917,373,GET - Consultar la tarjeta recien emitida,200,OK,Grupo de Hilos 1-1,text,true,,708,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/tarjetas/296,373,0,0
+1790990198249,264,GET - Obtener tarjeta por id,200,OK,Grupo de Hilos 1-1,text,true,,716,228,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/tarjetas/3,264,0,0
+1790990201583,268,POST - Emitir tarjeta,201,Created,Grupo de Hilos 1-1,text,true,,705,322,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/tarjetas,267,0,0
+1790990204923,265,GET - Consultar la tarjeta recien emitida,200,OK,Grupo de Hilos 1-1,text,true,,713,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/tarjetas/297,265,0,0
+1790990208257,268,GET - Obtener tarjeta por id,200,OK,Grupo de Hilos 1-1,text,true,,719,228,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/tarjetas/4,267,0,0
+1790990211586,251,POST - Emitir tarjeta,201,Created,Grupo de Hilos 1-1,text,true,,706,323,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/tarjetas,251,0,0
+1790990214913,269,GET - Consultar la tarjeta recien emitida,200,OK,Grupo de Hilos 1-1,text,true,,714,230,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/tarjetas/298,269,0,0
