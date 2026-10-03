@@ -1,5 +1,10 @@
-import { Given, When, Then } from '@cucumber/cucumber';
+import { Given, When, Then, setDefaultTimeout } from '@cucumber/cucumber';
 import { expect } from '@playwright/test';
+
+// El login (navegar + detectar pantalla de curso + completar email) puede
+// tardar mas que el timeout por defecto de Cucumber (5s), especialmente en
+// la primera carga de la SPA. Lo subimos a 20s para este set de steps.
+setDefaultTimeout(20 * 1000);
 import { SandboxCoursePage } from '../../../grupos/grupo-09-reportes-dashboard/playwright/pages/SandboxCoursePage';
 import { SandboxLoginPage } from '../../../grupos/grupo-09-reportes-dashboard/playwright/pages/SandboxLoginPage';
 import { ReportesPage } from '../../../grupos/grupo-09-reportes-dashboard/playwright/pages/ReportesPage';
@@ -8,9 +13,22 @@ import { ReportesPage } from '../../../grupos/grupo-09-reportes-dashboard/playwr
 // TEST_USER: email del usuario de prueba del sandbox (login sin contraseña).
 // API_URL: base de la API de movimientos.
 // SANDBOX_API_KEY: x-api-key que exige la API.
-const TEST_USER = process.env.TEST_USER || '';
-const API_URL = process.env.API_URL || 'https://aiquaa-sandbox-api.vercel.app';
-const SANDBOX_API_KEY = process.env.SANDBOX_API_KEY || '';
+//
+// IMPORTANTE: se leen con funciones (no como const al tope del archivo),
+// porque la inyeccion de .env puede ocurrir despues de que Cucumber haga
+// require() de este archivo. Leerlas en el momento de cada step asegura
+// que ya esten disponibles.
+function getTestUser(): string {
+  return process.env.TEST_USER || '';
+}
+
+function getApiUrl(): string {
+  return process.env.API_URL || 'https://aiquaa-sandbox-api.vercel.app';
+}
+
+function getApiKey(): string {
+  return process.env.SANDBOX_API_KEY || '';
+}
 
 const TIPOS_MOVIMIENTO_VALIDOS = [
   'cargo_tarjeta',
@@ -22,7 +40,7 @@ const TIPOS_MOVIMIENTO_VALIDOS = [
 function apiHeaders(): Record<string, string> {
   return {
     'Content-Type': 'application/json',
-    'x-api-key': SANDBOX_API_KEY,
+    'x-api-key': getApiKey(),
   };
 }
 
@@ -36,7 +54,7 @@ Given('el administrador inicio sesion en el sandbox de AIQUAA', async function (
   await coursePage.selectFirstCourseIfPresent();
 
   const loginPage = new SandboxLoginPage(this.page);
-  await loginPage.loginWithEmail(TEST_USER);
+  await loginPage.loginWithEmail(getTestUser());
 });
 
 When('el administrador navega al modulo de Reportes', async function () {
@@ -60,7 +78,7 @@ Then('el sistema muestra la tabla de movimientos con al menos un resultado', asy
 When('el administrador solicita por API un movimiento activo existente', async function () {
   // 1. Obtener un ID de movimiento activo real (misma consulta SQL que usa
   //    la coleccion de Postman: "Obtener tipo de movimiento su ID").
-  const sqlResponse = await this.page.request.post(`${API_URL}/api/v1/sql/select`, {
+  const sqlResponse = await this.page.request.post(`${getApiUrl()}/api/v1/sql/select`, {
     headers: apiHeaders(),
     data: {
       sql: 'SELECT id FROM movimientos WHERE activo = true ORDER BY RANDOM() LIMIT 1;',
@@ -72,7 +90,7 @@ When('el administrador solicita por API un movimiento activo existente', async f
 
   // 2. Caso de Obtener siempre un movimiento Activo: GET /movimientos/{id}
   this.lastApiResponse = await this.page.request.get(
-    `${API_URL}/api/v1/movimientos/${movimientoId}`,
+    `${getApiUrl()}/api/v1/movimientos/${movimientoId}`,
     { headers: apiHeaders() },
   );
 });
@@ -84,7 +102,7 @@ Then('la API responde con estado {int} y los datos del movimiento', async functi
 });
 
 When('el administrador solicita por API el movimiento con ID {string}', async function (id: string) {
-  this.lastApiResponse = await this.page.request.get(`${API_URL}/api/v1/movimientos/${id}`, {
+  this.lastApiResponse = await this.page.request.get(`${getApiUrl()}/api/v1/movimientos/${id}`, {
     headers: apiHeaders(),
   });
 });
@@ -101,7 +119,7 @@ When('el administrador crea un movimiento aleatorio por API', async function () 
   // Caso Crear Movimiento Aleatorio: POST /movimientos
   // Mismo body que la coleccion de Postman (usuarioId, tipoMovimiento,
   // monto, referenciaId, descripcion).
-  this.lastApiResponse = await this.page.request.post(`${API_URL}/api/v1/movimientos`, {
+  this.lastApiResponse = await this.page.request.post(`${getApiUrl()}/api/v1/movimientos`, {
     headers: apiHeaders(),
     data: {
       usuarioId: 1,

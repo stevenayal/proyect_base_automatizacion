@@ -47,3 +47,4 @@ Thumbs.db
 # Reportes de Newman: el JSON incluye el valor de la API key
 newman-*.json
 reporte-newman*.json
+test-results-bdd.txt
