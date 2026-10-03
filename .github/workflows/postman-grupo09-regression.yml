@@ -70,8 +70,8 @@ jobs:
           G9_MOVIMIENTO_ID: ${{ vars.g9_movimiento_id }}
         run: |
           npx newman run "grupos/grupo-09-reportes-dashboard/evidence/semana-03/grupo-9-reportes-y-dashboard.postman_collection.json" \
-            --env-var "baseUrl=${BASE_URL}" \
-            --env-var "apiKey=${API_KEY}" \
+            --env-var "baseUrl=${SQL_SANDBOX_BASE_URL}" \
+            --env-var "apiKey=${SQL_SANDBOX_API_KEY}" \
             --delay-request 800 \
             --reporters cli,json,junit \
             --reporter-json-export newman/results.json \
