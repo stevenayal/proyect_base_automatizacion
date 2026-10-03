@@ -33,22 +33,35 @@
 
 ## Escenarios entregados
 
-11 escenarios en [`features/tarjetas-credito-debito.feature`](features/tarjetas-credito-debito.feature):
-6 happy paths, 3 casos negativos (OTP inválido, PIN actual incorrecto, saldo insuficiente) y
-2 edge cases (compra igual al límite diario, desbloqueo denegado por motivo "ROBO").
+18 escenarios en total, repartidos en dos archivos:
+
+- [`bdd/features/tarjetas/F_TARJETAS.feature`](bdd/features/tarjetas/F_TARJETAS.feature) — 16
+  escenarios: **6 automatizados** (`@G05-TARJ-001..006`, API + BD + web), **9 `@manual
+  @sin-endpoint`** y **1 `@manual @defecto`** (el bloqueo desde el listado web, que falla:
+  [`DEF-G05-01`](docs/DEFECTOS.md)).
+- [`bdd/features/autenticacion/F_LOGIN.feature`](bdd/features/autenticacion/F_LOGIN.feature) — 2 escenarios
+  automatizados de acceso (`@G05-LOGIN-001..002`).
+
+Por tipo: 6 happy paths, 3 casos negativos (OTP inválido, PIN actual incorrecto, saldo
+insuficiente) y 2 edge cases (compra igual al límite diario, desbloqueo denegado por motivo
+"ROBO"), más los de login y el del defecto.
+
+Los 10 escenarios `@manual` se ejecutaron a mano y están asentados en
+[`docs/EJECUCION-MANUAL.md`](docs/EJECUCION-MANUAL.md): 9 en `BLOQUEADO` por falta de endpoints
+en el sandbox (evidencia verificada el 2026-10-02) y 1 en `FALLA` por `DEF-G05-01`.
 
 ## Entregables
 
 Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 
 - [x] Análisis y alcance
-- [x] BDD — `features/` (happy path caso negativo, y edge case cubiertos)
+- [x] BDD — `bdd/features/` (happy path, caso negativo y edge case cubiertos), ejecutable con Cucumber + POM
 - [x] API — colección Postman/Newman
-- [ ] UI — `tests/e2e/` con Playwright
-- [x] Evidencias en `evidence/semana-03/` (salida Newman de la corrida SQL)
+- [x] UI — Playwright + BDD web con Page Objects (`LoginPage`, `TarjetasPage`)
+- [x] Evidencias en `evidence/semana-03/` (Newman) y `evidence/semana-06/` (capturas, respuestas API, clasificación de fallos e informes PDF)
 - [x] Rendimiento — plan JMeter + CSV (`tests/performance/`, ver más abajo)
-- [ ] CI/CD verde
-- [ ] PR a `main` usando la plantilla del repo
+- [x] CI/CD — workflow propio de BDD + Playwright
+- [x] PR a `main` usando la plantilla del repo
 
 ## Trazabilidad BDD -> API (AIQUAA)
 
@@ -85,6 +98,50 @@ ejecutado en CI por [`jmeter-grupo05-performance.yml`](../../.github/workflows/j
 | `tests/performance/data/grupo05_emision_tarjetas.csv` | `usuarioId,tipo,marca,codigoEsperado` para el POST. |
 | `tests/performance/properties/local.properties` | Host, carga y rutas para correr en local con `jmeter -p`. |
 | `tests/performance/thresholds/thresholds.json` | SLA propio del grupo: global y por operación. |
+| `scripts/capturar-dashboard.js` | Captura el dashboard de monitoreo como evidencia del informe. |
+
+### Pipeline, monitoreo y reportería (semana 5)
+
+El workflow [`jmeter-grupo05-performance.yml`](../../.github/workflows/jmeter-grupo05-performance.yml)
+encadena la corrida de carga, el monitoreo y el informe en un solo pipeline:
+
+1. espera cupo en el rate limit del sandbox (la API key es compartida por toda la clase);
+2. ejecuta el plan JMeter headless (`-n -t … -l … -e -o dashboard`);
+3. **captura el dashboard de Grafana** del sandbox
+   ([`aiquaa Sandbox API - qa_training`](https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958))
+   justo después de la corrida, cuando ya refleja la carga generada;
+4. genera el informe PDF con
+   [`aiquaa-performance-mcp-server`](https://github.com/stevenayal/aiquaa-performance-mcp-server)
+   (`--report`), incrustando esa captura con `--evidence-image`, `--evidence-label` y
+   `--evidence-url`;
+5. evalúa los umbrales del SLA (`--evaluate`), que es el gate que hace fallar el job;
+6. publica el PDF como artefacto propio y la carpeta completa de resultados (JTL, dashboard HTML
+   y evidencia) como un segundo artefacto.
+
+La captura usa Playwright, que ya es dependencia del repositorio, en vez del script Selenium que
+trae el MCP server: evita sumar Python y chromedriver al runner. El paso es `continue-on-error`,
+así que si Grafana no responde el informe igual se genera, sin el anexo, y el job avisa con un
+`::warning::`.
+
+```bash
+# correr la captura a mano (por ejemplo para revisar el encuadre)
+node grupos/grupo-05-tarjetas-credito-debito/scripts/capturar-dashboard.js \
+  --url "https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958" \
+  --output test-results/performance/grupo05/evidence/EVIDENCIA_MONITOREO.png
+
+# generar el informe desde un .jtl existente, con la evidencia adjunta
+npx -y aiquaa-performance-mcp-server --report \
+  test-results/performance/grupo05/R_GRUPO05_TARJETAS.jtl \
+  grupos/grupo-05-tarjetas-credito-debito/tests/performance/thresholds/thresholds.json \
+  test-results/performance/grupo05/INFORME_PERF_GRUPO05.pdf \
+  --api-name "AIQUAA Sandbox API (tarjetas credito/debito)" --test-type carga \
+  --evidence-image test-results/performance/grupo05/evidence/EVIDENCIA_MONITOREO.png \
+  --evidence-label "Dashboard de monitoreo - aiquaa Sandbox API"
+```
+
+El pipeline corre en cada PR a `main` que toque el plan, los CSV, el script de captura o el
+propio workflow, y a demanda por `workflow_dispatch`, donde se pueden ajustar `threads`, `loops`
+y la URL del dashboard a capturar.
 
 ### Qué cubre
 
@@ -179,3 +236,204 @@ Bajar `loops` para que la corrida termine antes reintroduce el problema.
 
 Los ids del seed se borran con el uso. Si una fila `200` empieza a dar 404, se refresca la
 columna con los ids vigentes; el tramo dinámico (punto 3) no necesita mantenimiento.
+
+## Semana 06 — BDD con Cucumber + POM (web + API + base de datos)
+
+Los escenarios del módulo se ejecutan con Cucumber contra el sandbox real
+(`https://aiquaa-sandbox-web.vercel.app/`) y dejan evidencia trazable por ID. La suite sigue la
+arquitectura **Cucumber + BDD + POM** de
+[`skills/playwright-ai-agents-skill`](https://github.com/stevenayal/proyect_base_automatizacion/tree/main/skills/playwright-ai-agents-skill)
+(la skill de la clase de la semana 6):
+
+- `.feature` en lenguaje de negocio (`F_*.feature`), sin endpoints, selectores ni URLs;
+- steps de negocio (`S_*.steps.ts`): un step = una llamada a un Page Object o a la API;
+- `world.ts` con Page Objects lazy (`this.login`, `this.tarjetas`) y la API del módulo
+  (`this.api`), que concentra endpoints, reintentos y la verificación SQL;
+- plan con riesgos y contrato de `data-testid` en
+  [`bdd/specs/PLAN_TARJETAS.md`](bdd/specs/PLAN_TARJETAS.md);
+- perfil `dryrun` como gate de CI (0 steps sin definir) y Failure Classifier determinístico
+  sobre el JSON de Cucumber, sin IA en la ejecución.
+
+Todo vive en la carpeta del grupo: la skill está en `main`, así que el classifier se copió en
+[`bdd/scripts/classify-failures.mjs`](bdd/scripts/classify-failures.mjs) para no depender de un
+merge.
+
+```bash
+CFG=grupos/grupo-05-tarjetas-credito-debito/bdd/cucumber.js
+npx cucumber-js --config $CFG --profile dryrun     # catálogo: 0 undefined
+npx cucumber-js --config $CFG --profile grupo05    # 8 escenarios automatizados
+node grupos/grupo-05-tarjetas-credito-debito/bdd/scripts/classify-failures.mjs \
+  --input results/grupo05/cucumber-report.json --out results/grupo05/CLASIF_BDD_GRUPO05.json
+```
+
+### Artefactos
+
+| Artefacto | Ruta |
+| :--- | :--- |
+| Plan | [`bdd/specs/PLAN_TARJETAS.md`](bdd/specs/PLAN_TARJETAS.md) |
+| Feature — acceso | [`bdd/features/autenticacion/F_LOGIN.feature`](bdd/features/autenticacion/F_LOGIN.feature) |
+| Feature — tarjetas | [`bdd/features/tarjetas/F_TARJETAS.feature`](bdd/features/tarjetas/F_TARJETAS.feature) |
+| Steps | [`bdd/steps/S_autenticacion.steps.ts`](bdd/steps/S_autenticacion.steps.ts) · [`S_tarjetas.steps.ts`](bdd/steps/S_tarjetas.steps.ts) |
+| World / hooks / API | [`bdd/support/world.ts`](bdd/support/world.ts) · [`hooks.ts`](bdd/support/hooks.ts) · [`tarjetas-api.ts`](bdd/support/tarjetas-api.ts) |
+| Perfiles Cucumber | [`bdd/cucumber.js`](bdd/cucumber.js) (`grupo05`, `smoke`, `dryrun`) |
+| Failure Classifier | [`bdd/scripts/classify-failures.mjs`](bdd/scripts/classify-failures.mjs) |
+| Page Objects | [`playwright/pages/LoginPage.ts`](playwright/pages/LoginPage.ts) · [`TarjetasPage.ts`](playwright/pages/TarjetasPage.ts) |
+| Smoke Playwright | [`tests/e2e/T_TARJETAS_SMOKE.spec.ts`](tests/e2e/T_TARJETAS_SMOKE.spec.ts) |
+| Ejecución manual | [`docs/EJECUCION-MANUAL.md`](docs/EJECUCION-MANUAL.md) |
+| Defectos | [`docs/DEFECTOS.md`](docs/DEFECTOS.md) |
+| CI | [`.github/workflows/Y_GRUPO05_bdd.yml`](../../.github/workflows/Y_GRUPO05_bdd.yml) |
+| Evidencia | [`evidence/semana-06/`](evidence/semana-06/) |
+| Informe PDF BDD | [`evidence/semana-06/INFORME_BDD_GRUPO_05.pdf`](evidence/semana-06/INFORME_BDD_GRUPO_05.pdf) — incluye el anexo con las evidencias incrustadas |
+| Informe PDF E2E | [`evidence/semana-06/INFORME_E2E_GRUPO_05.pdf`](evidence/semana-06/INFORME_E2E_GRUPO_05.pdf) |
+| Clasificación de fallos | [`evidence/semana-06/CLASIF_BDD_GRUPO05.json`](evidence/semana-06/CLASIF_BDD_GRUPO05.json) |
+
+### Trazabilidad escenario ↔ evidencia
+
+Cada escenario automatizado lleva su ID como tag. El hook `After` guarda la evidencia con ese
+mismo ID: captura `.png` para los escenarios web, `.json` con la última respuesta para los de
+API. Patrón de archivo: `<ID>-<PASSED|FAILED>-<timestamp>`.
+
+| ID | Escenario | Capa | Criterio de aceptación | Resultado |
+| :--- | :--- | :--- | :--- | :---: |
+| `G05-LOGIN-002` | El botón de ingresar arranca deshabilitado | web | el formulario no permite enviar sin email cargado | ✅ |
+| `G05-LOGIN-001` | Acceso rechazado para un email no registrado | web | mensaje de error controlado, sin revelar si el usuario existe | ✅ |
+| `G05-TARJ-001` | Ver datos tarjeta | api | la consulta devuelve identificación y estado vigente | ✅ |
+| `G05-TARJ-002` | Bloqueo de tarjeta por reporte de pérdida | api + bd | el bloqueo se persiste en la base, no solo en la respuesta | ✅ |
+| `G05-TARJ-003` | Desbloqueo exitoso de tarjeta bloqueada | api + bd | la tarjeta vuelve a estado activo y la base lo refleja | ✅ |
+| `G05-TARJ-004` | Consulta de una tarjeta inexistente | api | 404 con código de error tipificado | ✅ |
+| `G05-TARJ-005` | Consulta de la tarjeta desde la interfaz web | web + api | el cliente encuentra su tarjeta filtrando y abre su detalle | ✅ |
+| `G05-TARJ-006` | Edición de la tarjeta desde la interfaz web | web + api + bd | la edición hecha en pantalla queda persistida en la base | ✅ |
+
+### Alcance real de la automatización
+
+De los 11 escenarios acordados por el equipo, **4 tienen endpoint en el sandbox** y se
+automatizaron; los otros **7 quedan como `@manual @sin-endpoint`** dentro del mismo `.feature`,
+porque la API solo expone:
+
+```
+GET   /api/v1/tarjetas
+POST  /api/v1/tarjetas
+GET   /api/v1/tarjetas/{id}
+PATCH /api/v1/tarjetas/{id}/bloquear
+PATCH /api/v1/tarjetas/{id}/activar
+```
+
+No existen endpoints de PIN, OTP, límites de compra ni pago de tarjeta (verificado en
+`/api/v1/docs`), así que esos casos se ejecutan de forma manual y quedan documentados en el
+feature en vez de simularse con mocks que no probarían nada del sistema real.
+
+A los 4 automatizados por API se sumaron 2 escenarios de interfaz (`G05-TARJ-005/006`), que
+cierran el ciclo **acción en pantalla → efecto en la API → efecto persistido en la base**.
+
+### Defecto detectado
+
+**DEF-G05-01 — los botones "Bloquear" y "Activar" del listado de tarjetas no hacen nada.**
+
+Al hacer click sobre ellos no se dispara ninguna petición: el estado no cambia en pantalla ni en
+la API. La misma operación por API (`PATCH /api/v1/tarjetas/{id}/bloquear`) funciona, y el
+formulario de edición del detalle sí envía su `PUT /api/proxy/tarjetas/{id}`, lo que acota el
+problema al handler de esos dos botones del listado. El escenario correspondiente quedó
+documentado en el feature con tags `@manual @defecto`, sin automatizar en verde, para no
+normalizar el defecto como comportamiento esperado. Ficha completa, con evidencia técnica y
+pasos de reproducción, en [`docs/DEFECTOS.md`](docs/DEFECTOS.md).
+
+### Ejecución
+
+```bash
+npm install
+npx playwright install chromium
+cp .env.example .env          # completar SANDBOX_API_KEY
+
+# La config de Cucumber del grupo vive en bdd/cucumber.js, no en la raiz del repo
+BDD=grupos/grupo-05-tarjetas-credito-debito/bdd
+
+npx cucumber-js --config $BDD/cucumber.js --profile grupo05                       # los 8 escenarios
+npx cucumber-js --config $BDD/cucumber.js --profile dryrun                        # valida que no falte ningun step
+npx cucumber-js --config $BDD/cucumber.js --profile grupo05 --tags "@api"         # solo capa API
+npx cucumber-js --config $BDD/cucumber.js --profile grupo05 --tags "@G05-TARJ-002" # un escenario puntual
+HEADED=true npx cucumber-js --config $BDD/cucumber.js --profile grupo05           # con navegador visible
+
+npx playwright test grupos/grupo-05-tarjetas-credito-debito # smoke UI con Playwright puro
+
+# informe PDF del BDD (requiere: pip install reportlab pillow)
+python skills/bdd-skill/reporter/bdd_report.py \
+  --results results/grupo05/cucumber-report.json \
+  --output grupos/grupo-05-tarjetas-credito-debito/evidence/semana-06/INFORME_BDD_GRUPO_05.pdf \
+  --grupo "Grupo 05 - Tarjetas de Credito/Debito"
+```
+
+Variables de entorno relevantes (`.env`):
+
+| Variable | Default | Uso |
+| :--- | :--- | :--- |
+| `BASE_URL` | `https://aiquaa-sandbox-web.vercel.app/` | sitio bajo prueba |
+| `API_URL` | `https://aiquaa-sandbox-api.vercel.app` | API del sandbox |
+| `SANDBOX_API_KEY` | — | cabecera `x-api-key` de los steps `@api` y `@db` |
+| `SANDBOX_CURSO` | `1` | curso elegido en la pantalla previa al login |
+| `SANDBOX_USUARIO_ID` | `1` | usuario dueño de las tarjetas sembradas |
+| `SANDBOX_EMAIL_CLIENTE` | `bruno.ramirez@example.com` | cliente usado en los escenarios web |
+| `EVIDENCE_DIR` | — | carpeta donde se guarda la evidencia con ID |
+| `STEP_TIMEOUT_MS` | `75000` | timeout por step de Cucumber |
+| `RATE_LIMIT_WAIT_MS` | `20000` | espera antes de reintentar tras un 429 |
+| `HEADED` | `false` | `true` abre el navegador |
+
+> El perfil `grupo05` de [`cucumber.js`](../../cucumber.js) apunta solo a los features de este
+> grupo y filtra `not @manual`. Los features de otros equipos (07, 08, 09) tienen errores de
+> sintaxis Gherkin que abortan el parseo de una corrida global.
+
+### Incidencias encontradas
+
+1. **El sandbox incorporó una pantalla previa de selección de curso** (`/` → `/curso` →
+   `/auth/login`). `LoginPage.open()` resuelve ese paso antes de llegar al formulario.
+2. **El mensaje de error del login cambió** a `"No hay un cliente con ese email."`; la guía
+   [`playwright/README.md`](../../playwright/README.md) todavía documenta el texto anterior.
+3. **Los ids de tarjeta sembrados ya no son estables** (`GET /api/v1/tarjetas/1` responde 404).
+   Cada escenario crea su propia tarjeta con `POST /api/v1/tarjetas` y guarda el id como
+   `{tarjetaId}`.
+4. **Rate limit de 30 req/min en el sandbox**, que afecta tanto a la API como a la interfaz
+   (la pantalla renderiza *"Rate limit exceeded"* en lugar de los datos). Se trata con
+   reintento y espera en `AiquaaWorld.conReintento()` y `BasePage.esperarSinRateLimit()`.
+5. **Timeout por step insuficiente**: los 5 s por defecto de Cucumber no alcanzan para el
+   arranque en frío en Vercel más los reintentos; se elevó a 75 s configurables.
+6. **El informe PDF no mostraba las evidencias**: ahora el reporter incrusta, en un anexo final,
+   la captura de cada escenario web y la última respuesta HTTP de cada escenario de API, buscadas
+   por ID en `--evidence-dir` (por defecto, la carpeta del propio PDF).
+7. **El informe PDF perdía la matriz de trazabilidad**: cucumber-js 11 ya no exporta los
+   comentarios del `.feature` en el JSON. Se parcheó
+   [`skills/bdd-skill/reporter/bdd_report.py`](../../skills/bdd-skill/reporter/bdd_report.py)
+   para leer los `# criterio:` del `.feature` (con soporte multilínea) y agregar la columna
+   **ID** a la matriz.
+
+### Mejoras futuras
+
+- Automatizar los 7 escenarios `@sin-endpoint` cuando el sandbox exponga PIN, OTP, límites y
+  pagos de tarjeta.
+- Reactivar el escenario `@defecto` en cuanto se corrija DEF-G05-01.
+
+### Integración continua
+
+[`.github/workflows/Y_GRUPO05_bdd.yml`](../../.github/workflows/Y_GRUPO05_bdd.yml)
+corre en cada push a `main` o a la rama del grupo, y en cada PR a `main`, que toque `bdd/`, los
+Page Objects o el smoke del grupo; también a demanda (`workflow_dispatch`). Sigue el esqueleto
+del ejemplo del curso (`Y_AIQUAA_E2E_playwright.yml`):
+
+1. valida el catálogo de steps con el perfil `dryrun` (0 undefined, 0 ambiguous);
+2. espera a que haya cupo en el rate limit del sandbox (mismo script que usan Newman y JMeter,
+   y el mismo grupo de concurrencia, porque las tres corridas comparten API key);
+3. ejecuta Cucumber con el perfil `grupo05` (los 8 escenarios automatizados; los `@manual`
+   quedan fuera por configuración del perfil);
+4. clasifica los fallos con el Failure Classifier de la skill (`CLASIF_BDD_GRUPO05.json`);
+5. genera el informe PDF BDD con la matriz de trazabilidad y las evidencias incrustadas;
+6. ejecuta el smoke de Playwright del grupo y genera su informe PDF E2E;
+7. publica como artefactos la evidencia, los informes, la clasificación y el reporte HTML de
+   Playwright, incluso si la corrida falló.
+
+La API key se toma de `secrets.GRUPO05_API_KEY` y, si no está definida, cae en la key demo
+pública del curso — el mismo patrón que los workflows de Newman y JMeter del grupo.
+
+### Entregable no disponible en el entorno
+
+`GET /api/v1/labs/evidence/:sessionId`, que [`ENTREGABLES.md`](../../ENTREGABLES.md) pide como
+evidencia, **ya no existe en el sandbox**: responde 404 y no aparece en `/api/v1/docs`. La
+evidencia equivalente se entrega como capturas, respuestas HTTP e informes PDF en
+`evidence/semana-06/`.

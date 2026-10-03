@@ -11,6 +11,7 @@ on:
     paths:
       - "grupos/grupo-05-tarjetas-credito-debito/tests/performance/plans/Grupo05_Tarjetas_v1.jmx"
       - "grupos/grupo-05-tarjetas-credito-debito/tests/performance/data/grupo05_*.csv"
+      - "grupos/grupo-05-tarjetas-credito-debito/scripts/capturar-dashboard.js"
       - ".github/workflows/jmeter-grupo05-performance.yml"
   workflow_dispatch:
     inputs:
@@ -22,6 +23,12 @@ on:
         description: "Iteraciones por thread"
         required: false
         default: "10"
+      monitoring_dashboard_url:
+        description: >-
+          Dashboard de monitoreo a capturar como evidencia despues de la corrida.
+          Vacio omite la captura.
+        required: false
+        default: "https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958"
 
 permissions:
   contents: read
@@ -42,6 +49,9 @@ env:
   # publica del sandbox que se repartio en clase, para que el workflow siga
   # siendo ejecutable por cualquiera del grupo.
   API_KEY: ${{ secrets.GRUPO05_API_KEY || 'sbx_demo_f581ca21e68a347288c94d71' }}
+  # Dashboard de monitoreo del sandbox (Grafana publico del curso). En los
+  # disparos por pull_request no hay inputs, asi que se toma este valor.
+  MONITORING_DASHBOARD_URL: ${{ inputs.monitoring_dashboard_url || 'https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958' }}
 
 jobs:
   performance:
@@ -63,6 +73,13 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+
+      - name: Instalar dependencias Node
+        run: npm install
+
+      - name: Instalar Chromium para la captura del dashboard
+        if: env.MONITORING_DASHBOARD_URL != ''
+        run: npx playwright install --with-deps chromium
 
       - name: Instalar JMeter
         run: |
@@ -88,9 +105,34 @@ jobs:
             -Jthreads="${{ inputs.threads || '2' }}" \
             -Jloops="${{ inputs.loops || '10' }}"
 
+      # La evidencia se captura despues de la corrida, con el dashboard ya
+      # reflejando la carga recien generada.
+      - name: Capturar evidencia del dashboard de monitoreo
+        if: ${{ always() && env.MONITORING_DASHBOARD_URL != '' }}
+        continue-on-error: true
+        run: |
+          node grupos/grupo-05-tarjetas-credito-debito/scripts/capturar-dashboard.js \
+            --url "${MONITORING_DASHBOARD_URL}" \
+            --output "${RESULTS_DIR}/evidence/EVIDENCIA_MONITOREO.png" \
+            --wait-seconds 10 \
+            --timeout-seconds 180
+
       - name: Generar informe PDF
         if: always()
         run: |
+          # Solo se adjunta la evidencia si la captura prospero: el paso anterior
+          # es continue-on-error para no perder el informe si Grafana no responde.
+          EVIDENCE_ARGS=()
+          if [ -f "${RESULTS_DIR}/evidence/EVIDENCIA_MONITOREO.png" ]; then
+            EVIDENCE_ARGS=(
+              --evidence-image "${RESULTS_DIR}/evidence/EVIDENCIA_MONITOREO.png"
+              --evidence-label "Dashboard de monitoreo - aiquaa Sandbox API"
+              --evidence-url "${MONITORING_DASHBOARD_URL}"
+            )
+          else
+            echo "::warning::Sin evidencia de monitoreo: el informe sale sin el anexo del dashboard."
+          fi
+
           # El generador sale con codigo 1 cuando el veredicto es FAIL. Aca solo
           # interesa producir el PDF; el gate del SLA es "Evaluar umbrales".
           set +e
@@ -99,13 +141,13 @@ jobs:
             grupos/grupo-05-tarjetas-credito-debito/tests/performance/thresholds/thresholds.json \
             "${RESULTS_DIR}/INFORME_PERF_GRUPO05.pdf" \
             --api-name "AIQUAA Sandbox API (tarjetas credito/debito)" \
-            --plan grupos/grupo-05-tarjetas-credito-debito/tests/performance/plans/Grupo05_Tarjetas_v1.jmx \
             --test-type carga \
             --threads "${{ inputs.threads || '2' }}" \
             --loops "${{ inputs.loops || '10' }}" \
             --author "${{ github.triggering_actor }}" \
             --api-version "${{ github.sha }}" \
-            --repo-url "${{ github.server_url }}/${{ github.repository }}"
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            "${EVIDENCE_ARGS[@]}"
           status=$?
           set -e
           if [ ! -f "${RESULTS_DIR}/INFORME_PERF_GRUPO05.pdf" ]; then
@@ -120,7 +162,16 @@ jobs:
             "${RESULTS_DIR}/R_GRUPO05_TARJETAS.jtl" \
             grupos/grupo-05-tarjetas-credito-debito/tests/performance/thresholds/thresholds.json
 
-      - name: Subir resultados e informe
+      - name: Subir informe PDF (se abre directo en el navegador)
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: informe-perf-grupo05
+          path: test-results/performance/grupo05/INFORME_PERF_GRUPO05.pdf
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Subir resultados, dashboard y evidencia de monitoreo
         uses: actions/upload-artifact@v7
         if: always()
         with:
