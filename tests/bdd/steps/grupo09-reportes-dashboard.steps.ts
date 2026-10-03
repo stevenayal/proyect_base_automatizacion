@@ -4,7 +4,7 @@ import { expect } from '@playwright/test';
 // El login (navegar + detectar pantalla de curso + completar email) puede
 // tardar mas que el timeout por defecto de Cucumber (5s), especialmente en
 // la primera carga de la SPA. Lo subimos a 20s para este set de steps.
-setDefaultTimeout(20 * 1000);
+setDefaultTimeout(45 * 1000);
 import { SandboxCoursePage } from '../../../grupos/grupo-09-reportes-dashboard/playwright/pages/SandboxCoursePage';
 import { SandboxLoginPage } from '../../../grupos/grupo-09-reportes-dashboard/playwright/pages/SandboxLoginPage';
 import { ReportesPage } from '../../../grupos/grupo-09-reportes-dashboard/playwright/pages/ReportesPage';
@@ -44,6 +44,31 @@ function apiHeaders(): Record<string, string> {
   };
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * La API de sandbox usa una api-key de demo compartida por todo el curso,
+ * asi que es comun recibir 429 (Too Many Requests) cuando varios pipelines
+ * corren en paralelo. Reintenta con backoff antes de dar el fallo por bueno.
+ */
+async function requestWithRetry(
+  doRequest: () => Promise<any>,
+  maxAttempts: number = 4,
+): Promise<any> {
+  let lastResponse: any;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    lastResponse = await doRequest();
+    if (lastResponse.status() !== 429) {
+      return lastResponse;
+    }
+    const waitMs = attempt * 2000; // 2s, 4s, 6s...
+    await sleep(waitMs);
+  }
+  return lastResponse;
+}
+
 // ---------------------------------------------------------------------
 // Escenario UI: login + ver el reporte
 // ---------------------------------------------------------------------
@@ -63,7 +88,15 @@ When('el administrador navega al modulo de Reportes', async function () {
 });
 
 Then('el sistema muestra la tabla de movimientos con al menos un resultado', async function () {
-  const count = await this.reportesPage.getResultsCount();
+  // El backend puede estar momentaneamente rate-limitado (misma api-key
+  // compartida por todo el curso); reintentamos unas veces antes de fallar.
+  let count = 0;
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    count = await this.reportesPage.getResultsCount();
+    if (count > 0) break;
+    await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
+    await this.reportesPage.open();
+  }
   expect(count).toBeGreaterThan(0);
 });
 
@@ -78,20 +111,23 @@ Then('el sistema muestra la tabla de movimientos con al menos un resultado', asy
 When('el administrador solicita por API un movimiento activo existente', async function () {
   // 1. Obtener un ID de movimiento activo real (misma consulta SQL que usa
   //    la coleccion de Postman: "Obtener tipo de movimiento su ID").
-  const sqlResponse = await this.page.request.post(`${getApiUrl()}/api/v1/sql/select`, {
-    headers: apiHeaders(),
-    data: {
-      sql: 'SELECT id FROM movimientos WHERE activo = true ORDER BY RANDOM() LIMIT 1;',
-    },
-  });
+  const sqlResponse = await requestWithRetry(() =>
+    this.page.request.post(`${getApiUrl()}/api/v1/sql/select`, {
+      headers: apiHeaders(),
+      data: {
+        sql: 'SELECT id FROM movimientos WHERE activo = true ORDER BY RANDOM() LIMIT 1;',
+      },
+    }),
+  );
   expect(sqlResponse.status()).toBe(200);
   const sqlBody = await sqlResponse.json();
   const movimientoId = sqlBody.data[0].id;
 
   // 2. Caso de Obtener siempre un movimiento Activo: GET /movimientos/{id}
-  this.lastApiResponse = await this.page.request.get(
-    `${getApiUrl()}/api/v1/movimientos/${movimientoId}`,
-    { headers: apiHeaders() },
+  this.lastApiResponse = await requestWithRetry(() =>
+    this.page.request.get(`${getApiUrl()}/api/v1/movimientos/${movimientoId}`, {
+      headers: apiHeaders(),
+    }),
   );
 });
 
@@ -102,9 +138,11 @@ Then('la API responde con estado {int} y los datos del movimiento', async functi
 });
 
 When('el administrador solicita por API el movimiento con ID {string}', async function (id: string) {
-  this.lastApiResponse = await this.page.request.get(`${getApiUrl()}/api/v1/movimientos/${id}`, {
-    headers: apiHeaders(),
-  });
+  this.lastApiResponse = await requestWithRetry(() =>
+    this.page.request.get(`${getApiUrl()}/api/v1/movimientos/${id}`, {
+      headers: apiHeaders(),
+    }),
+  );
 });
 
 Then('la API responde con un error indicando que el movimiento no existe', async function () {
@@ -119,16 +157,18 @@ When('el administrador crea un movimiento aleatorio por API', async function () 
   // Caso Crear Movimiento Aleatorio: POST /movimientos
   // Mismo body que la coleccion de Postman (usuarioId, tipoMovimiento,
   // monto, referenciaId, descripcion).
-  this.lastApiResponse = await this.page.request.post(`${getApiUrl()}/api/v1/movimientos`, {
-    headers: apiHeaders(),
-    data: {
-      usuarioId: 1,
-      tipoMovimiento,
-      monto,
-      referenciaId: 1,
-      descripcion: '',
-    },
-  });
+  this.lastApiResponse = await requestWithRetry(() =>
+    this.page.request.post(`${getApiUrl()}/api/v1/movimientos`, {
+      headers: apiHeaders(),
+      data: {
+        usuarioId: 1,
+        tipoMovimiento,
+        monto,
+        referenciaId: 1,
+        descripcion: '',
+      },
+    }),
+  );
 });
 
 Then('la API responde confirmando la creacion del movimiento', async function () {
