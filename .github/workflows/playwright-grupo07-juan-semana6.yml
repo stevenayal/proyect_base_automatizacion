@@ -45,11 +45,24 @@ jobs:
         run: npm run test:bdd:ordenes-andrea:dryrun
       - name: Ejecutar escenario BDD
         run: npm run test:bdd:ordenes-andrea
+      - name: Preparar reportes de Juan
+        if: always()
+        run: |
+          if [ -d results/grupo07-andrea ]; then
+            mkdir -p results/grupo07-juan
+            cp -a results/grupo07-andrea/. results/grupo07-juan/
+            for extension in html json; do
+              report="results/grupo07-juan/cucumber-grupo07-andrea.$extension"
+              if [ -f "$report" ]; then
+                mv "$report" "results/grupo07-juan/cucumber-grupo07-juan.$extension"
+              fi
+            done
+          fi
       - name: Publicar evidencia
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-grupo07-juan-semana6-${{ github.run_number }}
-          path: results/grupo07-andrea/**
+          path: results/grupo07-juan/**
           if-no-files-found: warn
           retention-days: 14
