@@ -1,0 +1,19 @@
+{
+  "//": "TypeScript del Grupo 03 (steps, support, pages). ts-node lo usa vía TS_NODE_PROJECT (lo fija cucumber.js).",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "ts-node": {
+    "transpileOnly": true,
+    "compilerOptions": { "module": "commonjs" }
+  },
+  "include": ["steps/**/*.ts", "support/**/*.ts", "playwright/pages/**/*.ts"]
+}

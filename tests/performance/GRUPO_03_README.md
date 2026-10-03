@@ -138,7 +138,7 @@ ejecuta **dos corridas encadenadas**.
 
 | Corrida | Carga | Para qué |
 | --- | --- | --- |
-| **BASELINE** | 1 hilo, think time 3000 ms, 300 s | Queda por debajo del rate limit del sandbox. Es la que mide la API de verdad y la que **define el veredicto del SLA**. |
+| **BASELINE** | 1 hilo, think time 6000 ms, 420 s | Queda por debajo del rate limit del sandbox. Es la que mide la API de verdad y la que **define el veredicto del SLA**. |
 | **SATURACION** | 10 hilos, think time 500 ms, 180 s | La carga del NFR. Busca el techo de capacidad, no cumplir el SLA. Su veredicto es informativo. |
 
 Entre las dos hay un enfriamiento de 90 s para que la ventana del rate limit se reinicie
@@ -164,17 +164,20 @@ Se dispara **a mano** desde la pestaña Actions (`Run workflow`), con cinco inpu
 | Input | Default |
 | --- | --- |
 | `monitoring_dashboard_url` | dashboard público de Grafana del curso |
-| `baseline_think_time` | `3000` |
-| `baseline_duration` | `300` |
+| `baseline_think_time` | `6000` |
+| `baseline_duration` | `420` |
 | `saturacion_threads` | `10` |
 | `saturacion_duration` | `180` |
 
-**Disparo temporal por `push`.** GitHub solo muestra `Run workflow` cuando el archivo del
-workflow ya está en la rama por defecto. Mientras este trabajo viva en
-`grupo-03-pagos-servicios` sin mergear, el disparo manual no está disponible, así que el
-workflow lleva además un `push` acotado a esa rama y a `tests/performance/**`. Una vez en
-`main`, ese bloque se puede borrar. En un `push` los `inputs` vienen vacíos y el paso
-*Resolver parametros* aplica los mismos valores por defecto del formulario.
+**Solo manual.** Al principio el workflow llevaba además un `push` acotado a
+`grupo-03-pagos-servicios` y a `tests/performance/**`, porque GitHub solo muestra
+`Run workflow` cuando el archivo ya está en la rama por defecto y era la única forma de
+correrlo antes del merge (las corridas documentadas en el PR salieron de ahí). Con el plan
+final ese `push` se quitó, para que los dos pipelines no corran juntos cada vez que se sube
+algo a `tests/performance/`. Hasta que el workflow esté en `main` no se puede disparar.
+
+El plan final por endpoint tiene su propio pipeline (`Y_GRUPO03_jmeter_final.yml`) y su
+documentación en `GRUPO_03_README_FINAL.md`.
 
 ### Secuencia
 

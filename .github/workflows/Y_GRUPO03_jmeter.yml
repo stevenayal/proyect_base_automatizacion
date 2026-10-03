@@ -46,16 +46,10 @@ on:
         required: false
         default: '180'
 
-  # workflow_dispatch solo aparece en la pestana Actions cuando el archivo ya esta
-  # en la rama por defecto. Mientras este PR no se mergee a main, este push acotado
-  # es la unica forma de ejecutar el pipeline y adjuntar el PDF a la entrega.
-  # Una vez en main se puede borrar este bloque y quedarse solo con el disparo manual.
-  push:
-    branches:
-      - grupo-03-pagos-servicios
-    paths:
-      - 'tests/performance/**'
-      - '.github/workflows/Y_GRUPO03_jmeter.yml'
+  # Solo disparo manual. El push acotado que tenia antes se quito para que no corra
+  # junto con el plan final (Y_GRUPO03_jmeter_final.yml) cada vez que se sube algo a
+  # tests/performance/. Ojo: el boton "Run workflow" aparece recien cuando este archivo
+  # esta en la rama por defecto (main).
 
 permissions:
   contents: read

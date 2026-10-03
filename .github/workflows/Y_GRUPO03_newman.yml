@@ -1,0 +1,191 @@
+name: Newman Grupo03 - Pago de Servicios (colección Final)
+
+# Regresión de la API del Grupo 03 generada desde el BDD
+#   grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature
+# Corre la colección Final con Newman y arma el informe PDF con el reporter de la
+# skill postman-newman (skills/postman-newman-skill/reporter/newman_report.py).
+#
+# Convive con postman-grupo03-regression.yml y postman-grupo03-regression_limitreq.yml,
+# que siguen corriendo la colección anterior. Esta no necesita partirse en lotes: la
+# colección Final controla su propio caudal (G3_reqPorMinuto) y reintenta los 429.
+#
+# Trazabilidad BDD -> API: postman/Grupo03-Pago-Servicios-Final_README.md
+
+on:
+  workflow_dispatch:
+    inputs:
+      req_por_minuto:
+        description: >-
+          Requests por minuto que se permite la corrida. El sandbox admite 30 por API key
+          y la clave demo es compartida con otros grupos: 20 deja margen.
+        required: false
+        default: '20'
+      usuario_titular_id:
+        description: >-
+          Id del usuario titular de las facturas de prueba. Vacío = la colección elige al
+          usuario activo con menos facturas pendientes.
+        required: false
+        default: ''
+
+  # workflow_dispatch solo aparece en la pestaña Actions cuando el archivo ya está en
+  # la rama por defecto. Mientras no se mergee a main, este push acotado es la forma de
+  # ejecutarlo. Una vez en main se puede borrar y quedarse solo con el disparo manual.
+  push:
+    branches:
+      - grupo-03-pagos-servicios
+    paths:
+      - 'postman/Grupo03-Pago-Servicios-Final_collection.json'
+      - 'postman/Grupo03-Pago-Servicios-Final_environment.json'
+      - 'grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature'
+      - '.github/workflows/Y_GRUPO03_newman.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  # La colección crea, paga y da de baja facturas reales en el sandbox compartido:
+  # una corrida por vez y nunca cancelar una a mitad de camino (dejaría facturas sin limpiar).
+  group: newman-grupo03-final
+  cancel-in-progress: false
+
+env:
+  COLLECTION: postman/Grupo03-Pago-Servicios-Final_collection.json
+  ENVIRONMENT: postman/Grupo03-Pago-Servicios-Final_environment.json
+  REPORTER: skills/postman-newman-skill/reporter
+  RESULTS: test-results/newman-grupo03
+  INFORME: INFORME_DE_AUT_GRUPO03_PAGO_SERVICIOS_FINAL.pdf
+
+jobs:
+  newman:
+    name: Newman colección Final + informe PDF
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Configurar Python (generador de PDF)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias Node (newman viene en package.json)
+        run: npm install
+
+      - name: Instalar dependencias Python (reportlab, Pillow)
+        run: pip install -r "$REPORTER/requirements.txt"
+
+      - name: Ejecutar colección Final (Newman)
+        env:
+          # Secret y variable que ya usan los workflows del grupo. Si no están
+          # configurados, quedan los valores del environment (URL pública y clave demo).
+          G3_API_KEY: ${{ secrets.GRUPO03_API_KEY }}
+          G3_BASE_URL: ${{ vars.GRUPO03_BASE_URL }}
+          G3_RPM: ${{ inputs.req_por_minuto }}
+          G3_TITULAR: ${{ inputs.usuario_titular_id }}
+        run: |
+          mkdir -p "$RESULTS"
+          args=()
+          if [ -n "$G3_API_KEY" ]; then
+            args+=(--env-var "G3_apiKey=$G3_API_KEY")
+            echo "API key: secret GRUPO03_API_KEY"
+          else
+            echo "API key: clave demo del environment (secret GRUPO03_API_KEY no configurado)"
+          fi
+          if [ -n "$G3_BASE_URL" ]; then
+            args+=(--env-var "G3_baseUrl=$G3_BASE_URL")
+          fi
+          if [ -n "$G3_RPM" ]; then
+            args+=(--env-var "G3_reqPorMinuto=$G3_RPM")
+          fi
+          if [ -n "$G3_TITULAR" ]; then
+            args+=(--env-var "G3_usuarioTitularId=$G3_TITULAR")
+            echo "Titular fijo: usuario $G3_TITULAR"
+          else
+            echo "Titular: el usuario activo con menos facturas pendientes (lo informa la consola de Newman)"
+          fi
+
+          # Sin --bail: se quiere el resultado de todos los escenarios en el informe.
+          # El código de salida se guarda y el veredicto se aplica al final del job,
+          # después de generar y publicar el PDF.
+          set +e
+          npx newman run "$COLLECTION" \
+            --environment "$ENVIRONMENT" \
+            "${args[@]}" \
+            --reporters cli,json \
+            --reporter-json-export "$RESULTS/newman-results.json"
+          rc=$?
+          set -e
+          echo "NEWMAN_EXIT=$rc" >> "$GITHUB_ENV"
+
+      - name: Resumen de la corrida
+        if: always()
+        run: |
+          if [ ! -f "$RESULTS/newman-results.json" ]; then
+            echo "Newman no generó resultados" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          python - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import json, os
+          run = json.load(open(os.path.join(os.environ["RESULTS"], "newman-results.json"), encoding="utf8"))["run"]
+          s = run["stats"]
+          dur = (run["timings"]["completed"] - run["timings"]["started"]) / 1000
+          print("### Newman Grupo 03 · colección Final")
+          print()
+          print("| Métrica | Total | Fallidas |")
+          print("|---|---:|---:|")
+          print(f"| Escenarios (requests de la colección) | {s['items']['total']} | {s['items']['failed']} |")
+          print(f"| Requests HTTP (incluye preparación y limpieza) | {s['requests']['total']} | {s['requests']['failed']} |")
+          print(f"| Aserciones (pasos BDD) | {s['assertions']['total']} | {s['assertions']['failed']} |")
+          print()
+          print(f"Duración: {dur / 60:.1f} min")
+          fallas = [f for f in run.get("failures", []) if f["error"].get("name") == "AssertionError"]
+          if fallas:
+              print()
+              print("**Aserciones fallidas**")
+              print()
+              for f in fallas[:30]:
+                  print(f"- {f['source'].get('name', '?')} › {f['error'].get('test', '')}")
+          EOF
+
+      - name: Generar informe PDF
+        if: always()
+        run: |
+          if [ ! -f "$RESULTS/newman-results.json" ]; then
+            echo "Sin resultados de Newman: no se genera el informe"
+            exit 1
+          fi
+          python "$REPORTER/newman_report.py" \
+            --results "$RESULTS/newman-results.json" \
+            --banner "$REPORTER/assets/banner_portada.png" \
+            --logo-aiquaa "$REPORTER/assets/logo_aiquaa_circle.png" \
+            --logo-postman "$REPORTER/assets/logo_postman_clean.png" \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            --api-version "${{ github.sha }}" \
+            --author "${{ github.triggering_actor }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --output "$RESULTS/$INFORME"
+
+      - name: Publicar informe PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-newman-grupo03-final-${{ github.run_number }}
+          path: ${{ env.RESULTS }}/${{ env.INFORME }}
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Veredicto de la regresión
+        if: always()
+        run: |
+          if [ "${NEWMAN_EXIT:-1}" != "0" ]; then
+            echo "La regresión tiene fallos (código de Newman: ${NEWMAN_EXIT:-sin ejecutar}). Ver el informe PDF."
+            exit 1
+          fi
+          echo "Regresión OK"
