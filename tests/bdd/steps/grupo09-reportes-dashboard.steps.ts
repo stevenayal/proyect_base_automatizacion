@@ -109,21 +109,13 @@ Then('el sistema muestra la tabla de movimientos con al menos un resultado', asy
 // ---------------------------------------------------------------------
 
 When('el administrador solicita por API un movimiento activo existente', async function () {
-  // 1. Obtener un ID de movimiento activo real (misma consulta SQL que usa
-  //    la coleccion de Postman: "Obtener tipo de movimiento su ID").
-  const sqlResponse = await requestWithRetry(() =>
-    this.page.request.post(`${getApiUrl()}/api/v1/sql/select`, {
-      headers: apiHeaders(),
-      data: {
-        sql: 'SELECT id FROM movimientos WHERE activo = true ORDER BY RANDOM() LIMIT 1;',
-      },
-    }),
-  );
-  expect(sqlResponse.status()).toBe(200);
-  const sqlBody = await sqlResponse.json();
-  const movimientoId = sqlBody.data[0].id;
+  // Usamos un ID fijo conocido (el mismo rango 1-70 que usa el CSV de datos
+  // del plan de JMeter del grupo) en vez de hacer una consulta SQL previa
+  // para buscar uno al azar. Esto evita una segunda llamada a la API
+  // compartida por todo el curso, reduciendo la chance de rate limit (429).
+  const movimientoId = 1;
 
-  // 2. Caso de Obtener siempre un movimiento Activo: GET /movimientos/{id}
+  // Caso de Obtener siempre un movimiento Activo: GET /movimientos/{id}
   this.lastApiResponse = await requestWithRetry(() =>
     this.page.request.get(`${getApiUrl()}/api/v1/movimientos/${movimientoId}`, {
       headers: apiHeaders(),
