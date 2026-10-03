@@ -11,6 +11,10 @@
 # nosotros. Por eso se mide HOLGURA: una rafaga corta solo pasa limpia si de
 # verdad sobra cupo en la ventana.
 #
+# La sonda usa el listado (GET /api/v1/tarjetas?usuarioId=1) y no un id fijo:
+# los ids sembrados del sandbox se borran con el uso y un 404 no distingue
+# "sin cupo" de "dato inexistente".
+#
 # Uso: esperar-cupo-api.sh <api-key> [api-base] [rondas]
 set -euo pipefail
 
@@ -29,7 +33,7 @@ for ronda in $(seq 1 "${RONDAS}"); do
     # aunque el codigo HTTP sea correcto, y el set -e abortaria el script.
     code=$(curl --silent --max-time 15 --output /dev/null --write-out '%{http_code}' \
       --header "x-api-key: ${API_KEY}" \
-      "${API_BASE}/api/v1/tarjetas/2" || true)
+      "${API_BASE}/api/v1/tarjetas?usuarioId=1" || true)
     code="${code:-000}"
 
     if [ "${code}" = "429" ]; then

@@ -1,0 +1,14 @@
+{
+  "runId": "2026-10-03T10-17-50-628Z",
+  "scenario": "Login fallido con email no registrado",
+  "status": "PASSED",
+  "observedAt": "2026-10-03T10:17:54.569Z",
+  "url": "https://aiquaa-sandbox-web.vercel.app/auth/login",
+  "loginRequests": [
+    {
+      "email": "no_registrado@ejemplo.com",
+      "status": 400,
+      "error": "Usuario no encontrado o inactivo."
+    }
+  ]
+}

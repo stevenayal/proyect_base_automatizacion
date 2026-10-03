@@ -1,0 +1,20 @@
+{
+  "source": "cucumber-report.json",
+  "summary": {
+    "total": 8,
+    "failed": 0,
+    "flaky": 0,
+    "byCategory": {
+      "PRODUCT_BUG": 0,
+      "TEST_BUG": 0,
+      "ENVIRONMENT": 0,
+      "DATA": 0,
+      "NETWORK": 0,
+      "UNKNOWN": 0
+    },
+    "healerCandidates": 0,
+    "maxHealAttempts": 2
+  },
+  "failures": [],
+  "flaky": []
+}

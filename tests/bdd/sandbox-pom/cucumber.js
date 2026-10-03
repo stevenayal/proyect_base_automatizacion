@@ -11,7 +11,11 @@ module.exports = {
       'tests/bdd/sandbox-pom/steps/**/*.steps.ts',
     ],
     requireModule: ['ts-node/register'],
-    format: ['progress', 'json:results/cucumber-sandbox-pom.json'],
+    format: [
+  'progress',
+  'json:results/cucumber-sandbox-pom.json',
+  'html:results/YF-cucumber-report.html',
+],
     formatOptions: { snippetInterface: 'async-await' },
     publishQuiet: true,
     retry: 0,
