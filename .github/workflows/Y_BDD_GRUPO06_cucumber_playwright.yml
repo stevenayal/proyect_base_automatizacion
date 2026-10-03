@@ -1,0 +1,79 @@
+name: BDD Cucumber+Playwright - Grupo 06 Notificaciones
+
+on:
+  push:
+    branches: ["main", "grupo-06-notificaciones-alertas"]
+    paths:
+      - "grupos/grupo-06-notificaciones-alertas/features/**"
+      - "tests/bdd/**"
+      - "cucumber.js"
+      - ".github/workflows/Y_BDD_GRUPO06_cucumber_playwright.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "grupos/grupo-06-notificaciones-alertas/features/**"
+      - "tests/bdd/**"
+      - "cucumber.js"
+      - ".github/workflows/Y_BDD_GRUPO06_cucumber_playwright.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bdd-grupo06:
+    name: Cucumber + Playwright (Grupo 06)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE_URL: ${{ vars.AIQUAA_SANDBOX_BASE_URL || 'https://aiquaa-sandbox-web.vercel.app/' }}
+      HEADED: 'false'
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Configurar Python (informe PDF)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias Node
+        run: npm ci
+
+      - name: Instalar Chromium de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Crear directorio de resultados
+        run: mkdir -p results
+
+      - name: Ejecutar escenarios BDD del Grupo 06 (Cucumber + Playwright)
+        run: npx cucumber-js --profile grupo06 --tags "@grupo06"
+        continue-on-error: true
+
+      - name: Instalar dependencia del informe PDF
+        if: always()
+        run: pip install -r skills/bdd-skill/reporter/requirements.txt
+
+      - name: Generar informe PDF
+        if: always()
+        run: >
+          python skills/bdd-skill/reporter/bdd_report.py
+          --results results/cucumber-report.json
+          --output results/INFORME_BDD_GRUPO06.pdf
+          --grupo "Grupo 06 - Notificaciones y Alertas"
+          --author "${{ github.triggering_actor }}"
+          --repo-url "${{ github.server_url }}/${{ github.repository }}"
+
+      - name: Subir resultados e informe
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bdd-grupo06-cucumber-playwright
+          path: results/
+          retention-days: 14

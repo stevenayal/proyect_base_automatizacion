@@ -1,0 +1,143 @@
+name: JMeter Performance - Grupo 06 Notificaciones (con informe PDF y MCP)
+
+on:
+  push:
+    branches: ["main", "grupo-06-notificaciones-alertas"]
+    paths:
+      - "tests/performance/plans/Grupo06_Notificaciones.jmx"
+      - "tests/performance/data/grupo06-notificaciones.csv"
+      - "tests/performance/thresholds/grupo06-thresholds.json"
+      - ".github/workflows/jmeter-grupo06-performance.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tests/performance/plans/Grupo06_Notificaciones.jmx"
+      - "tests/performance/data/grupo06-notificaciones.csv"
+      - "tests/performance/thresholds/grupo06-thresholds.json"
+      - ".github/workflows/jmeter-grupo06-performance.yml"
+  workflow_dispatch:
+    inputs:
+      threads:
+        description: "Usuarios concurrentes (threads)"
+        required: false
+        default: "1"
+      loops:
+        description: "Iteraciones por thread"
+        required: false
+        default: "5"
+      monitoring_dashboard_url:
+        description: >-
+          URL publica de un dashboard de monitoreo (Grafana, etc.) a capturar como
+          evidencia post-ejecucion; dejar vacio para omitir la captura.
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  JMETER_VERSION: 5.6.3
+  RESULTS_DIR: test-results/performance
+
+jobs:
+  performance:
+    name: JMeter + informe PDF (Grupo 06)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Java (requerido por JMeter)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar JMeter
+        run: |
+          curl --fail --location --silent --show-error \
+            "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" -o jmeter.tgz
+          tar -xzf jmeter.tgz
+
+      - name: Ejecutar plan de pruebas headless (MCP perf_generar -> JMX)
+        run: |
+          mkdir -p "${RESULTS_DIR}/dashboard"
+          "apache-jmeter-${JMETER_VERSION}/bin/jmeter" -n \
+            -t tests/performance/plans/Grupo06_Notificaciones.jmx \
+            -l "${RESULTS_DIR}/R_GRUPO06_NOTIFICACIONES.jtl" \
+            -e -o "${RESULTS_DIR}/dashboard" \
+            -JcsvPath=tests/performance/data/grupo06-notificaciones.csv \
+            -JapiKey="${{ secrets.GRUPO06_API_KEY }}" \
+            -Jthreads="${{ inputs.threads || '1' }}" \
+            -Jloops="${{ inputs.loops || '5' }}"
+
+      - name: Configurar Python (captura de monitoreo y reporte)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Capturar evidencia del dashboard de monitoreo (Grafana)
+        if: ${{ inputs.monitoring_dashboard_url != '' }}
+        run: |
+          pip install selenium
+          mkdir -p "${RESULTS_DIR}/evidence"
+          CAPTURE=$(npm pack aiquaa-performance-mcp-server --pack-destination . --silent)
+          tar -xzf "$CAPTURE" package/dist/monitoring/python/capture_dashboard.py
+          python3 package/dist/monitoring/python/capture_dashboard.py \
+            --url "${{ inputs.monitoring_dashboard_url }}" \
+            --output "${RESULTS_DIR}/evidence/EVIDENCIA_MONITOREO.png" \
+            --wait-seconds 8 \
+            --timeout-seconds 180
+
+      - name: Generar informe PDF (MCP perf_informe)
+        if: always()
+        run: |
+          EVIDENCE_ARGS=()
+          if [ -f "${RESULTS_DIR}/evidence/EVIDENCIA_MONITOREO.png" ]; then
+            EVIDENCE_ARGS=(--evidence-image "${RESULTS_DIR}/evidence/EVIDENCIA_MONITOREO.png" \
+              --evidence-label "Dashboard de monitoreo" \
+              --evidence-url "${{ inputs.monitoring_dashboard_url }}")
+          fi
+          # El generador sale con codigo 1 cuando el veredicto es FAIL. Aca solo
+          # interesa producir el PDF; el gate del SLA es el paso "Evaluar umbrales".
+          set +e
+          npx -y aiquaa-performance-mcp-server --report \
+            "${RESULTS_DIR}/R_GRUPO06_NOTIFICACIONES.jtl" \
+            tests/performance/thresholds/grupo06-thresholds.json \
+            "${RESULTS_DIR}/INFORME_PERF_GRUPO06.pdf" \
+            --api-name "AIQUAA Sandbox API (notificaciones)" \
+            --plan tests/performance/plans/Grupo06_Notificaciones.jmx \
+            --test-type carga \
+            --threads "${{ inputs.threads || '1' }}" \
+            --loops "${{ inputs.loops || '5' }}" \
+            --author "${{ github.triggering_actor }}" \
+            --api-version "${{ github.sha }}" \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            "${EVIDENCE_ARGS[@]}"
+          status=$?
+          set -e
+          if [ ! -f "${RESULTS_DIR}/INFORME_PERF_GRUPO06.pdf" ]; then
+            echo "::error::No se genero el informe PDF (exit ${status})."
+            exit "${status}"
+          fi
+
+      - name: Evaluar umbrales (SLA - MCP perf_resultados)
+        # Corre despues del informe para que el PDF se publique aun si el SLA falla.
+        run: |
+          npx -y aiquaa-performance-mcp-server --evaluate \
+            "${RESULTS_DIR}/R_GRUPO06_NOTIFICACIONES.jtl" \
+            tests/performance/thresholds/grupo06-thresholds.json
+
+      - name: Subir resultados e informe
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jmeter-grupo06-notificaciones
+          path: test-results/performance
+          retention-days: 7
