@@ -49,29 +49,21 @@ jobs:
         env:
           SQL_SANDBOX_BASE_URL: ${{ vars.sqlSandboxBaseUrl }}
           SQL_SANDBOX_API_KEY: ${{ secrets.SQLSANDBOXAPIKEY }}
-          G9_MOVIMIENTO_ID: ${{ vars.g9_movimiento_id }}
-          G9_NUEVO_REFERENCIA: ${{ vars.g9_nuevo_referencia }}
-          G9_NUEVA_DESCRIPCION: ${{ vars.g9_nueva_descripcion }}
-          G9_NUEVO_TIPO: ${{ vars.g9_nuevo_tipo }}
-          G9_NUEVO_MONTO: ${{ vars.g9_nuevo_monto }}
-          G9_MOVS_ANTES: ${{ vars.g9_movs_antes }}
-          G9_MOVS_SNAPSHOT_DB: ${{ vars.g9_movs_snapshot_db }}
-          G9_MOVS_IDS_DB: ${{ vars.g9_movs_ids_db }}
-          G9_MOVS_COUNT: ${{ vars.g9_movs_count }}
-          G9_RESUMEN_ULTIMO: ${{ vars.g9_resumen_ultimo }}
-          G9_RESUMEN_PRIMERO: ${{ vars.g9_resumen_primero }}
-          G9_RESUMEN_TOTAL: ${{ vars.g9_resumen_total }}
-          G9_RESUMEN_CANTIDAD: ${{ vars.g9_resumen_cantidad }}
-          G9_TIPOS_ESPERADOS: ${{ vars.g9_tipos_esperados }}
-          G9_HASTA: ${{ vars.g9_hasta }}
-          G9_DESDE: ${{ vars.g9_desde }}
-          G9_MOVS_ESPERADOS: ${{ vars.g9_movs_esperados }}
           G9_USUARIO_ID: ${{ vars.g9_usuario_id }}
           G9_USER_ID: ${{ vars.g9_user_id }}
         run: |
-          npx newman run "grupos/grupo-09-reportes-dashboard/evidence/semana-03/grupo-9-reportes-y-dashboard.postman_collection.json" \
-            --env-var "baseUrl=${BASE_URL}" \
-            --env-var "apiKey=${API_KEY}" \
+          mkdir -p newman
+
+          npx --yes newman run \
+            "grupos/grupo-09-reportes-dashboard/evidence/semana-03/grupo-9-reportes-y-dashboard.postman_collection.json" \
+            --env-var "base_url=${SQL_SANDBOX_BASE_URL}" \
+            --env-var "token=${SQL_SANDBOX_API_KEY}" \
+            --env-var "usuario=${G9_USUARIO_ID}" \
+            --env-var "rol=analista" \
+            --env-var "mes_actual=$(date -u +%Y-%m)" \
+            --env-var "periodo1=2026-Q1" \
+            --env-var "periodo2=2026-Q2" \
+            --env-var "anio_sin_datos=2010" \
             --delay-request 800 \
             --reporters cli,json,junit \
             --reporter-json-export newman/results.json \
