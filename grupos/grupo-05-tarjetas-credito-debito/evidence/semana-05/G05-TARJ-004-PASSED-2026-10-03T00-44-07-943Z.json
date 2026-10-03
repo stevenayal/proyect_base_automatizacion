@@ -1,0 +1,16 @@
+{
+  "escenario": "Consulta de una tarjeta inexistente",
+  "id": "G05-TARJ-004",
+  "estado": "PASSED",
+  "ejecutado": "2026-10-03T00:44:07.945Z",
+  "ultimaRespuesta": {
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "Tarjeta no encontrada."
+      }
+    }
+  },
+  "contexto": {}
+}

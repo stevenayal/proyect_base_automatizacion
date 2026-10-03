@@ -1,0 +1,128 @@
+name: BDD + UI - Grupo 05 Tarjetas Credito/Debito
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "grupos/grupo-05-tarjetas-credito-debito/features/**"
+      - "grupos/grupo-05-tarjetas-credito-debito/tests/e2e/**"
+      - "tests/bdd/**"
+      - "playwright/pages/**"
+      - "cucumber.js"
+      - ".github/workflows/bdd-grupo05-tarjetas.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "grupos/grupo-05-tarjetas-credito-debito/features/**"
+      - "grupos/grupo-05-tarjetas-credito-debito/tests/e2e/**"
+      - "tests/bdd/**"
+      - "playwright/pages/**"
+      - "cucumber.js"
+      - ".github/workflows/bdd-grupo05-tarjetas.yml"
+  workflow_dispatch:
+
+# El rate limit del sandbox es de 30 req/min POR API-KEY. Este workflow comparte
+# key con los de Newman y JMeter del grupo, asi que comparte tambien el grupo de
+# concurrencia para no pisarse con ellos.
+concurrency:
+  group: aiquaa-sandbox-grupo05
+  cancel-in-progress: false
+
+env:
+  BASE_URL: https://aiquaa-sandbox-web.vercel.app/
+  API_URL: https://aiquaa-sandbox-api.vercel.app
+  API_KEY: ${{ secrets.GRUPO05_API_KEY || 'sbx_demo_f581ca21e68a347288c94d71' }}
+  SANDBOX_CURSO: "1"
+  SANDBOX_USUARIO_ID: "1"
+  SANDBOX_EMAIL_CLIENTE: bruno.ramirez@example.com
+  EVIDENCE_DIR: grupos/grupo-05-tarjetas-credito-debito/evidence/semana-05
+  STEP_TIMEOUT_MS: "75000"
+  RATE_LIMIT_WAIT_MS: "20000"
+
+jobs:
+  bdd-grupo05:
+    name: Cucumber (web + API + BD) y smoke Playwright
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v7
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Configurar Python (generador de PDF)
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias Node
+        run: npm install
+
+      - name: Instalar Chromium para Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Instalar dependencias Python (reportlab, Pillow)
+        run: pip install reportlab pillow
+
+      - name: Esperar a que haya cupo en el rate limit
+        run: >
+          bash grupos/grupo-05-tarjetas-credito-debito/scripts/esperar-cupo-api.sh
+          "${API_KEY}" "${API_URL}"
+
+      # Los escenarios @manual quedan fuera por configuracion del perfil grupo05:
+      # estan especificados pero el sandbox no expone endpoints para ellos.
+      - name: Ejecutar escenarios BDD del grupo 05
+        id: cucumber
+        continue-on-error: true
+        env:
+          SANDBOX_API_KEY: ${{ env.API_KEY }}
+        run: npx cucumber-js --profile grupo05
+
+      - name: Generar informe PDF con matriz de trazabilidad y evidencias
+        if: always()
+        run: >
+          python skills/bdd-skill/reporter/bdd_report.py
+          --results results/cucumber-grupo05.json
+          --output "${EVIDENCE_DIR}/INFORME_BDD_GRUPO_05.pdf"
+          --grupo "Grupo 05 - Tarjetas de Credito/Debito"
+          --author "${{ github.triggering_actor }}"
+          --repo-url "${{ github.server_url }}/${{ github.repository }}"
+
+      - name: Ejecutar smoke UI con Playwright
+        id: playwright
+        continue-on-error: true
+        env:
+          SANDBOX_API_KEY: ${{ env.API_KEY }}
+        run: npx playwright test grupos/grupo-05-tarjetas-credito-debito --reporter=list
+
+      - name: Subir evidencia e informe del grupo 05
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: evidencia-bdd-grupo05
+          path: |
+            ${{ env.EVIDENCE_DIR }}
+            results/cucumber-grupo05.json
+          retention-days: 7
+
+      - name: Subir reporte HTML de Playwright
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-report-grupo05
+          path: playwright-report
+          retention-days: 7
+
+      # Los pasos de ejecucion usan continue-on-error para que el informe y la
+      # evidencia se publiquen siempre; el job falla aqui si alguno no paso.
+      - name: Verificar resultado de las corridas
+        if: always()
+        run: |
+          echo "BDD: ${{ steps.cucumber.outcome }}"
+          echo "Playwright: ${{ steps.playwright.outcome }}"
+          if [ "${{ steps.cucumber.outcome }}" != "success" ] || [ "${{ steps.playwright.outcome }}" != "success" ]; then
+            echo "::error::Hay corridas fallidas; revisar los artefactos publicados."
+            exit 1
+          fi
