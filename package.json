@@ -13,7 +13,11 @@
     "test:bdd:sandbox": "node tests/bdd/sandbox-pom/scripts/run-sandbox.cjs",
     "YF:classify:bdd": "node tests/bdd/YF-agentes/YF-classify-bdd.mjs",
     "smoke": "playwright test tests/e2e/smoke.spec.ts",
-    "verify": "npm run test:api && npm run test:e2e"
+    "verify": "npm run test:api && npm run test:e2e",
+    "test:semana06": "cucumber-js --config cucumber.semana06.js",
+    "cucumber:semana06": "cucumber-js --config cucumber.semana06.js",
+    "report:semana06": "python3 reporters/semana06-report.py --results grupos/grupo-01-autenticacion-acceso/reports/semana-06/cucumber-report.json --output grupos/grupo-01-autenticacion-acceso/reports/semana-06/INFORME_SEMANA06.pdf",
+    "test:semana06:dry": "cucumber-js --config cucumber.semana06.js --profile dry"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^11.0.1",
