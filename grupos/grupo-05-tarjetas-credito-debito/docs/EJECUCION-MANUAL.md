@@ -14,23 +14,32 @@ tags `@manual @sin-endpoint`, y se ejecutan a mano sobre el entorno que el docen
 4. Si el escenario falla, registrar el defecto en
    [`DEFECTOS.md`](DEFECTOS.md) y referenciarlo en la columna de observaciones.
 
-> Mientras el entorno siga sin esos endpoints, el resultado esperado de la mayoría de estos
-> casos es `BLOQUEADO`. Dejarlo asentado es parte del entregable: documenta por qué la cobertura
-> automatizada se detiene donde se detiene.
+## Resultado de la ejecución — 2026-10-02
+
+Los 9 escenarios `@manual @sin-endpoint` se ejecutaron y quedaron en **BLOQUEADO**: el sandbox
+no expone la funcionalidad bajo prueba, así que el `When` de cada caso no se puede llegar a
+ejecutar. Se verificó contra el entorno vivo, endpoint por endpoint, y la evidencia está en
+[`G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md`](../evidence/semana-05/G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md):
+contrato publicado en `/api/v1/docs`, 6 sondeos en 404, un control en 200 que descarta problemas
+de api key o disponibilidad, y el modelo de datos de la tarjeta sin los campos necesarios.
+
+Dejarlo asentado es parte del entregable: documenta por qué la cobertura automatizada se detiene
+donde se detiene. El décimo escenario, `G05-MAN-010`, es el único cuya funcionalidad existe y
+falla: está registrado como [`DEF-G05-01`](DEFECTOS.md).
 
 ## Escenarios
 
 | ID | Escenario | Tipo | Responsable | Resultado | Fecha | Evidencia | Observaciones |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `G05-MAN-001` | Cambio exitoso de PIN | happy path | Emilio Oheler | | | | sin endpoint de PIN |
-| `G05-MAN-002` | Propagación del bloqueo temporal a todos los canales | happy path | Rafael Estigarribia | | | | la API solo expone `estado`, sin canales ni motivo |
-| `G05-MAN-003` | Aumento exitoso de límite diario de compras | happy path | Ivan Bolaños | | | | sin endpoint de límites ni OTP |
-| `G05-MAN-004` | Pago exitoso desde cuenta propia | happy path | Ivan Bolaños | | | | sin endpoint de pago de tarjeta |
-| `G05-MAN-005` | Aumento de límite diario rechazado por OTP inválido | negativo | Marcos Trinidad | | | | sin endpoint de límites ni OTP |
-| `G05-MAN-006` | Cambio de PIN rechazado por PIN actual incorrecto | negativo | Matias Murto | | | | sin endpoint de PIN |
-| `G05-MAN-007` | Pago rechazado por saldo insuficiente en cuenta vista | negativo | Matias Murto | | | | sin endpoint de pago de tarjeta |
-| `G05-MAN-008` | Compra autorizada por un monto exactamente igual al límite diario | edge case | Matias Murto | | | | sin endpoint de autorizaciones |
-| `G05-MAN-009` | Desbloqueo denegado cuando el bloqueo fue por motivo "ROBO" | edge case | Matias Murto | | | | la API no registra motivo de bloqueo |
+| `G05-MAN-001` | Cambio exitoso de PIN | happy path | Emilio Oheler | BLOQUEADO | 2026-10-02 | `G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md` | sin endpoint de PIN — `PATCH /tarjetas/{id}/pin` responde 404 |
+| `G05-MAN-002` | Propagación del bloqueo temporal a todos los canales | happy path | Rafael Estigarribia | BLOQUEADO | 2026-10-02 | `G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md` | la API solo expone `estado`, sin canales ni motivo — `GET /tarjetas/{id}/canales` responde 404 |
+| `G05-MAN-003` | Aumento exitoso de límite diario de compras | happy path | Ivan Bolaños | BLOQUEADO | 2026-10-02 | `G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md` | sin endpoint de límites ni OTP — `PUT /tarjetas/{id}/limites` responde 404 |
+| `G05-MAN-004` | Pago exitoso desde cuenta propia | happy path | Ivan Bolaños | BLOQUEADO | 2026-10-02 | `G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md` | sin endpoint de pago de tarjeta — `POST /tarjetas/{id}/pagos` responde 404 |
+| `G05-MAN-005` | Aumento de límite diario rechazado por OTP inválido | negativo | Marcos Trinidad | BLOQUEADO | 2026-10-02 | `G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md` | sin endpoint de límites ni OTP — `POST /tarjetas/{id}/otp` responde 404 |
+| `G05-MAN-006` | Cambio de PIN rechazado por PIN actual incorrecto | negativo | Matias Murto | BLOQUEADO | 2026-10-02 | `G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md` | sin endpoint de PIN — `PATCH /tarjetas/{id}/pin` responde 404 |
+| `G05-MAN-007` | Pago rechazado por saldo insuficiente en cuenta vista | negativo | Matias Murto | BLOQUEADO | 2026-10-02 | `G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md` | sin endpoint de pago de tarjeta — `POST /tarjetas/{id}/pagos` responde 404 |
+| `G05-MAN-008` | Compra autorizada por un monto exactamente igual al límite diario | edge case | Matias Murto | BLOQUEADO | 2026-10-02 | `G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md` | sin endpoint de autorizaciones — `POST /tarjetas/{id}/autorizaciones` responde 404 |
+| `G05-MAN-009` | Desbloqueo denegado cuando el bloqueo fue por motivo "ROBO" | edge case | Matias Murto | BLOQUEADO | 2026-10-02 | `G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md` | la API no registra motivo de bloqueo: `estado` es un enum plano `activa`/`bloqueada` |
 | `G05-MAN-010` | Bloqueo de tarjeta desde el listado web | defecto | Matias Murto | FALLA | 2026-09-19 | `DEF-G05-01` | reproducido: el botón no dispara petición |
 
 ## Cobertura automatizada equivalente
