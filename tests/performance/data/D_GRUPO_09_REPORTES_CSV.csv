@@ -1,0 +1,9 @@
+usuarioId,tipoMovimiento,monto,descripcion
+1,transferencia,150000,PERF-G9 transferencia
+1,pago_factura,85000.50,PERF-G9 pago_factura
+2,compra_ecommerce,240500,PERF-G9 compra_ecommerce
+2,cargo_tarjeta,60000,PERF-G9 cargo_tarjeta
+3,transferencia,320000,PERF-G9 transferencia
+3,pago_factura,45900.75,PERF-G9 pago_factura
+4,compra_ecommerce,128000,PERF-G9 compra_ecommerce
+4,cargo_tarjeta,99000,PERF-G9 cargo_tarjeta

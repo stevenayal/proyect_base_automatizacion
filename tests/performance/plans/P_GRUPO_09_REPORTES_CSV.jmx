@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Grupo 09 (Reportes y Dashboard): POST /api/v1/movimientos + GET correlacionado + GET /api/v1/reportes/movimientos. Solo JMeter 5.6.3 core. -->
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3"><hashTree><TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="GRUPO_09_REPORTES_CSV Performance Plan" enabled="true"><boolProp name="TestPlan.functional_mode">false</boolProp><boolProp name="TestPlan.serialize_threadgroups">false</boolProp><elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true"><collectionProp name="Arguments.arguments"><elementProp name="RUN_ID" elementType="Argument"><stringProp name="Argument.name">RUN_ID</stringProp><stringProp name="Argument.value">${__P(runId,${__time(yyyyMMddHHmmss,)})}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp></TestPlan><hashTree><ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults" enabled="true"><elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true"><collectionProp name="Arguments.arguments"/></elementProp><stringProp name="HTTPSampler.domain">${__P(host,aiquaa-sandbox-api.vercel.app)}</stringProp><stringProp name="HTTPSampler.port">${__P(port,443)}</stringProp><stringProp name="HTTPSampler.protocol">${__P(protocol,https)}</stringProp><stringProp name="HTTPSampler.implementation">HttpClient4</stringProp><stringProp name="HTTPSampler.connect_timeout">10000</stringProp><stringProp name="HTTPSampler.response_timeout">30000</stringProp></ConfigTestElement><hashTree/><ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Grupo 09 - 1 worker, una pasada por el CSV" enabled="true"><stringProp name="ThreadGroup.num_threads">${__P(threads,1)}</stringProp><stringProp name="ThreadGroup.ramp_time">0</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp><stringProp name="ThreadGroup.on_sample_error">continue</stringProp><elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">${__P(loops,8)}</stringProp></elementProp></ThreadGroup><hashTree><CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV Data Set Config" enabled="true"><stringProp name="filename">${__P(csvPath,../data/D_GRUPO_09_REPORTES_CSV.csv)}</stringProp><stringProp name="fileEncoding">UTF-8</stringProp><stringProp name="variableNames">usuarioId,tipoMovimiento,monto,descripcion</stringProp><stringProp name="delimiter">,</stringProp><boolProp name="quotedData">true</boolProp><boolProp name="ignoreFirstLine">true</boolProp><boolProp name="recycle">false</boolProp><boolProp name="stopThread">true</boolProp><stringProp name="shareMode">shareMode.all</stringProp></CSVDataSet><hashTree/><HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="JSON y API key externa" enabled="true"><collectionProp name="HeaderManager.headers"><elementProp name="" elementType="Header"><stringProp name="Header.name">Content-Type</stringProp><stringProp name="Header.value">application/json</stringProp></elementProp><elementProp name="" elementType="Header"><stringProp name="Header.name">Accept</stringProp><stringProp name="Header.value">application/json</stringProp></elementProp><elementProp name="" elementType="Header"><stringProp name="Header.name">x-api-key</stringProp><stringProp name="Header.value">${g9.apiKey}</stringProp></elementProp></collectionProp></HeaderManager><hashTree/><JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Validar fila CSV, API_KEY externa y properties (sin HTTP)" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="filename"></stringProp><stringProp name="parameters"></stringProp><stringProp name="script">// Muestra local de control: no envia HTTP ni escribe la API key en logs.
+vars.put('g9.ready', 'false')
+vars.remove('g9.apiKey')
+vars.remove('movimientoId')
+vars.put('g9.correlationReady', 'false')
+def fail = { String message -&gt;
+    SampleResult.setSuccessful(false)
+    SampleResult.setResponseCode('INPUT_CONFIGURATION_ERROR')
+    SampleResult.setResponseMessage(message)
+    ctx.getThread().stop()
+}
+String apiKey = System.getenv('API_KEY')
+if (apiKey == null || apiKey.trim().isEmpty() || apiKey.contains('\r') || apiKey.contains('\n')) {
+    fail('Se requiere la variable de entorno API_KEY (una sola linea). No va en el repo ni por -J.')
+    return
+}
+if (props.getProperty('g9.csv.profile') != 'GRUPO_09_REPORTES_CSV' ||
+    props.getProperty('httpclient4.retrycount') != '0' ||
+    props.getProperty('httpclient4.request_sent_retry_enabled') != 'false') {
+    fail('Cargar properties/GRUPO_09_REPORTES_CSV.properties con -q: los reintentos automaticos deben estar apagados (el POST no es idempotente).')
+    return
+}
+def tipos = ['transferencia', 'pago_factura', 'compra_ecommerce', 'cargo_tarjeta']
+String uid = vars.get('usuarioId')
+String tipo = vars.get('tipoMovimiento')
+String monto = vars.get('monto')
+String desc = vars.get('descripcion')
+boolean ok = (uid != null &amp;&amp; uid ==~ /[1-9][0-9]*/)
+ok = ok &amp;&amp; (tipo != null &amp;&amp; tipos.contains(tipo))
+ok = ok &amp;&amp; (monto != null &amp;&amp; monto ==~ /(0|[1-9][0-9]*)(\.[0-9]+)?/ &amp;&amp; new BigDecimal(monto) &gt; 0)
+ok = ok &amp;&amp; (desc != null &amp;&amp; !desc.isEmpty() &amp;&amp; !desc.contains('"') &amp;&amp; !desc.contains('\\'))
+if (!ok) {
+    fail('Fila CSV invalida: usuarioId entero &gt; 0, tipoMovimiento del enum, monto &gt; 0 y descripcion sin comillas ni barra invertida.')
+    return
+}
+vars.put('g9.apiKey', apiKey)
+vars.put('g9.ready', 'true')
+SampleResult.setSuccessful(true)
+SampleResult.setIgnore()
+</stringProp></JSR223Sampler><hashTree/><IfController guiclass="IfControllerPanel" testclass="IfController" testname="POST y GETs solo si la fila CSV y el secreto son validos" enabled="true"><stringProp name="IfController.condition">${g9.ready}</stringProp><boolProp name="IfController.evaluateAll">false</boolProp><boolProp name="IfController.useExpression">true</boolProp></IfController><hashTree><HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="01 - Crear movimiento (POST, CSV)" enabled="true"><boolProp name="HTTPSampler.postBodyRaw">true</boolProp><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"><elementProp name="" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">{
+  "usuarioId": ${usuarioId},
+  "tipoMovimiento": "${tipoMovimiento}",
+  "monto": ${monto},
+  "descripcion": "${descripcion} run ${RUN_ID}"
+}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp><stringProp name="HTTPSampler.path">/api/v1/movimientos</stringProp><stringProp name="HTTPSampler.method">POST</stringProp><boolProp name="HTTPSampler.follow_redirects">false</boolProp><boolProp name="HTTPSampler.auto_redirects">false</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp><boolProp name="HTTPSampler.image_parser">false</boolProp></HTTPSamplerProxy><hashTree><ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Pausa antes del POST (rate limit 30 req/min por key)" enabled="true"><stringProp name="ConstantTimer.delay">${__P(delayMs,2500)}</stringProp></ConstantTimer><hashTree/><JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract movimientoId from $.data.id" enabled="true"><stringProp name="JSONPostProcessor.referenceNames">movimientoId</stringProp><stringProp name="JSONPostProcessor.jsonPathExprs">$.data.id</stringProp><stringProp name="JSONPostProcessor.match_numbers">1</stringProp><stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp><boolProp name="JSONPostProcessor.compute_concat">false</boolProp></JSONPostProcessor><hashTree/><JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="Contrato del POST y valores del CSV" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="filename"></stringProp><stringProp name="parameters"></stringProp><stringProp name="script">// Diagnostico generico: nunca se loguean headers, credenciales ni el body completo.
+def failures = []
+if (prev.getResponseCode() != '201') failures.add('Se esperaba HTTP 201')
+try {
+    def json = new groovy.json.JsonSlurper().parseText(prev.getResponseDataAsString())
+    def data = (json instanceof Map) ? json.data : null
+    if (!(data instanceof Map)) {
+        failures.add('data debe existir y ser un objeto')
+    } else {
+        if (data.id == null) failures.add('data.id debe existir')
+        if (String.valueOf(data.usuario_id) != vars.get('usuarioId')) failures.add('data.usuario_id no coincide con el CSV')
+        if (data.tipo_movimiento != vars.get('tipoMovimiento')) failures.add('data.tipo_movimiento no coincide con el CSV')
+        try {
+            if (new BigDecimal(String.valueOf(data.monto)).compareTo(new BigDecimal(vars.get('monto'))) != 0) {
+                failures.add('data.monto no coincide con el CSV')
+            }
+        } catch (Exception ignored) {
+            failures.add('data.monto no es numerico')
+        }
+    }
+} catch (Exception ignored) {
+    failures.add('La respuesta debe ser JSON valido')
+}
+if (!failures.isEmpty()) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage(failures.join('; '))
+}
+</stringProp></JSR223Assertion><hashTree/></hashTree><JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Validar correlacion POST a GET" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="filename"></stringProp><stringProp name="parameters"></stringProp><stringProp name="script">// Corre justo despues del POST (y sus assertions). Si falla, on_sample_error=continue avanza el CSV.
+vars.put('g9.correlationReady', 'false')
+def failures = []
+if (prev == null || !prev.isSuccessful()) failures.add('el POST no paso')
+String movId = vars.get('movimientoId')
+if (movId == null) {
+    failures.add('movimientoId no fue extraido')
+} else if (movId.trim().isEmpty()) {
+    failures.add('movimientoId vacio')
+} else if (movId == 'NOT_FOUND') {
+    failures.add('la extraccion de movimientoId devolvio NOT_FOUND')
+}
+if (!failures.isEmpty()) {
+    vars.remove('movimientoId')
+    String message = 'Correlacion fallida: ' + failures.join('; ')
+    SampleResult.setSuccessful(false)
+    SampleResult.setResponseCode('CORRELATION_ERROR')
+    SampleResult.setResponseMessage(message)
+    def detail = new org.apache.jmeter.assertions.AssertionResult('POST to GET correlation')
+    detail.setFailure(true)
+    detail.setFailureMessage(message)
+    SampleResult.addAssertionResult(detail)
+    return
+}
+vars.put('g9.correlationReady', 'true')
+SampleResult.setSuccessful(true)
+SampleResult.setIgnore()
+</stringProp></JSR223Sampler><hashTree/><IfController guiclass="IfControllerPanel" testclass="IfController" testname="GET solo si la correlacion es valida" enabled="true"><stringProp name="IfController.condition">${g9.correlationReady}</stringProp><boolProp name="IfController.evaluateAll">false</boolProp><boolProp name="IfController.useExpression">true</boolProp></IfController><hashTree><HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="02 - Consultar movimiento creado (GET correlacionado)" enabled="true"><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"/></elementProp><stringProp name="HTTPSampler.path">/api/v1/movimientos/${movimientoId}</stringProp><stringProp name="HTTPSampler.method">GET</stringProp><boolProp name="HTTPSampler.follow_redirects">false</boolProp><boolProp name="HTTPSampler.auto_redirects">false</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp><boolProp name="HTTPSampler.image_parser">false</boolProp></HTTPSamplerProxy><hashTree><ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Pausa antes del GET por id" enabled="true"><stringProp name="ConstantTimer.delay">${__P(delayMs,2500)}</stringProp></ConstantTimer><hashTree/><JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="GET 200 e id correlacionado" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="filename"></stringProp><stringProp name="parameters"></stringProp><stringProp name="script">def failures = []
+if (prev.getResponseCode() != '200') failures.add('Se esperaba HTTP 200')
+try {
+    def json = new groovy.json.JsonSlurper().parseText(prev.getResponseDataAsString())
+    def data = (json instanceof Map) ? json.data : null
+    if (!(data instanceof Map)) {
+        failures.add('data debe existir y ser un objeto')
+    } else {
+        if (String.valueOf(data.id) != vars.get('movimientoId')) failures.add('data.id debe ser el movimientoId creado por el POST')
+        if (String.valueOf(data.usuario_id) != vars.get('usuarioId')) failures.add('data.usuario_id no coincide con el CSV')
+        if (data.tipo_movimiento != vars.get('tipoMovimiento')) failures.add('data.tipo_movimiento no coincide con el CSV')
+    }
+} catch (Exception ignored) {
+    failures.add('La respuesta debe ser JSON valido')
+}
+if (!failures.isEmpty()) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage(failures.join('; '))
+}
+</stringProp></JSR223Assertion><hashTree/></hashTree><HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="03 - Reporte de movimientos por tipo (GET, usuarioId del CSV)" enabled="true"><elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true"><collectionProp name="Arguments.arguments"><elementProp name="usuarioId" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">${usuarioId}</stringProp><stringProp name="Argument.metadata">=</stringProp><boolProp name="HTTPArgument.use_equals">true</boolProp><stringProp name="Argument.name">usuarioId</stringProp></elementProp></collectionProp></elementProp><stringProp name="HTTPSampler.path">/api/v1/reportes/movimientos</stringProp><stringProp name="HTTPSampler.method">GET</stringProp><boolProp name="HTTPSampler.follow_redirects">false</boolProp><boolProp name="HTTPSampler.auto_redirects">false</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp><boolProp name="HTTPSampler.image_parser">false</boolProp></HTTPSamplerProxy><hashTree><ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Pausa antes del GET de reporte" enabled="true"><stringProp name="ConstantTimer.delay">${__P(delayMs,2500)}</stringProp></ConstantTimer><hashTree/><JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="Reporte incluye el tipo creado" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="filename"></stringProp><stringProp name="parameters"></stringProp><stringProp name="script">// GET /reportes/movimientos devuelve data: [{tipo_movimiento, cantidad, total}] agrupado por tipo.
+def failures = []
+if (prev.getResponseCode() != '200') failures.add('Se esperaba HTTP 200')
+try {
+    def json = new groovy.json.JsonSlurper().parseText(prev.getResponseDataAsString())
+    def data = (json instanceof Map) ? json.data : null
+    if (!(data instanceof List)) {
+        failures.add('data debe ser un arreglo')
+    } else {
+        def fila = data.find { it.tipo_movimiento == vars.get('tipoMovimiento') }
+        if (fila == null) {
+            failures.add('el reporte no incluye el tipo_movimiento recien creado')
+        } else if (!(fila.cantidad instanceof Number) || fila.cantidad &lt; 1) {
+            failures.add('cantidad del tipo creado debe ser &gt;= 1')
+        }
+    }
+} catch (Exception ignored) {
+    failures.add('La respuesta debe ser JSON valido')
+}
+if (!failures.isEmpty()) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage(failures.join('; '))
+}
+</stringProp></JSR223Assertion><hashTree/></hashTree></hashTree></hashTree></hashTree></hashTree></hashTree></jmeterTestPlan>
