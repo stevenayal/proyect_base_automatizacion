@@ -1,0 +1,24 @@
+{
+  "minimumHttpSamples": 20,
+  "expectedPostCount": 10,
+  "expectedGetCount": 10,
+  "maxErrorRatePct": 1,
+  "maxP95Ms": 1500,
+  "global": {
+    "scope": "global",
+    "maxErrorRate": 1,
+    "p95Ms": 1500
+  },
+  "operations": {
+    "G7-JUAN-S5-01 POST crear orden dinamica": {
+      "scope": "G7-JUAN-S5-01 POST crear orden dinamica",
+      "maxErrorRate": 1,
+      "p95Ms": 1500
+    },
+    "G7-JUAN-S5-02 GET consultar orden correlacionada": {
+      "scope": "G7-JUAN-S5-02 GET consultar orden correlacionada",
+      "maxErrorRate": 1,
+      "p95Ms": 1500
+    }
+  }
+}

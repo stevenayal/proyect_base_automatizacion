@@ -1,24 +1,27 @@
 name: Postman Regression - Grupo 07 - Juan Barreto
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - .github/workflows/postman-grupo07-juan-regression.yml
-      - postman/grupo-07-juan-barreto-carrito-e-commerce.postman_collection.json
-      - scripts/grupo07/newman_report.py
-  push:
-    branches: [juan-barreto-tarea2-selfcontained]
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      tested_sha:
+        required: true
+        type: string
+      deadline:
+        required: true
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   newman-juan:
     name: Juan Barreto - Newman + PDF
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CI_DEADLINE: ${{ inputs.deadline }}
     steps:
       - name: Verificar configuracion externa
         id: config
@@ -27,41 +30,35 @@ jobs:
           GRUPO07_BASE_URL: ${{ vars.GRUPO07_BASE_URL }}
           GRUPO07_API_KEY: ${{ secrets.GRUPO07_API_KEY }}
         run: |
-          if [[ -n "$GRUPO07_BASE_URL" && -n "$GRUPO07_API_KEY" ]]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
+          if [[ -z "${GRUPO07_BASE_URL//[[:space:]]/}" || -z "${GRUPO07_API_KEY//[[:space:]]/}" ]]; then
+            echo "::error::REGRESION_NO_EJECUTADA: faltan GRUPO07_BASE_URL o GRUPO07_API_KEY."
+            echo "REGRESION_NO_EJECUTADA: configuracion incompleta; no es una prueba aprobada." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
           fi
 
-      - name: Informar ejecucion sin configuracion externa
-        if: ${{ steps.config.outputs.available == 'false' }}
-        run: |
-          echo "External configuration is unavailable (expected for fork pull requests)."
-          echo "Newman, PDF generation, and artifact upload were skipped. No regression was executed."
-          echo "Full Newman regression is executed by the push workflow in the contributor fork when configured."
-
       - name: Checkout del repositorio
-        if: ${{ steps.config.outputs.available == 'true' }}
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tested_sha }}
 
       - name: Configurar Node.js
-        if: ${{ steps.config.outputs.available == 'true' }}
         uses: actions/setup-node@v7
         with:
           node-version: 22
 
       - name: Configurar Python
-        if: ${{ steps.config.outputs.available == 'true' }}
         uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
-      - name: Instalar ReportLab
-        if: ${{ steps.config.outputs.available == 'true' }}
-        run: python -m pip install reportlab
+      - name: Instalar dependencias del reporte oficial
+        run: python -m pip install -r skills/postman-newman-skill/reporter/requirements.txt
+
+      - name: Verificar consumidores antes de Newman
+        run: python scripts/grupo07/wait_sandbox_consumers.py --check
 
       - name: Ejecutar Newman - Juan Barreto
-        if: ${{ steps.config.outputs.available == 'true' }}
+        id: newman
         env:
           GRUPO07_BASE_URL: ${{ vars.GRUPO07_BASE_URL }}
           GRUPO07_API_KEY: ${{ secrets.GRUPO07_API_KEY }}
@@ -75,21 +72,63 @@ jobs:
             --reporters cli,json \
             --reporter-json-export newman/results.json
 
-      # Newman failures still fail the job; report generation does not mask them.
-      # If JSON is missing, the reporter exits with an explicit diagnostic.
-      - name: Generar reporte PDF
-        if: ${{ always() && steps.config.outputs.available == 'true' }}
+      # The internal reporter validates scope only; the official skill creates the PDF.
+      - name: Validar alcance 3/14 y generar PDF oficial
+        id: report
+        if: ${{ !cancelled() && (steps.newman.outcome == 'success' || steps.newman.outcome == 'failure') }}
         run: |
-          python scripts/grupo07/newman_report.py \
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/grupo07')
+          from newman_report import summarize
+          summary = summarize(json.loads(Path('newman/results.json').read_text()),
+                              expected_requests=3, expected_assertions=14)
+          assert summary['Result'] == 'PASS', 'Newman no cumple alcance estricto 3/14'
+          assert summary['Passed assertions'] == 14
+          assert summary['Failed assertions'] == 0 and summary['Skipped assertions'] == 0
+          print(json.dumps(summary))
+          PY
+          python skills/postman-newman-skill/reporter/newman_report.py \
             --results newman/results.json \
+            --banner skills/postman-newman-skill/reporter/assets/banner_portada.png \
+            --logo-aiquaa skills/postman-newman-skill/reporter/assets/logo_aiquaa_circle.png \
+            --logo-postman skills/postman-newman-skill/reporter/assets/logo_postman_clean.png \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            --api-version "${{ inputs.tested_sha }}" \
+            --author "${{ github.triggering_actor }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             --output newman/report.pdf
+          test -s newman/report.pdf
 
       - name: Subir reporte PDF
-        if: ${{ always() && steps.config.outputs.available == 'true' }}
+        id: upload
+        if: ${{ !cancelled() && hashFiles('newman/report.pdf') != '' }}
         uses: actions/upload-artifact@v7
         with:
           name: informe-regresion-grupo07-juan
           path: newman/report.pdf
           retention-days: 7
-          # Missing JSON/PDF already fails the report step; do not upload raw JSON.
-          if-no-files-found: warn
+          if-no-files-found: error
+
+      - name: Certificar ejecucion completa
+        if: ${{ always() }}
+        env:
+          CONFIG: ${{ steps.config.outcome }}
+          NEWMAN: ${{ steps.newman.outcome }}
+          REPORT: ${{ steps.report.outcome }}
+          UPLOAD: ${{ steps.upload.outcome }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+        run: |
+          if [[ "$NEWMAN" == "skipped" || "$CONFIG" != "success" ]]; then
+            echo "REGRESION_NO_EJECUTADA: no aprobar. Un success externo con tests omitidos seria GREEN_CON_TESTS_SKIPPED." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          if [[ "$NEWMAN" != "success" || "$REPORT" != "success" || "$UPLOAD" != "success" || -z "$ARTIFACT_ID" ]]; then
+            echo "FAILED_REAL: ejecucion o publicacion incompleta." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          test -s newman/results.json
+          test -s newman/report.pdf
+          echo "GREEN_REAL: Newman ejecutado; 3 requests, 14 assertions, cero fallos; JSON validado, PDF no vacio, artifact $ARTIFACT_ID publicado." >> "$GITHUB_STEP_SUMMARY"

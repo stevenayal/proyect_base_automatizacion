@@ -1,0 +1,68 @@
+name: Playwright BDD - Grupo 07 - Juan - Semana 6
+
+on:
+  push:
+    branches: [grupo-07-carrito-ecommerce-entrega]
+    paths:
+      - 'tests/bdd/grupo07-ordenes-andrea/**'
+      - 'grupos/grupo-07-carrito-ecommerce/evidence/semana-06/**'
+      - '.github/workflows/playwright-grupo07-juan-semana6.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+    inputs:
+      cucumber_tags:
+        description: Etiquetas Cucumber
+        required: false
+        default: '@OE-G07-01'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  bdd:
+    if: github.repository == 'stevenayal/proyect_base_automatizacion'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE_URL: ${{ vars.AIQUAA_SANDBOX_BASE_URL || 'https://aiquaa-sandbox-web.vercel.app/' }}
+      SANDBOX_API_KEY: ${{ secrets.GRUPO07_API_KEY }}
+      BDD_TAGS: ${{ inputs.cucumber_tags || '@OE-G07-01' }}
+    steps:
+      - name: Obtener codigo
+        uses: actions/checkout@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Validar bindings Cucumber
+        run: npm run test:bdd:ordenes-andrea:dryrun
+      - name: Ejecutar escenario BDD
+        run: npm run test:bdd:ordenes-andrea
+      - name: Preparar reportes de Juan
+        if: always()
+        run: |
+          if [ -d results/grupo07-andrea ]; then
+            mkdir -p results/grupo07-juan
+            cp -a results/grupo07-andrea/. results/grupo07-juan/
+            for extension in html json; do
+              report="results/grupo07-juan/cucumber-grupo07-andrea.$extension"
+              if [ -f "$report" ]; then
+                mv "$report" "results/grupo07-juan/cucumber-grupo07-juan.$extension"
+              fi
+            done
+          fi
+      - name: Publicar evidencia
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-grupo07-juan-semana6-${{ github.run_number }}
+          path: results/grupo07-juan/**
+          if-no-files-found: warn
+          retention-days: 14
