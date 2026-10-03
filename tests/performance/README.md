@@ -1,4 +1,3 @@
-
 # Rendimiento — Grupo 04 Onboarding
 
 El plan prueba el flujo principal de alta de usuarios en AIQUAA Sandbox:
@@ -31,6 +30,7 @@ para aumentar la carga también debe recalcularse la pausa y respetarse el rate
 limit del sandbox.
 
 Los umbrales se encuentran en `thresholds/grupo04-thresholds.json`: máximo 5 %
+de errores y percentil 95 menor o igual a 2000 ms.
 
 # Pruebas de rendimiento (JMeter)
 

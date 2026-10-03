@@ -1,9 +1,10 @@
 {
   "info": {
-    "_postman_id": "1b2cf7a0-b3e7-41b9-9847-c0b02848991d",
+    "_postman_id": "7fdea2d4-3d6e-4d80-a4c3-f01c028ed37c",
     "name": "Grupo 04 - Onboarding KYC Básico",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "42134457"
+    "_exporter_id": "43837863",
+    "_collection_link": "https://go.postman.co/collection/43837863-7fdea2d4-3d6e-4d80-a4c3-f01c028ed37c?source=collection_link"
   },
   "item": [
     {
@@ -293,11 +294,28 @@
               "pm.test(\"La respuesta contiene el ID del nuevo usuario\", function () {\r",
               "    pm.expect(response.data).to.exist;\r",
               "    pm.expect(response.data.id).to.exist;\r",
-              "});\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const timestamp = Date.now();\r",
               "\r",
-              "if (response.data && response.data.id) {\r",
-              "    pm.environment.set(\"usuarioId\", response.data.id);\r",
-              "}"
+              "pm.environment.set(\r",
+              "    \"happyEmail\",\r",
+              "    `usuario.happy.${timestamp}@example.com`\r",
+              ");\r",
+              "\r",
+              "pm.environment.set(\r",
+              "    \"happyDocumento\",\r",
+              "    `${timestamp}`\r",
+              ");"
             ],
             "type": "text/javascript",
             "packages": {},

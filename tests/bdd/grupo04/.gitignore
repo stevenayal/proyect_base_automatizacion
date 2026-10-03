@@ -1,0 +1,6 @@
+node_modules/
+results/
+.env
+playwright/.auth/
+.vs/
+.controlado-*/

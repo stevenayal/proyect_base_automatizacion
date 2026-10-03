@@ -1,0 +1,113 @@
+[
+  {
+    "description": "  Como operador autorizado quiero registrar usuarios con datos válidos\n  y evitar altas con datos incompletos o correo inválido.",
+    "elements": [
+      {
+        "description": "",
+        "id": "alta-de-usuarios-del-grupo-04;alta-rechazada-por-correo-inválido",
+        "keyword": "Scenario",
+        "line": 24,
+        "name": "Alta rechazada por correo inválido",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "que el operador está en el formulario de nuevo usuario",
+            "match": {
+              "location": ".controlado-DL3YMS\\steps\\S_registro.steps.ts:9"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 25,
+            "name": "intenta registrar un usuario con correo inválido",
+            "match": {
+              "location": ".controlado-DL3YMS\\steps\\S_registro.steps.ts:31"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 26,
+            "name": "el correo es inválido y el formulario impide el alta",
+            "match": {
+              "location": ".controlado-DL3YMS\\steps\\S_registro.steps.ts:35"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@grupo-4",
+            "line": 1
+          },
+          {
+            "name": "@registro",
+            "line": 1
+          },
+          {
+            "name": "@web",
+            "line": 1
+          },
+          {
+            "name": "@S6-G04-03",
+            "line": 23
+          },
+          {
+            "name": "@negativo",
+            "line": 23
+          }
+        ],
+        "type": "scenario"
+      }
+    ],
+    "id": "alta-de-usuarios-del-grupo-04",
+    "line": 2,
+    "keyword": "Feature",
+    "name": "Alta de usuarios del grupo 04",
+    "tags": [
+      {
+        "name": "@grupo-4",
+        "line": 1
+      },
+      {
+        "name": "@registro",
+        "line": 1
+      },
+      {
+        "name": "@web",
+        "line": 1
+      }
+    ],
+    "uri": "features\\F_REGISTRO.feature"
+  }
+]

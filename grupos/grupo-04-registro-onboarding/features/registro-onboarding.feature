@@ -63,6 +63,13 @@ Scenario: Registro rechazado por contraseña sin requisitos de seguridad
   Then El sistema rechaza el registro y muestra una alerta "La contraseña debe tener al menos 8 caracteres"
 
   # TODO: Scenario: edge case
+  Scenario: Alta rechazada para un cliente con documento ya registrado
+  Given existe un cliente registrado con el mismo número de documento
+  And el usuario se encuentra en el formulario de alta de clientes
+  When intenta registrar un nuevo cliente utilizando ese número de documento
+  Then el sistema debe rechazar el alta
+  And debe informar que el documento ya se encuentra registrado
+
   Scenario: Intento de registro con cédula ya existente en el sistema
     Given Existe una cuenta previamente registrada con la misma cédula
     When El usuario intenta completar el registro con esa cédula

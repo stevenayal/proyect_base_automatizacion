@@ -1,0 +1,409 @@
+[
+  {
+    "description": "  Como operador autorizado quiero registrar usuarios con datos válidos\n  y evitar altas con datos incompletos o correo inválido.",
+    "elements": [
+      {
+        "description": "",
+        "id": "alta-de-usuarios-del-grupo-04;alta-exitosa-con-datos-obligatorios",
+        "keyword": "Scenario",
+        "line": 11,
+        "name": "Alta exitosa con datos obligatorios",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 308440999
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "que el operador está en el formulario de nuevo usuario",
+            "match": {
+              "location": "steps\\S_registro.steps.ts:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 399703499
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 12,
+            "name": "registra un usuario nuevo con datos obligatorios válidos",
+            "match": {
+              "location": "steps\\S_registro.steps.ts:12"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 173522200
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 13,
+            "name": "la ficha muestra los datos del usuario registrado",
+            "match": {
+              "location": "steps\\S_registro.steps.ts:20"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 980453900
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 39265999
+            },
+            "embeddings": [
+              {
+                "data": "eyJlc2NlbmFyaW8iOiJBbHRhIGV4aXRvc2EgY29uIGRhdG9zIG9ibGlnYXRvcmlvcyIsImRhdG9zIjp7Im5vbWJyZSI6IlFBIEJERCBHcnVwbzA0IiwiZW1haWwiOiJxYS5nMDQuYzNmZTFmYjctYTEzNi00OGQzLTkzYmMtM2FlOTE0NjU0ZDkwQGV4YW1wbGUuY29tIiwiZG9jdW1lbnRvIjoiMTc5MDk4MjE5MjIzNjU0MzQifSwiZmljaGEiOnsibm9tYnJlIjoiUUEgQkREIEdydXBvMDQiLCJlbWFpbCI6InFhLmcwNC5jM2ZlMWZiNy1hMTM2LTQ4ZDMtOTNiYy0zYWU5MTQ2NTRkOTBAZXhhbXBsZS5jb20iLCJkb2N1bWVudG8iOiIxNzkwOTgyMTkyMjM2NTQzNCIsIm5hY2ltaWVudG8iOiIiLCJkaXJlY2Npb24iOiIifX0=",
+                "mime_type": "application/json"
+              }
+            ]
+          }
+        ],
+        "tags": [
+          {
+            "name": "@grupo-4",
+            "line": 1
+          },
+          {
+            "name": "@registro",
+            "line": 1
+          },
+          {
+            "name": "@web",
+            "line": 1
+          },
+          {
+            "name": "@S6-G04-01",
+            "line": 10
+          },
+          {
+            "name": "@smoke",
+            "line": 10
+          },
+          {
+            "name": "@positivo",
+            "line": 10
+          }
+        ],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "alta-de-usuarios-del-grupo-04;alta-exitosa-con-todos-los-datos",
+        "keyword": "Scenario",
+        "line": 17,
+        "name": "Alta exitosa con todos los datos",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 292609999
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "que el operador está en el formulario de nuevo usuario",
+            "match": {
+              "location": "steps\\S_registro.steps.ts:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 296315200
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 18,
+            "name": "registra un usuario nuevo incluyendo los datos opcionales",
+            "match": {
+              "location": "steps\\S_registro.steps.ts:16"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 124942900
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 19,
+            "name": "la ficha muestra los datos del usuario registrado",
+            "match": {
+              "location": "steps\\S_registro.steps.ts:20"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1085450100
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 20,
+            "name": "la ficha conserva la fecha de nacimiento y la dirección",
+            "match": {
+              "location": "steps\\S_registro.steps.ts:27"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 348100
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 44980999
+            },
+            "embeddings": [
+              {
+                "data": "eyJlc2NlbmFyaW8iOiJBbHRhIGV4aXRvc2EgY29uIHRvZG9zIGxvcyBkYXRvcyIsImRhdG9zIjp7Im5vbWJyZSI6IlFBIEJERCBHcnVwbzA0IiwiZW1haWwiOiJxYS5nMDQuM2U0NWU5ZTQtMjJhMC00NTdkLTk5NTItMDA0NTM5NDExZDM1QGV4YW1wbGUuY29tIiwiZG9jdW1lbnRvIjoiMTc5MDk4MjE5NDAyNDc0MjIiLCJuYWNpbWllbnRvIjoiMTk5NS0wNi0xNSIsImRpcmVjY2lvbiI6IkRpcmVjY2lvbiBmaWN0aWNpYSBRQSAwNCJ9LCJmaWNoYSI6eyJub21icmUiOiJRQSBCREQgR3J1cG8wNCIsImVtYWlsIjoicWEuZzA0LjNlNDVlOWU0LTIyYTAtNDU3ZC05OTUyLTAwNDUzOTQxMWQzNUBleGFtcGxlLmNvbSIsImRvY3VtZW50byI6IjE3OTA5ODIxOTQwMjQ3NDIyIiwibmFjaW1pZW50byI6IjE5OTUtMDYtMTUiLCJkaXJlY2Npb24iOiJEaXJlY2Npb24gZmljdGljaWEgUUEgMDQifX0=",
+                "mime_type": "application/json"
+              }
+            ]
+          }
+        ],
+        "tags": [
+          {
+            "name": "@grupo-4",
+            "line": 1
+          },
+          {
+            "name": "@registro",
+            "line": 1
+          },
+          {
+            "name": "@web",
+            "line": 1
+          },
+          {
+            "name": "@S6-G04-02",
+            "line": 16
+          },
+          {
+            "name": "@positivo",
+            "line": 16
+          }
+        ],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "alta-de-usuarios-del-grupo-04;alta-rechazada-por-correo-inválido",
+        "keyword": "Scenario",
+        "line": 24,
+        "name": "Alta rechazada por correo inválido",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 259839499
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "que el operador está en el formulario de nuevo usuario",
+            "match": {
+              "location": "steps\\S_registro.steps.ts:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 379297199
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 25,
+            "name": "intenta registrar un usuario con correo inválido",
+            "match": {
+              "location": "steps\\S_registro.steps.ts:31"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 115756999
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 26,
+            "name": "el correo es inválido y el formulario impide el alta",
+            "match": {
+              "location": "steps\\S_registro.steps.ts:35"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 29514199
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 40954399
+            },
+            "embeddings": [
+              {
+                "data": "eyJlc2NlbmFyaW8iOiJBbHRhIHJlY2hhemFkYSBwb3IgY29ycmVvIGludsOhbGlkbyIsImRhdG9zIjp7Im5vbWJyZSI6IlFBIEJERCBHcnVwbzA0IiwiZW1haWwiOiJjb3JyZW8taW52YWxpZG8iLCJkb2N1bWVudG8iOiIxNzkwOTgyMTk1OTIxOTE2NiJ9fQ==",
+                "mime_type": "application/json"
+              }
+            ]
+          }
+        ],
+        "tags": [
+          {
+            "name": "@grupo-4",
+            "line": 1
+          },
+          {
+            "name": "@registro",
+            "line": 1
+          },
+          {
+            "name": "@web",
+            "line": 1
+          },
+          {
+            "name": "@S6-G04-03",
+            "line": 23
+          },
+          {
+            "name": "@negativo",
+            "line": 23
+          }
+        ],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "alta-de-usuarios-del-grupo-04;alta-rechazada-por-campos-obligatorios-vacíos",
+        "keyword": "Scenario",
+        "line": 30,
+        "name": "Alta rechazada por campos obligatorios vacíos",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 277836600
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "que el operador está en el formulario de nuevo usuario",
+            "match": {
+              "location": "steps\\S_registro.steps.ts:9"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 322902400
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 31,
+            "name": "intenta registrar un usuario sin completar los campos obligatorios",
+            "match": {
+              "location": "steps\\S_registro.steps.ts:40"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 51212199
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 32,
+            "name": "los campos obligatorios están pendientes y el formulario impide el alta",
+            "match": {
+              "location": "steps\\S_registro.steps.ts:43"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 54710600
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 48710600
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@grupo-4",
+            "line": 1
+          },
+          {
+            "name": "@registro",
+            "line": 1
+          },
+          {
+            "name": "@web",
+            "line": 1
+          },
+          {
+            "name": "@S6-G04-04",
+            "line": 29
+          },
+          {
+            "name": "@negativo",
+            "line": 29
+          }
+        ],
+        "type": "scenario"
+      }
+    ],
+    "id": "alta-de-usuarios-del-grupo-04",
+    "line": 2,
+    "keyword": "Feature",
+    "name": "Alta de usuarios del grupo 04",
+    "tags": [
+      {
+        "name": "@grupo-4",
+        "line": 1
+      },
+      {
+        "name": "@registro",
+        "line": 1
+      },
+      {
+        "name": "@web",
+        "line": 1
+      }
+    ],
+    "uri": "features\\F_REGISTRO.feature"
+  }
+]

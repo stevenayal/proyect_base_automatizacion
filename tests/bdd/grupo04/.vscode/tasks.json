@@ -1,0 +1,37 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "BDD: demostrar fallo y restauración",
+      "type": "process",
+      "command": "node.exe",
+      "args": ["scripts/fallo-controlado.cjs"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "BDD: comprobar enlace",
+      "type": "process",
+      "command": "C:\\Windows\\System32\\cmd.exe",
+      "args": ["/d", "/c", "npm.cmd run test:dry"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "BDD: instalar Chromium",
+      "type": "process",
+      "command": "C:\\Windows\\System32\\cmd.exe",
+      "args": ["/d", "/c", "npm.cmd run browser:install"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "BDD: ejecutar con navegador",
+      "type": "process",
+      "command": "C:\\Windows\\System32\\cmd.exe",
+      "args": ["/d", "/c", "npm.cmd run test:visible"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    }
+  ]
+}

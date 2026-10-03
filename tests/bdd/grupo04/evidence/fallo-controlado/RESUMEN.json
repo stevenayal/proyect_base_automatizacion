@@ -1,0 +1,7 @@
+{
+  "comprobadoEn": "2026-10-02T23:12:03.756Z",
+  "escenario": "S6-G04-03",
+  "falloControlado": "El expected false contradice el correo inválido real.",
+  "restaurado": "Todos los pasos del caso original pasaron.",
+  "originalSinCambios": true
+}

@@ -10,6 +10,7 @@
 - Mathias Olmedo - olmedomathias1208@gmail.com
 - Fabiola Fretes - fabiolafretes14@gmail.com
 - Natalia Valdez - nataliaval1912@gmail.com
+
 ## Alcance
 
 - TODO: objetivo del flujo automatizado
@@ -29,23 +30,38 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 - [ ] CI/CD verde
 - [ ] PR a `main` usando la plantilla del repo
 
+## Trazabilidad BDD → API
+
+| Tipo | Escenario BDD | Endpoint AIQUAA | Resultado esperado |
+|---|---|---|---|
+| Happy Path | Registro exitoso de nuevo cliente con datos válidos | POST /api/v1/usuarios | 201 Created y se genera el ID del usuario |
+| Negativo | Registro rechazado por número de cédula inválido | POST /api/v1/usuarios | 400 Bad Request y error VALIDATION_ERROR |
+| Edge Case | Intento de registro con cédula ya existente en el sistema | POST /api/v1/usuarios | 409 Conflict y error CONFLICT |
+| Negativo | Registro rechazado por correo electrónico inválido | POST /api/v1/usuarios | 400 Bad Request y error VALIDATION_ERROR |
+| Negativo | Registro rechazado por correo electrónico ya registrado | POST /api/v1/usuarios | 409 Conflict y error CONFLICT |
+| Negativo | Registro rechazado por campos obligatorios incompletos | POST /api/v1/usuarios | 400 Bad Request y error VALIDATION_ERROR |
+| Happy Path | Consulta exitosa del listado de usuarios registrados | GET /api/v1/usuarios | 200 OK y se obtiene el listado de usuarios |
+| Happy Path | Consulta exitosa de usuarios con estado KYC pendiente | POST /api/v1/sql/select | 200 OK y se obtiene el listado de usuarios con KYC pendiente |
+
+
+### Validaciones adicionales
+
+- GET /api/v1/usuarios/{{usuarioId}} para consultar y validar el usuario creado.
+- PATCH /api/v1/usuarios/{{usuarioId}}/kyc para actualizar el estado KYC.
+- Consulta de usuarios con estado KYC pendiente.
+- Las validaciones de las respuestas se realizan mediante `pm.test()` y `pm.expect()` en Postman.
+
 ## Tarea 3.0 - Pre Request y Post Request con validación en BD
 
-Se implementaron consultas SQL mediante `/api/v1/sql/select`.
+Se implementaron consultas SQL mediante `/api/v1/sql/select` para obtener un
+documento existente, validar el conflicto por duplicado, crear un usuario con
+datos únicos y comprobar posteriormente su existencia en la base de datos.
 
-### Casos realizados
+Las carpetas `Validación con Base de Datos` y `Alta válida con validación BD`
+utilizan variables de colección y `Date.now()` para compartir información entre
+solicitudes sin depender de datos fijos.
 
-- Obtención dinámica de un documento existente desde la base de datos.
-- Validación de documento duplicado con respuesta `409 CONFLICT`.
-- Alta válida con datos generados dinámicamente.
-- Validación posterior en base de datos del usuario creado.
-- Assertions para validar status, KYC, estado activo y existencia en BD.
-
-### Manejo de variables
-
-Se utilizaron variables de colección para reutilizar datos entre requests y `Date.now()` para generar valores únicos.
-
-### Uso de IA / Skill
+Las evidencias se encuentran en `evidence/semana-03/`.
 
 Se utilizó la Skill BDD mediante OpenCode para generar escenarios API + BD del Grupo 04.
 

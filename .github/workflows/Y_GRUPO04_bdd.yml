@@ -1,0 +1,43 @@
+name: Grupo 04 - Cucumber y Playwright
+on:
+  workflow_dispatch:
+  push:
+    branches: ['grupo-04-registro-onboarding']
+    paths:
+      - 'tests/bdd/grupo04/**'
+      - '.github/workflows/Y_GRUPO04_bdd.yml'
+permissions:
+  contents: read
+jobs:
+  bdd:
+    if: github.repository == 'stevenayal/proyect_base_automatizacion'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: tests/bdd/grupo04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Comprobar TypeScript
+        run: npm run check
+      - name: Comprobar enlace Cucumber
+        run: npm run test:dry
+      - name: Ejecutar escenarios
+        run: npm run test:bdd
+        env:
+          SANDBOX_LOGIN_EMAIL: ${{ secrets.SANDBOX_LOGIN_EMAIL }}
+      - name: Publicar evidencias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bdd-grupo04
+          path: tests/bdd/grupo04/results/
+          if-no-files-found: warn
+          retention-days: 14
