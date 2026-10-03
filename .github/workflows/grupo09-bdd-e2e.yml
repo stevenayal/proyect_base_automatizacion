@@ -43,11 +43,7 @@ jobs:
 
       - name: Ejecutar escenarios BDD del Grupo 09
         run: >
-          npx cucumber-js "grupos/grupo-09-reportes-dashboard/features/**/*.feature"
-          --require "tests/bdd/steps/**/*.ts"
-          --require "tests/bdd/support/**/*.ts"
-          --require-module ts-node/register
-          --format progress
+          npx cucumber-js --profile grupo09
           --format "json:grupos/grupo-09-reportes-dashboard/evidence/cucumber-report.json"
 
       - name: Subir evidencias (reporte + capturas si las hay)
