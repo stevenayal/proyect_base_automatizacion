@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Informe fiel a los steps, hooks y evidencias del JSON Cucumber de Semana 06."""
+
 import argparse
 import base64
 from collections import Counter
@@ -13,130 +14,847 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+    Image,
+    PageBreak,
+)
 
-SANDBOX = 'https://aiquaa-sandbox-web.vercel.app'
-FAILURES = {'failed', 'undefined', 'ambiguous', 'pending', 'unknown'}
-ANSI = re.compile(r'\x1b\[[0-9;]*m')
+SANDBOX = "https://aiquaa-sandbox-web.vercel.app"
+
+EVIDENCE_DIR = Path(
+    "grupos/grupo-01-autenticacion-acceso/evidence/semana-06"
+)
+
+FAILURES = {
+    "failed",
+    "undefined",
+    "ambiguous",
+    "pending",
+    "unknown",
+}
+
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def parse_cucumber_json(path):
-    data = json.loads(Path(path).read_text(encoding='utf-8'))
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+
     if not isinstance(data, list):
-        raise ValueError('Se requiere el array del formatter JSON de Cucumber')
+        raise ValueError(
+            "Se requiere el array del formatter JSON de Cucumber"
+        )
+
     scenarios = []
     step_counts = Counter()
+
     for feature in data:
-        uri = feature.get('uri', '').replace('\\', '/')
-        if '/features/semana-06/' not in uri or 'LAB-LOGIN-001' in uri:
-            raise ValueError(f'Feature ajeno a Semana 06: {uri}')
-        for element in feature.get('elements', []):
-            if element.get('type') != 'scenario':
+        uri = feature.get("uri", "").replace("\\", "/")
+
+        if "/features/semana-06/" not in uri or "LAB-LOGIN-001" in uri:
+            raise ValueError(
+                f"Feature ajeno a Semana 06: {uri}"
+            )
+
+        for element in feature.get("elements", []):
+            if element.get("type") != "scenario":
                 continue
-            all_steps = element.get('steps', [])
-            steps = [step for step in all_steps if not step.get('hidden')]
-            entries = element.get('before', []) + all_steps + element.get('after', [])
-            states = [entry.get('result', {}).get('status', 'unknown') for entry in entries]
-            step_counts.update(step.get('result', {}).get('status', 'unknown') for step in steps)
-            if any(state in FAILURES or state not in {'passed', 'skipped'} for state in states):
-                status = 'FAIL'
-            elif not steps or not states or any(state != 'passed' for state in states):
-                status = 'SKIP'
+
+            all_steps = element.get("steps", [])
+
+            steps = [
+                step
+                for step in all_steps
+                if not step.get("hidden")
+            ]
+
+            entries = (
+                element.get("before", [])
+                + all_steps
+                + element.get("after", [])
+            )
+
+            states = [
+                entry.get("result", {}).get(
+                    "status",
+                    "unknown",
+                )
+                for entry in entries
+            ]
+
+            step_counts.update(
+                step.get("result", {}).get(
+                    "status",
+                    "unknown",
+                )
+                for step in steps
+            )
+
+            if any(
+                state in FAILURES
+                or state not in {"passed", "skipped"}
+                for state in states
+            ):
+                status = "FAIL"
+
+            elif (
+                not steps
+                or not states
+                or any(
+                    state != "passed"
+                    for state in states
+                )
+            ):
+                status = "SKIP"
+
             else:
-                status = 'PASS'
-            errors = [ANSI.sub('', entry.get('result', {}).get('error_message', ''))
-                      for entry in entries if entry.get('result', {}).get('error_message')]
+                status = "PASS"
+
+            errors = [
+                ANSI.sub(
+                    "",
+                    entry.get(
+                        "result",
+                        {},
+                    ).get(
+                        "error_message",
+                        "",
+                    ),
+                )
+                for entry in entries
+                if entry.get(
+                    "result",
+                    {},
+                ).get(
+                    "error_message"
+                )
+            ]
+
             evidence = []
+
             for entry in entries:
-                for attachment in entry.get('embeddings', []):
-                    if attachment.get('mime_type') == 'application/json':
-                        record = json.loads(base64.b64decode(attachment['data']))
-                        if 'loginRequests' in record:
-                            evidence.append(record)
-            scenarios.append({'name': element.get('name', 'Sin nombre'), 'status': status,
-                              'errors': errors, 'evidence': evidence})
-    counts = Counter(s['status'] for s in scenarios)
+                for attachment in entry.get(
+                    "embeddings",
+                    [],
+                ):
+                    if (
+                        attachment.get("mime_type")
+                        == "application/json"
+                    ):
+                        try:
+                            record = json.loads(
+                                base64.b64decode(
+                                    attachment["data"]
+                                )
+                            )
+
+                            if "loginRequests" in record:
+                                evidence.append(record)
+
+                        except Exception:
+                            pass
+
+            scenarios.append(
+                {
+                    "name": element.get(
+                        "name",
+                        "Sin nombre",
+                    ),
+                    "status": status,
+                    "errors": errors,
+                    "evidence": evidence,
+                }
+            )
+
+    counts = Counter(
+        scenario["status"]
+        for scenario in scenarios
+    )
+
     total = len(scenarios)
-    return {'total': total, 'passed': counts['PASS'], 'failed': counts['FAIL'],
-            'skipped': counts['SKIP'], 'pass_rate': round(counts['PASS'] / total * 100, 1) if total else 0,
-            'steps': dict(step_counts), 'scenarios': scenarios}
+
+    return {
+        "total": total,
+        "passed": counts["PASS"],
+        "failed": counts["FAIL"],
+        "skipped": counts["SKIP"],
+        "pass_rate": (
+            round(
+                counts["PASS"]
+                / total
+                * 100,
+                1,
+            )
+            if total
+            else 0
+        ),
+        "steps": dict(step_counts),
+        "scenarios": scenarios,
+    }
 
 
 def get_verdict(stats):
-    if not stats['total']:
-        return 'SIN RESULTADOS - no se ejecutaron escenarios', 'warn'
-    if stats['failed']:
-        return 'VALIDACION FALLIDA - revisar expectativas y evidencias', 'fail'
-    if stats['skipped']:
-        return 'VALIDACION INCOMPLETA - hay escenarios omitidos', 'warn'
-    return 'Todos los escenarios pasaron', 'pass'
+    if not stats["total"]:
+        return (
+            "SIN RESULTADOS - no se ejecutaron escenarios",
+            "warn",
+        )
+
+    if stats["failed"]:
+        return (
+            "VALIDACION FALLIDA - revisar expectativas y evidencias",
+            "fail",
+        )
+
+    if stats["skipped"]:
+        return (
+            "VALIDACION INCOMPLETA - hay escenarios omitidos",
+            "warn",
+        )
+
+    return (
+        "Todos los escenarios pasaron",
+        "pass",
+    )
 
 
-def generate_report(results_path, output_path, app_name='AIQUAA Sandbox', environment=None):
-    stats = parse_cucumber_json(results_path)
+def screenshot_for_scenario(scenario_name):
+    """
+    Busca la captura correspondiente a un escenario.
+
+    Los hooks generan nombres como:
+    AUT-01-passed-Login-fallido-con-email-valido....png
+    """
+
+    if not EVIDENCE_DIR.exists():
+        return None
+
+    normalized = (
+        scenario_name
+        .lower()
+        .replace(" ", "-")
+    )
+
+    screenshots = sorted(
+        EVIDENCE_DIR.glob("*.png")
+    )
+
+    # Primero intentamos encontrar coincidencia
+    # aproximada con el nombre del escenario.
+    for image in screenshots:
+        filename = image.name.lower()
+
+        words = [
+            word
+            for word in normalized.split("-")
+            if len(word) >= 5
+        ]
+
+        if words:
+            matches = sum(
+                1
+                for word in words
+                if word in filename
+            )
+
+            if matches >= min(
+                3,
+                len(words),
+            ):
+                return image
+
+    return None
+
+
+def add_screenshot(
+    story,
+    image_path,
+    styles,
+):
+    if not image_path:
+        story.append(
+            Paragraph(
+                "No se encontro captura PNG para este escenario.",
+                styles["SmallBody"],
+            )
+        )
+        return
+
+    story.append(
+        Paragraph(
+            f"Evidencia visual: {escape(image_path.name)}",
+            styles["SmallBody"],
+        )
+    )
+
+    story.append(
+        Spacer(
+            1,
+            2 * mm,
+        )
+    )
+
+    img = Image(
+        str(image_path)
+    )
+
+    max_width = 165 * mm
+    max_height = 105 * mm
+
+    scale = min(
+        max_width / img.imageWidth,
+        max_height / img.imageHeight,
+        1,
+    )
+
+    img.drawWidth = (
+        img.imageWidth
+        * scale
+    )
+
+    img.drawHeight = (
+        img.imageHeight
+        * scale
+    )
+
+    story.append(img)
+
+    story.append(
+        Spacer(
+            1,
+            5 * mm,
+        )
+    )
+
+
+def generate_report(
+    results_path,
+    output_path,
+    app_name="AIQUAA Sandbox",
+    environment=None,
+):
+    stats = parse_cucumber_json(
+        results_path
+    )
+
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle('SmallBody', parent=styles['BodyText'], fontSize=8, leading=11))
-    styles['Title'].textColor = colors.HexColor('#183153')
-    styles['Heading2'].textColor = colors.HexColor('#183153')
-    def p(text, style='BodyText'):
-        return Paragraph(escape(str(text)).replace('\n', '<br/>'), styles[style])
-    source_time = datetime.fromtimestamp(Path(results_path).stat().st_mtime, timezone.utc).isoformat(timespec='seconds')
-    story = [p('Informe BDD - Semana 06', 'Title'),
-             p(f'{app_name} | Grupo 01 - Autenticacion y Acceso'),
-             p(f'Fuente JSON actualizada: {source_time}', 'SmallBody'),
-             p(f'Ambiente: {environment or "Local"} | {SANDBOX}', 'SmallBody'),
-             Spacer(1, 6*mm)]
-    verdict, kind = get_verdict(stats)
-    color = {'fail': '#b42318', 'warn': '#965b00', 'pass': '#16703a'}[kind]
-    styles.add(ParagraphStyle('Verdict', parent=styles['Heading2'], textColor=colors.HexColor(color)))
-    story += [p(verdict, 'Verdict'), p(f"Escenarios: {stats['total']} | Aprobados: {stats['passed']} | Fallidos: {stats['failed']} | Omitidos: {stats['skipped']}"),
-              p(f"Pasos: {json.dumps(stats['steps'], ensure_ascii=False)}", 'SmallBody'), Spacer(1, 4*mm)]
-    rows = [[p('Escenario', 'SmallBody'), p('Estado', 'SmallBody')]]
-    rows += [[p(s['name'], 'SmallBody'), p(s['status'], 'SmallBody')] for s in stats['scenarios']]
-    table = Table(rows, colWidths=[145*mm, 25*mm], repeatRows=1, hAlign='LEFT')
-    table.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e5edf6')),
-                              ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f5f7fa')]),
-                              ('VALIGN', (0,0), (-1,-1), 'TOP'), ('BOX',(0,0),(-1,-1),.5,colors.lightgrey),
-                              ('TOPPADDING',(0,0),(-1,-1),7), ('BOTTOMPADDING',(0,0),(-1,-1),7)]))
-    story += [table, Spacer(1, 5*mm), p('Evidencia observada', 'Heading2')]
-    for scenario in stats['scenarios']:
-        story.append(p(scenario['name'], 'Heading3'))
-        for evidence in scenario['evidence']:
-            story.append(p(f"Ejecucion: {evidence.get('runId')} | Estado: {evidence.get('status')}", 'SmallBody'))
-            story.append(p(f"URL final: {evidence.get('url', 'No disponible')}", 'SmallBody'))
-            requests = evidence.get('loginRequests', [])
+
+    styles.add(
+        ParagraphStyle(
+            "SmallBody",
+            parent=styles["BodyText"],
+            fontSize=8,
+            leading=11,
+        )
+    )
+
+    styles.add(
+        ParagraphStyle(
+            "EvidenceTitle",
+            parent=styles["Heading3"],
+            fontSize=10,
+            leading=13,
+            textColor=colors.HexColor(
+                "#183153"
+            ),
+        )
+    )
+
+    styles["Title"].textColor = (
+        colors.HexColor(
+            "#183153"
+        )
+    )
+
+    styles["Heading2"].textColor = (
+        colors.HexColor(
+            "#183153"
+        )
+    )
+
+    def p(
+        text,
+        style="BodyText",
+    ):
+        return Paragraph(
+            escape(
+                str(text)
+            ).replace(
+                "\n",
+                "<br/>",
+            ),
+            styles[style],
+        )
+
+    source_time = datetime.fromtimestamp(
+        Path(results_path).stat().st_mtime,
+        timezone.utc,
+    ).isoformat(
+        timespec="seconds"
+    )
+
+    story = [
+        p(
+            "Informe BDD - Semana 06",
+            "Title",
+        ),
+        p(
+            f"{app_name} | Grupo 01 - Autenticacion y Acceso"
+        ),
+        p(
+            f"Fuente JSON actualizada: {source_time}",
+            "SmallBody",
+        ),
+        p(
+            f'Ambiente: {environment or "Local"} | {SANDBOX}',
+            "SmallBody",
+        ),
+        Spacer(
+            1,
+            6 * mm,
+        ),
+    ]
+
+    verdict, kind = get_verdict(
+        stats
+    )
+
+    color = {
+        "fail": "#b42318",
+        "warn": "#965b00",
+        "pass": "#16703a",
+    }[kind]
+
+    styles.add(
+        ParagraphStyle(
+            "Verdict",
+            parent=styles["Heading2"],
+            textColor=colors.HexColor(
+                color
+            ),
+        )
+    )
+
+    story += [
+        p(
+            verdict,
+            "Verdict",
+        ),
+        p(
+            f"Escenarios: {stats['total']} | "
+            f"Aprobados: {stats['passed']} | "
+            f"Fallidos: {stats['failed']} | "
+            f"Omitidos: {stats['skipped']}"
+        ),
+        p(
+            f"Pasos: {json.dumps(stats['steps'], ensure_ascii=False)}",
+            "SmallBody",
+        ),
+        Spacer(
+            1,
+            4 * mm,
+        ),
+    ]
+
+    rows = [
+        [
+            p(
+                "Escenario",
+                "SmallBody",
+            ),
+            p(
+                "Estado",
+                "SmallBody",
+            ),
+        ]
+    ]
+
+    rows += [
+        [
+            p(
+                scenario["name"],
+                "SmallBody",
+            ),
+            p(
+                scenario["status"],
+                "SmallBody",
+            ),
+        ]
+        for scenario in stats[
+            "scenarios"
+        ]
+    ]
+
+    table = Table(
+        rows,
+        colWidths=[
+            145 * mm,
+            25 * mm,
+        ],
+        repeatRows=1,
+        hAlign="LEFT",
+    )
+
+    table.setStyle(
+        TableStyle(
+            [
+                (
+                    "BACKGROUND",
+                    (0, 0),
+                    (-1, 0),
+                    colors.HexColor(
+                        "#e5edf6"
+                    ),
+                ),
+                (
+                    "ROWBACKGROUNDS",
+                    (0, 1),
+                    (-1, -1),
+                    [
+                        colors.white,
+                        colors.HexColor(
+                            "#f5f7fa"
+                        ),
+                    ],
+                ),
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "TOP",
+                ),
+                (
+                    "BOX",
+                    (0, 0),
+                    (-1, -1),
+                    0.5,
+                    colors.lightgrey,
+                ),
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    7,
+                ),
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    7,
+                ),
+            ]
+        )
+    )
+
+    story += [
+        table,
+        Spacer(
+            1,
+            5 * mm,
+        ),
+        p(
+            "Evidencia observada",
+            "Heading2",
+        ),
+    ]
+
+    # Evidencia técnica tomada del JSON Cucumber
+    for scenario in stats[
+        "scenarios"
+    ]:
+        story.append(
+            p(
+                scenario["name"],
+                "Heading3",
+            )
+        )
+
+        if not scenario[
+            "evidence"
+        ]:
+            story.append(
+                p(
+                    "No se encontro evidencia JSON adicional para este escenario.",
+                    "SmallBody",
+                )
+            )
+
+        for evidence in scenario[
+            "evidence"
+        ]:
+            story.append(
+                p(
+                    f"Ejecucion: {evidence.get('runId')} | "
+                    f"Estado: {evidence.get('status')}",
+                    "SmallBody",
+                )
+            )
+
+            story.append(
+                p(
+                    f"URL final: {evidence.get('url', 'No disponible')}",
+                    "SmallBody",
+                )
+            )
+
+            requests = evidence.get(
+                "loginRequests",
+                [],
+            )
+
             if not requests:
-                story.append(p('No se observaron solicitudes POST de login.', 'SmallBody'))
+                story.append(
+                    p(
+                        "No se observaron solicitudes POST de login.",
+                        "SmallBody",
+                    )
+                )
+
             for request in requests:
-                story.append(p(f"POST /api/proxy/auth/login | HTTP {request.get('status', 'sin respuesta')} | {request.get('email', '')}", 'SmallBody'))
-                if request.get('error'):
-                    story.append(p(request['error'], 'SmallBody'))
-            if any(200 <= r.get('status', 0) < 300 for r in requests) and scenario['status'] == 'FAIL':
-                story.append(p('La respuesta fue exitosa pero el escenario exige un error. Esto no demuestra una caida del backend; revisar la precondicion del feature.', 'SmallBody'))
-        for error in scenario['errors']:
-            # Conservar el mensaje útil sin volcar rutas locales y stacks completos al PDF.
-            summary = error.split('\n    at ')[0][:1000]
-            story.append(p(summary, 'SmallBody'))
-    story += [Spacer(1, 4*mm), p('Alcance y limites', 'Heading2'),
-              p('Este informe describe la ejecucion incluida en el JSON. Un escenario negativo aprobado no demuestra un login exitoso. Los pasos omitidos y fallos de hooks nunca se cuentan como aprobados. No se ejecutan otras semanas ni LAB-LOGIN-001.', 'SmallBody')]
-    output = Path(output_path)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    def footer(canvas, doc):
-        canvas.setFont('Helvetica', 8)
-        canvas.setFillColor(colors.HexColor('#607080'))
-        canvas.drawString(20*mm, 12*mm, 'Semana 06 | Cucumber + Playwright')
-        canvas.drawRightString(190*mm, 12*mm, f'Pagina {doc.page}')
-    SimpleDocTemplate(str(output), pagesize=A4, leftMargin=20*mm, rightMargin=20*mm,
-                      topMargin=15*mm, bottomMargin=20*mm).build(story, onFirstPage=footer, onLaterPages=footer)
-    print(json.dumps({k:v for k,v in stats.items() if k != 'scenarios'}, ensure_ascii=False))
-    print(f'Reporte: {output}')
+                story.append(
+                    p(
+                        "POST /api/proxy/auth/login | "
+                        f"HTTP {request.get('status', 'sin respuesta')} | "
+                        f"{request.get('email', '')}",
+                        "SmallBody",
+                    )
+                )
+
+                if request.get(
+                    "error"
+                ):
+                    story.append(
+                        p(
+                            request[
+                                "error"
+                            ],
+                            "SmallBody",
+                        )
+                    )
+
+            if (
+                any(
+                    200
+                    <= request.get(
+                        "status",
+                        0,
+                    )
+                    < 300
+                    for request
+                    in requests
+                )
+                and scenario[
+                    "status"
+                ]
+                == "FAIL"
+            ):
+                story.append(
+                    p(
+                        "La respuesta fue exitosa pero el escenario exige un error. "
+                        "Esto no demuestra una caida del backend; revisar la precondicion del feature.",
+                        "SmallBody",
+                    )
+                )
+
+        for error in scenario[
+            "errors"
+        ]:
+            summary = error.split(
+                "\n    at "
+            )[0][:1000]
+
+            story.append(
+                p(
+                    summary,
+                    "SmallBody",
+                )
+            )
+
+    # ---------------------------------------------------------
+    # EVIDENCIAS VISUALES
+    # ---------------------------------------------------------
+
+    story.append(
+        PageBreak()
+    )
+
+    story.append(
+        p(
+            "Evidencias visuales de ejecucion",
+            "Heading2",
+        )
+    )
+
+    story.append(
+        p(
+            "Las siguientes capturas fueron generadas automaticamente "
+            "por los hooks de Cucumber al finalizar cada escenario.",
+            "SmallBody",
+        )
+    )
+
+    story.append(
+        Spacer(
+            1,
+            5 * mm,
+        )
+    )
+
+    for index, scenario in enumerate(
+        stats["scenarios"],
+        start=1,
+    ):
+        story.append(
+            Paragraph(
+                f"{index}. {escape(scenario['name'])} - {scenario['status']}",
+                styles[
+                    "EvidenceTitle"
+                ],
+            )
+        )
+
+        story.append(
+            Spacer(
+                1,
+                2 * mm,
+            )
+        )
+
+        screenshot = (
+            screenshot_for_scenario(
+                scenario["name"]
+            )
+        )
+
+        add_screenshot(
+            story,
+            screenshot,
+            styles,
+        )
+
+    story += [
+        Spacer(
+            1,
+            4 * mm,
+        ),
+        p(
+            "Alcance y limites",
+            "Heading2",
+        ),
+        p(
+            "Este informe describe la ejecucion incluida en el JSON. "
+            "Un escenario negativo aprobado no demuestra un login exitoso. "
+            "Los pasos omitidos y fallos de hooks nunca se cuentan como aprobados. "
+            "No se ejecutan otras semanas ni LAB-LOGIN-001.",
+            "SmallBody",
+        ),
+    ]
+
+    output = Path(
+        output_path
+    )
+
+    output.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    def footer(
+        canvas,
+        doc,
+    ):
+        canvas.setFont(
+            "Helvetica",
+            8,
+        )
+
+        canvas.setFillColor(
+            colors.HexColor(
+                "#607080"
+            )
+        )
+
+        canvas.drawString(
+            20 * mm,
+            12 * mm,
+            "Semana 06 | Cucumber + Playwright",
+        )
+
+        canvas.drawRightString(
+            190 * mm,
+            12 * mm,
+            f"Pagina {doc.page}",
+        )
+
+    SimpleDocTemplate(
+        str(output),
+        pagesize=A4,
+        leftMargin=20 * mm,
+        rightMargin=20 * mm,
+        topMargin=15 * mm,
+        bottomMargin=20 * mm,
+    ).build(
+        story,
+        onFirstPage=footer,
+        onLaterPages=footer,
+    )
+
+    print(
+        json.dumps(
+            {
+                key: value
+                for key, value
+                in stats.items()
+                if key
+                != "scenarios"
+            },
+            ensure_ascii=False,
+        )
+    )
+
+    print(
+        f"Reporte: {output}"
+    )
+
+    print(
+        f"Evidencias PNG: {len(list(EVIDENCE_DIR.glob('*.png'))) if EVIDENCE_DIR.exists() else 0}"
+    )
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--results', required=True)
-    parser.add_argument('--output', required=True)
-    parser.add_argument('--app-name', default='AIQUAA Sandbox')
-    parser.add_argument('--environment', default='Local')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description=__doc__
+    )
+
+    parser.add_argument(
+        "--results",
+        required=True,
+    )
+
+    parser.add_argument(
+        "--output",
+        required=True,
+    )
+
+    parser.add_argument(
+        "--app-name",
+        default="AIQUAA Sandbox",
+    )
+
+    parser.add_argument(
+        "--environment",
+        default="Local",
+    )
+
     args = parser.parse_args()
-    generate_report(args.results, args.output, args.app_name, args.environment)
+
+    generate_report(
+        args.results,
+        args.output,
+        args.app_name,
+        args.environment,
+    )
