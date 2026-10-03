@@ -2,6 +2,7 @@
 
 **Módulo:** Panel de control / reportes financieros
 **Rama:** `grupo-09-reportes-dashboard-corregido`
+**Rama:** `grupo-09-reportes-dashboard`
 
 ## Integrantes
 
@@ -26,6 +27,10 @@
   movimiento aleatorio por API (edge case).
 - **Cobertura excluida:** edición/eliminación de movimientos, filtros de
   fecha del reporte, módulos distintos a Reportes/Movimientos.
+- TODO: objetivo del flujo automatizado
+- TODO: supuestos
+- TODO: riesgos
+- TODO: cobertura incluida / excluida
 
 ## Entregables
 
@@ -60,3 +65,10 @@ npx cucumber-js "grupos/grupo-09-reportes-dashboard/features/**/*.feature" \
   --require "tests/bdd/steps/**/*.ts" --require "tests/bdd/support/**/*.ts" \
   --require-module ts-node/register
 ```
+- [ ] Análisis y alcance
+- [ ] BDD — `features/` (mínimo 3 escenarios: happy path, negativo, edge case)
+- [ ] API — colección Postman/Newman (si aplica al módulo)
+- [ ] UI — `tests/e2e/` con Playwright
+- [ ] Evidencias en `evidence/`
+- [ ] CI/CD verde
+- [ ] PR a `main` usando la plantilla del repo
