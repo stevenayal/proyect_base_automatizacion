@@ -1,6 +1,6 @@
 import { test, expect, request } from '@playwright/test';
-import { LoginPage } from '../../../../playwright/pages/LoginPage';
-import { TarjetasPage } from '../../../../playwright/pages/TarjetasPage';
+import { LoginPage } from '../../playwright/pages/LoginPage';
+import { TarjetasPage } from '../../playwright/pages/TarjetasPage';
 
 /**
  * Smoke UI del módulo Tarjetas (Grupo 05).
@@ -10,7 +10,7 @@ import { TarjetasPage } from '../../../../playwright/pages/TarjetasPage';
  * creada por API para este test (los ids sembrados cambian entre corridas).
  *
  * Los escenarios BDD equivalentes viven en
- * `grupos/grupo-05-tarjetas-credito-debito/features/tarjetas-credito-debito.feature`.
+ * `grupos/grupo-05-tarjetas-credito-debito/bdd/features/tarjetas/F_TARJETAS.feature`.
  */
 
 const API_URL = process.env.API_URL || 'https://aiquaa-sandbox-api.vercel.app';

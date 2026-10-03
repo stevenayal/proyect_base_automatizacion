@@ -3,9 +3,9 @@
 #
 # ID de escenario principal: G05-LOGIN-001
 # El ID viaja como tag del escenario y da nombre al archivo de evidencia
-# generado en `evidence/semana-05/` (ver tests/bdd/support/hooks.ts).
+# generado en `evidence/semana-06/` (ver bdd/support/hooks.ts).
 
-@grupo-05 @web @login
+@grupo-05 @web @login @autenticacion
 Feature: Acceso del cliente a la app de tarjetas
   Como cliente del banco
   Quiero autenticarme en la app

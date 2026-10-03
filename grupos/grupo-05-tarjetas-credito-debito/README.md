@@ -35,11 +35,11 @@
 
 18 escenarios en total, repartidos en dos archivos:
 
-- [`features/tarjetas-credito-debito.feature`](features/tarjetas-credito-debito.feature) — 16
+- [`bdd/features/tarjetas/F_TARJETAS.feature`](bdd/features/tarjetas/F_TARJETAS.feature) — 16
   escenarios: **6 automatizados** (`@G05-TARJ-001..006`, API + BD + web), **9 `@manual
   @sin-endpoint`** y **1 `@manual @defecto`** (el bloqueo desde el listado web, que falla:
   [`DEF-G05-01`](docs/DEFECTOS.md)).
-- [`features/F_GRUPO_05_LOGIN.feature`](features/F_GRUPO_05_LOGIN.feature) — 2 escenarios
+- [`bdd/features/autenticacion/F_LOGIN.feature`](bdd/features/autenticacion/F_LOGIN.feature) — 2 escenarios
   automatizados de acceso (`@G05-LOGIN-001..002`).
 
 Por tipo: 6 happy paths, 3 casos negativos (OTP inválido, PIN actual incorrecto, saldo
@@ -55,10 +55,10 @@ en el sandbox (evidencia verificada el 2026-10-02) y 1 en `FALLA` por `DEF-G05-0
 Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 
 - [x] Análisis y alcance
-- [x] BDD — `features/` (happy path caso negativo, y edge case cubiertos)
+- [x] BDD — `bdd/features/` (happy path, caso negativo y edge case cubiertos), ejecutable con Cucumber + POM
 - [x] API — colección Postman/Newman
 - [x] UI — Playwright + BDD web con Page Objects (`LoginPage`, `TarjetasPage`)
-- [x] Evidencias en `evidence/semana-03/` (Newman) y `evidence/semana-05/` (capturas, respuestas API e informe PDF)
+- [x] Evidencias en `evidence/semana-03/` (Newman) y `evidence/semana-06/` (capturas, respuestas API, clasificación de fallos e informes PDF)
 - [x] Rendimiento — plan JMeter + CSV (`tests/performance/`, ver más abajo)
 - [x] CI/CD — workflow propio de BDD + Playwright
 - [x] PR a `main` usando la plantilla del repo
@@ -237,27 +237,55 @@ Bajar `loops` para que la corrida termine antes reintroduce el problema.
 Los ids del seed se borran con el uso. Si una fila `200` empieza a dar 404, se refresca la
 columna con los ids vigentes; el tramo dinámico (punto 3) no necesita mantenimiento.
 
-## Semana 05 — BDD ejecutable (web + API + base de datos)
+## Semana 06 — BDD con Cucumber + POM (web + API + base de datos)
 
-Los escenarios del módulo dejaron de ser solo documentación: ocho de ellos se ejecutan contra
-el sandbox real y dejan evidencia trazable por ID.
+Los escenarios del módulo se ejecutan con Cucumber contra el sandbox real
+(`https://aiquaa-sandbox-web.vercel.app/`) y dejan evidencia trazable por ID. La suite sigue la
+arquitectura **Cucumber + BDD + POM** de
+[`skills/playwright-ai-agents-skill`](https://github.com/stevenayal/proyect_base_automatizacion/tree/main/skills/playwright-ai-agents-skill)
+(la skill de la clase de la semana 6):
+
+- `.feature` en lenguaje de negocio (`F_*.feature`), sin endpoints, selectores ni URLs;
+- steps de negocio (`S_*.steps.ts`): un step = una llamada a un Page Object o a la API;
+- `world.ts` con Page Objects lazy (`this.login`, `this.tarjetas`) y la API del módulo
+  (`this.api`), que concentra endpoints, reintentos y la verificación SQL;
+- plan con riesgos y contrato de `data-testid` en
+  [`bdd/specs/PLAN_TARJETAS.md`](bdd/specs/PLAN_TARJETAS.md);
+- perfil `dryrun` como gate de CI (0 steps sin definir) y Failure Classifier determinístico
+  sobre el JSON de Cucumber, sin IA en la ejecución.
+
+Todo vive en la carpeta del grupo: la skill está en `main`, así que el classifier se copió en
+[`bdd/scripts/classify-failures.mjs`](bdd/scripts/classify-failures.mjs) para no depender de un
+merge.
+
+```bash
+CFG=grupos/grupo-05-tarjetas-credito-debito/bdd/cucumber.js
+npx cucumber-js --config $CFG --profile dryrun     # catálogo: 0 undefined
+npx cucumber-js --config $CFG --profile grupo05    # 8 escenarios automatizados
+node grupos/grupo-05-tarjetas-credito-debito/bdd/scripts/classify-failures.mjs \
+  --input results/grupo05/cucumber-report.json --out results/grupo05/CLASIF_BDD_GRUPO05.json
+```
 
 ### Artefactos
 
 | Artefacto | Ruta |
 | :--- | :--- |
-| Feature — acceso | [`features/F_GRUPO_05_LOGIN.feature`](features/F_GRUPO_05_LOGIN.feature) |
-| Feature — tarjetas | [`features/tarjetas-credito-debito.feature`](features/tarjetas-credito-debito.feature) |
-| Page Objects | [`playwright/pages/LoginPage.ts`](../../playwright/pages/LoginPage.ts) · [`TarjetasPage.ts`](../../playwright/pages/TarjetasPage.ts) |
-| Steps web | [`tests/bdd/steps/login.steps.ts`](../../tests/bdd/steps/login.steps.ts) · [`tarjetas.steps.ts`](../../tests/bdd/steps/tarjetas.steps.ts) |
-| Steps API / BD | [`tests/bdd/steps/api.steps.ts`](../../tests/bdd/steps/api.steps.ts) · [`db.steps.ts`](../../tests/bdd/steps/db.steps.ts) |
-| Hooks / evidencia | [`tests/bdd/support/hooks.ts`](../../tests/bdd/support/hooks.ts) |
-| Smoke Playwright | [`tests/e2e/tarjetas-credito-debito.spec.ts`](tests/e2e/tarjetas-credito-debito.spec.ts) |
+| Plan | [`bdd/specs/PLAN_TARJETAS.md`](bdd/specs/PLAN_TARJETAS.md) |
+| Feature — acceso | [`bdd/features/autenticacion/F_LOGIN.feature`](bdd/features/autenticacion/F_LOGIN.feature) |
+| Feature — tarjetas | [`bdd/features/tarjetas/F_TARJETAS.feature`](bdd/features/tarjetas/F_TARJETAS.feature) |
+| Steps | [`bdd/steps/S_autenticacion.steps.ts`](bdd/steps/S_autenticacion.steps.ts) · [`S_tarjetas.steps.ts`](bdd/steps/S_tarjetas.steps.ts) |
+| World / hooks / API | [`bdd/support/world.ts`](bdd/support/world.ts) · [`hooks.ts`](bdd/support/hooks.ts) · [`tarjetas-api.ts`](bdd/support/tarjetas-api.ts) |
+| Perfiles Cucumber | [`bdd/cucumber.js`](bdd/cucumber.js) (`grupo05`, `smoke`, `dryrun`) |
+| Failure Classifier | [`bdd/scripts/classify-failures.mjs`](bdd/scripts/classify-failures.mjs) |
+| Page Objects | [`playwright/pages/LoginPage.ts`](playwright/pages/LoginPage.ts) · [`TarjetasPage.ts`](playwright/pages/TarjetasPage.ts) |
+| Smoke Playwright | [`tests/e2e/T_TARJETAS_SMOKE.spec.ts`](tests/e2e/T_TARJETAS_SMOKE.spec.ts) |
 | Ejecución manual | [`docs/EJECUCION-MANUAL.md`](docs/EJECUCION-MANUAL.md) |
 | Defectos | [`docs/DEFECTOS.md`](docs/DEFECTOS.md) |
 | CI | [`.github/workflows/Y_GRUPO05_bdd.yml`](../../.github/workflows/Y_GRUPO05_bdd.yml) |
-| Evidencia | [`evidence/semana-05/`](evidence/semana-05/) |
-| Informe PDF | [`evidence/semana-05/INFORME_BDD_GRUPO_05.pdf`](evidence/semana-05/INFORME_BDD_GRUPO_05.pdf) — incluye el anexo con las evidencias incrustadas |
+| Evidencia | [`evidence/semana-06/`](evidence/semana-06/) |
+| Informe PDF BDD | [`evidence/semana-06/INFORME_BDD_GRUPO_05.pdf`](evidence/semana-06/INFORME_BDD_GRUPO_05.pdf) — incluye el anexo con las evidencias incrustadas |
+| Informe PDF E2E | [`evidence/semana-06/INFORME_E2E_GRUPO_05.pdf`](evidence/semana-06/INFORME_E2E_GRUPO_05.pdf) |
+| Clasificación de fallos | [`evidence/semana-06/CLASIF_BDD_GRUPO05.json`](evidence/semana-06/CLASIF_BDD_GRUPO05.json) |
 
 ### Trazabilidad escenario ↔ evidencia
 
@@ -373,21 +401,23 @@ Variables de entorno relevantes (`.env`):
 - Automatizar los 7 escenarios `@sin-endpoint` cuando el sandbox exponga PIN, OTP, límites y
   pagos de tarjeta.
 - Reactivar el escenario `@defecto` en cuanto se corrija DEF-G05-01.
-- Incorporar el perfil `grupo05` y el informe PDF al workflow de CI del equipo.
 
 ### Integración continua
 
 [`.github/workflows/Y_GRUPO05_bdd.yml`](../../.github/workflows/Y_GRUPO05_bdd.yml)
-corre en cada push y PR a `main` que toque los features, steps, Page Objects o `cucumber.js`, y
-también a demanda (`workflow_dispatch`):
+corre en cada push a `main` o a la rama del grupo, y en cada PR a `main`, que toque `bdd/`, los
+Page Objects o el smoke del grupo; también a demanda (`workflow_dispatch`). Sigue el esqueleto
+del ejemplo del curso (`Y_AIQUAA_E2E_playwright.yml`):
 
-1. espera a que haya cupo en el rate limit del sandbox (mismo script que usan Newman y JMeter,
+1. valida el catálogo de steps con el perfil `dryrun` (0 undefined, 0 ambiguous);
+2. espera a que haya cupo en el rate limit del sandbox (mismo script que usan Newman y JMeter,
    y el mismo grupo de concurrencia, porque las tres corridas comparten API key);
-2. ejecuta `cucumber-js --profile grupo05` (los 8 escenarios automatizados; los `@manual` quedan
-   fuera por configuración del perfil);
-3. genera el informe PDF con la matriz de trazabilidad y las evidencias incrustadas;
-4. ejecuta el smoke de Playwright del grupo;
-5. publica como artefactos la carpeta de evidencia, el JSON de resultados y el reporte HTML de
+3. ejecuta Cucumber con el perfil `grupo05` (los 8 escenarios automatizados; los `@manual`
+   quedan fuera por configuración del perfil);
+4. clasifica los fallos con el Failure Classifier de la skill (`CLASIF_BDD_GRUPO05.json`);
+5. genera el informe PDF BDD con la matriz de trazabilidad y las evidencias incrustadas;
+6. ejecuta el smoke de Playwright del grupo y genera su informe PDF E2E;
+7. publica como artefactos la evidencia, los informes, la clasificación y el reporte HTML de
    Playwright, incluso si la corrida falló.
 
 La API key se toma de `secrets.GRUPO05_API_KEY` y, si no está definida, cae en la key demo
@@ -397,5 +427,5 @@ pública del curso — el mismo patrón que los workflows de Newman y JMeter del
 
 `GET /api/v1/labs/evidence/:sessionId`, que [`ENTREGABLES.md`](../../ENTREGABLES.md) pide como
 evidencia, **ya no existe en el sandbox**: responde 404 y no aparece en `/api/v1/docs`. La
-evidencia equivalente se entrega como capturas, respuestas HTTP e informe PDF en
-`evidence/semana-05/`.
+evidencia equivalente se entrega como capturas, respuestas HTTP e informes PDF en
+`evidence/semana-06/`.

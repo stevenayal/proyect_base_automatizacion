@@ -2,14 +2,14 @@
 
 Planilla de los escenarios que **no se pueden automatizar** contra el sandbox AIQUAA porque la
 API no expone los endpoints correspondientes. Están especificados en
-[`features/tarjetas-credito-debito.feature`](../features/tarjetas-credito-debito.feature) con los
+[`bdd/features/tarjetas/F_TARJETAS.feature`](../bdd/features/tarjetas/F_TARJETAS.feature) con los
 tags `@manual @sin-endpoint`, y se ejecutan a mano sobre el entorno que el docente indique.
 
 ## Cómo completar esta planilla
 
 1. Ejecutar el escenario paso a paso siguiendo el `Given/When/Then` del `.feature`.
 2. Registrar el resultado (`PASA` / `FALLA` / `BLOQUEADO`), la fecha y quién lo ejecutó.
-3. Adjuntar la evidencia en `evidence/semana-05/` con el nombre
+3. Adjuntar la evidencia en `evidence/semana-06/` con el nombre
    `<ID>-<PASSED|FAILED>-<fecha>.<png|pdf>`, el mismo patrón que usa la automatización.
 4. Si el escenario falla, registrar el defecto en
    [`DEFECTOS.md`](DEFECTOS.md) y referenciarlo en la columna de observaciones.
@@ -19,7 +19,7 @@ tags `@manual @sin-endpoint`, y se ejecutan a mano sobre el entorno que el docen
 Los 9 escenarios `@manual @sin-endpoint` se ejecutaron y quedaron en **BLOQUEADO**: el sandbox
 no expone la funcionalidad bajo prueba, así que el `When` de cada caso no se puede llegar a
 ejecutar. Se verificó contra el entorno vivo, endpoint por endpoint, y la evidencia está en
-[`G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md`](../evidence/semana-05/G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md):
+[`G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md`](../evidence/semana-06/G05-MAN-SIN-ENDPOINT-BLOCKED-2026-10-02.md):
 contrato publicado en `/api/v1/docs`, 6 sondeos en 404, un control en 200 que descarta problemas
 de api key o disponibilidad, y el modelo de datos de la tarjeta sin los campos necesarios.
 
