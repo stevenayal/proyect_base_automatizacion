@@ -1,12 +1,20 @@
 name: JMeter - Grupo 07 - Juan - Semana 5
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
+      - grupo-07-carrito-ecommerce-entrega
     paths:
-      - "grupos/grupo-07-carrito-ecommerce/tests/performance/**"
       - ".github/workflows/jmeter-grupo07-juan-semana5.yml"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/SEMANA5-JUAN.md"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/data/D_GRUPO_07_ORDENES_JUAN_SEMANA5.csv"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/plans/P_GRUPO_07_ORDENES_JUAN_SEMANA5.jmx"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/properties/GRUPO_07_ORDENES_JUAN_SEMANA5.properties"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/thresholds/thresholds-grupo07-juan-semana5.json"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/scripts/grupo07_juan_semana5_preflight.py"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/scripts/grupo07_juan_semana5_report.py"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/scripts/test_grupo07_juan_semana5_preflight.py"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/scripts/test_grupo07_juan_semana5_report.py"
   workflow_dispatch:
 
 permissions:

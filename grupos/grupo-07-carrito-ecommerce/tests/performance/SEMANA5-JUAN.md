@@ -114,13 +114,11 @@ baseline estadistica.
 
 La entrega de Semana 5 está integrada directamente en la rama
 `grupo-07-carrito-ecommerce-entrega` de
-`stevenayal/proyect_base_automatizacion`. El PR grupal #84 lleva esa rama hacia
-`main`. **JMeter - Grupo 07 - Juan - Semana 5** se ejecuta automáticamente por
-`pull_request` hacia `main` cuando cambian los paths de performance del Grupo 07
-o este workflow; `workflow_dispatch` permanece como fallback manual. No usa
-`pull_request_target`, no se ejecuta en el fork y CI no depende de
-`jmbarret/proyect_base_automatizacion`. Usa el secret
-`GRUPO07_API_KEY` del repositorio oficial upstream.
+`stevenayal/proyect_base_automatizacion`. **JMeter - Grupo 07 - Juan - Semana 5**
+se ejecuta automáticamente por `push` a esa rama cuando cambie uno de los diez
+archivos propios de Semana 5 o este workflow; `workflow_dispatch` permanece
+como fallback manual. No depende del fork ni del estado de merge/conflictos del
+PR #84. Usa el secret `GRUPO07_API_KEY` del repositorio oficial upstream.
 
 El workflow usa `-n -t -q -l -j -e -o`, mantiene `threads=1`, `loops=10` y
 `targetRpm=10`, y lee la credencial únicamente desde `GRUPO07_API_KEY` en el
@@ -244,7 +242,7 @@ por el perfil controlado de diez iteraciones descrito arriba.
 - `scripts/grupo07_juan_semana5_report.py`: lectura fail-closed de JTL, métricas, decisión y summary/PDF.
 - `scripts/grupo07_juan_semana5_preflight.py`: GET autenticado read-only acotado y comprobación de cuota.
 - `scripts/test_grupo07_juan_semana5_report.py` y `scripts/test_grupo07_juan_semana5_preflight.py`: pruebas offline.
-- `.github/workflows/jmeter-grupo07-juan-semana5.yml`: workflow del repositorio oficial, automático por `pull_request` hacia `main` para paths de performance del Grupo 07 y con `workflow_dispatch` como fallback.
+- `.github/workflows/jmeter-grupo07-juan-semana5.yml`: workflow del repositorio oficial, automático por `push` a `grupo-07-carrito-ecommerce-entrega` limitado a los diez archivos propios de Semana 5; `workflow_dispatch` queda como fallback.
 
 ### Thresholds, p95 y gate
 
@@ -291,15 +289,16 @@ cancelar el workflow y no repetirlo hasta revisar la evidencia.
 
 ### CI/CD, outputs, HTML y PDF
 
-El workflow se activa automáticamente en `pull_request` hacia `main` cuando el
-PR cambia los paths de performance del Grupo 07 o el propio workflow; no tiene
-trigger `push`, evitando una ejecución duplicada al sincronizar el PR grupal #84.
-`workflow_dispatch` queda como fallback. Se ejecuta en
-`stevenayal/proyect_base_automatizacion`, sin `pull_request_target` ni
-dependencia del fork. La concurrencia `grupo07-juan-semana5` serializa las
-corridas y `cancel-in-progress: false` evita cancelar una carga ya iniciada.
-`GRUPO07_API_KEY` del repositorio upstream se asigna como variable de entorno
-solo a los pasos de preflight y JMeter; no se pasa por `-JapiKey`.
+El workflow se activa automáticamente por `push` a
+`grupo-07-carrito-ecommerce-entrega`, solo si cambia uno de los diez archivos
+propios de Semana 5 o el propio workflow. `workflow_dispatch` queda como
+fallback; no hay trigger `pull_request`, por lo que no se duplica la corrida al
+actualizar el PR #84. Se ejecuta en `stevenayal/proyect_base_automatizacion`, no
+depende del fork ni del estado de merge/conflictos del PR #84. La concurrencia
+`grupo07-juan-semana5` serializa las corridas y `cancel-in-progress: false`
+evita cancelar una carga ya iniciada. `GRUPO07_API_KEY` del repositorio upstream
+se asigna como variable de entorno solo a los pasos de preflight y JMeter; no
+se pasa por `-JapiKey`.
 
 La ejecución headless produce en
 `test-results/performance/grupo07-juan-semana5/`:
