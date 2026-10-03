@@ -18,7 +18,7 @@ env:
   # COMPLETAR: email de la cuenta sandbox usada para ver el panel de reportes.
   # Es un entorno de prueba/demo, por eso se hardcodea directo aca.
   # Este login solo pide email (sin contraseña), por eso SANDBOX_PASSWORD queda vacío.
-  SANDBOX_USER: "COMPLETAR-EMAIL"
+  SANDBOX_USER: "admin@aiquaa.com"
   SANDBOX_PASSWORD: ""
   SANDBOX_LOGIN_URL: "https://aiquaa-sandbox-web.vercel.app/auth/login"
   SANDBOX_REPORTS_URL: "https://aiquaa-sandbox-web.vercel.app/reportes"
