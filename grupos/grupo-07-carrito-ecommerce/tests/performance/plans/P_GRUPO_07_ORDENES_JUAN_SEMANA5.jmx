@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Grupo 07 - Juan - Ordenes Semana 5 Fase 1" enabled="true">
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="g7.juan.targetRpmProperty" elementType="Argument">
+            <stringProp name="Argument.name">g7.juan.targetRpmProperty</stringProp>
+            <stringProp name="Argument.value">${__P(targetRpm,10)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+      <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults parametrizados" enabled="true">
+        <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+          <collectionProp name="Arguments.arguments"/>
+        </elementProp>
+        <stringProp name="HTTPSampler.domain">${__P(host,aiquaa-sandbox-api.vercel.app)}</stringProp>
+        <stringProp name="HTTPSampler.port">${__P(port,443)}</stringProp>
+        <stringProp name="HTTPSampler.protocol">${__P(protocol,https)}</stringProp>
+        <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
+        <stringProp name="HTTPSampler.connect_timeout">${__P(connectTimeoutMs,10000)}</stringProp>
+        <stringProp name="HTTPSampler.response_timeout">${__P(responseTimeoutMs,30000)}</stringProp>
+      </ConfigTestElement>
+      <hashTree/>
+      <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="JSON y API key externa" enabled="true">
+        <collectionProp name="HeaderManager.headers">
+          <elementProp name="Content-Type" elementType="Header">
+            <stringProp name="Header.name">Content-Type</stringProp>
+            <stringProp name="Header.value">application/json</stringProp>
+          </elementProp>
+          <elementProp name="x-api-key" elementType="Header">
+            <stringProp name="Header.name">x-api-key</stringProp>
+            <stringProp name="Header.value">${g7.juan.apiKey}</stringProp>
+          </elementProp>
+        </collectionProp>
+      </HeaderManager>
+      <hashTree/>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Flujo finito CSV POST y GET correlacionado" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(threads,1)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampUp,0)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">${__P(loops,3)}</stringProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Datos de ordenes Juan Semana 5" enabled="true">
+          <stringProp name="filename">${__P(csvFile,grupos/grupo-07-carrito-ecommerce/tests/performance/data/D_GRUPO_07_ORDENES_JUAN_SEMANA5.csv)}</stringProp>
+          <stringProp name="fileEncoding">UTF-8</stringProp>
+          <stringProp name="variableNames">usuarioId,producto1,cantidad1,precioUnitario1,producto2,cantidad2,precioUnitario2,montoEsperado</stringProp>
+          <stringProp name="delimiter">,</stringProp>
+          <boolProp name="quotedData">true</boolProp>
+          <boolProp name="ignoreFirstLine">true</boolProp>
+          <boolProp name="recycle">true</boolProp>
+          <boolProp name="stopThread">false</boolProp>
+          <stringProp name="shareMode">shareMode.all</stringProp>
+        </CSVDataSet>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Validar properties y fila CSV sin trafico" enabled="true">
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script"><![CDATA[
+vars.put('g7.juan.rowReady', 'false')
+vars.put('g7.juan.correlationReady', 'false')
+vars.remove('ordenId')
+vars.remove('g7.juan.apiKey')
+
+def fail = { String message ->
+    SampleResult.setSuccessful(false)
+    SampleResult.setResponseCode('INPUT_CONFIGURATION_ERROR')
+    SampleResult.setResponseMessage(message)
+    ctx.getThread().stop()
+}
+
+if (props.getProperty('g7.juan.week5.profile') != 'GRUPO_07_ORDENES_JUAN_SEMANA5' ||
+    props.getProperty('httpclient4.retrycount') != '0' ||
+    props.getProperty('httpclient4.request_sent_retry_enabled') != 'false') {
+    fail('Load the dedicated Juan Semana 5 properties and keep automatic retries disabled')
+    return
+}
+
+def parsePositiveInt = { String name ->
+    String value = props.getProperty(name, '')
+    if (!(value ==~ /[1-9][0-9]*/)) throw new IllegalArgumentException(name)
+    return Integer.parseInt(value)
+}
+
+int threads
+int loops
+BigDecimal targetRpm
+try {
+    threads = parsePositiveInt('threads')
+    loops = parsePositiveInt('loops')
+    String ramp = props.getProperty('rampUp', '')
+    if (!(ramp ==~ /[0-9]+/)) throw new IllegalArgumentException('rampUp')
+    targetRpm = new BigDecimal(vars.get('g7.juan.targetRpmProperty'))
+    if (targetRpm <= 0 || targetRpm > 30) throw new IllegalArgumentException('targetRpm')
+} catch (Exception ignored) {
+    fail('threads and loops must be positive integers; rampUp must be non-negative; targetRpm must be in (0,30]')
+    return
+}
+
+String apiKey = System.getenv('GRUPO07_API_KEY')
+if (apiKey == null || apiKey.trim().isEmpty() || apiKey.contains('\r') || apiKey.contains('\n')) {
+    fail('Falta GRUPO07_API_KEY')
+    return
+}
+vars.put('g7.juan.apiKey', apiKey)
+
+def positiveNumber = { String value ->
+    try { return new BigDecimal(value) > 0 } catch (Exception ignored) { return false }
+}
+def positiveInteger = { String value -> value != null && value ==~ /[1-9][0-9]*/ }
+def safeProduct = { String value ->
+    value != null && !value.trim().isEmpty() && !value.contains('"') &&
+        !value.contains('\\') && !value.chars().anyMatch { code -> code < 32 }
+}
+
+if (!positiveInteger(vars.get('usuarioId')) ||
+    !positiveInteger(vars.get('cantidad1')) || !positiveInteger(vars.get('cantidad2')) ||
+    !positiveNumber(vars.get('precioUnitario1')) || !positiveNumber(vars.get('precioUnitario2')) ||
+    !positiveNumber(vars.get('montoEsperado')) ||
+    !safeProduct(vars.get('producto1')) || !safeProduct(vars.get('producto2'))) {
+    fail('CSV row contains invalid or unsafe order data')
+    return
+}
+
+BigDecimal expected = new BigDecimal(vars.get('cantidad1')) * new BigDecimal(vars.get('precioUnitario1')) +
+    new BigDecimal(vars.get('cantidad2')) * new BigDecimal(vars.get('precioUnitario2'))
+if (expected.compareTo(new BigDecimal(vars.get('montoEsperado'))) != 0) {
+    fail('CSV montoEsperado does not match item quantities and prices')
+    return
+}
+
+long requestDelayMs = (long) Math.ceil(60000d * threads / targetRpm.doubleValue())
+vars.put('g7.juan.requestDelayMs', String.valueOf(requestDelayMs))
+vars.put('g7.juan.rowReady', 'true')
+SampleResult.setSuccessful(true)
+SampleResult.setIgnore()
+]]></stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Ejecutar flujo solamente con configuracion valida" enabled="true">
+          <stringProp name="IfController.condition">${g7.juan.rowReady}</stringProp>
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+          <boolProp name="IfController.useExpression">true</boolProp>
+        </IfController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="G7-JUAN-S5-01 POST crear orden dinamica" enabled="true">
+            <stringProp name="HTTPSampler.path">/api/v1/ordenes</stringProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.image_parser">false</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">{
+  &quot;usuarioId&quot;: ${usuarioId},
+  &quot;items&quot;: [
+    {&quot;producto&quot;: &quot;${producto1}&quot;, &quot;cantidad&quot;: ${cantidad1}, &quot;precioUnitario&quot;: ${precioUnitario1}},
+    {&quot;producto&quot;: &quot;${producto2}&quot;, &quot;cantidad&quot;: ${cantidad2}, &quot;precioUnitario&quot;: ${precioUnitario2}}
+  ]
+}</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Pacing POST derivado de targetRpm" enabled="true">
+              <stringProp name="ConstantTimer.delay">${g7.juan.requestDelayMs}</stringProp>
+            </ConstantTimer>
+            <hashTree/>
+            <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer ordenId de la orden creada" enabled="true">
+              <stringProp name="JSONPostProcessor.referenceNames">ordenId</stringProp>
+              <stringProp name="JSONPostProcessor.jsonPathExprs">$.data.id</stringProp>
+              <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
+              <stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp>
+              <boolProp name="JSONPostProcessor.compute_concat">false</boolProp>
+            </JSONPostProcessor>
+            <hashTree/>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="POST debe responder HTTP 201" enabled="true">
+              <collectionProp name="Assertion.test_strings">
+                <stringProp name="201">201</stringProp>
+              </collectionProp>
+              <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+              <boolProp name="Assertion.assume_success">false</boolProp>
+              <intProp name="Assertion.test_type">8</intProp>
+            </ResponseAssertion>
+            <hashTree/>
+            <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="Validar contrato de orden creada" enabled="true">
+              <stringProp name="scriptLanguage">groovy</stringProp>
+              <stringProp name="cacheKey">true</stringProp>
+              <stringProp name="filename"></stringProp>
+              <stringProp name="parameters"></stringProp>
+              <stringProp name="script"><![CDATA[
+def failures = []
+try {
+    def json = new groovy.json.JsonSlurper().parseText(prev.getResponseDataAsString())
+    if (!(json instanceof Map) || !(json.data instanceof Map)) {
+        failures.add('Top-level data must be an object')
+    } else {
+        if (json.data.id == null) failures.add('data.id must exist')
+        if (json.data.estado != 'pendiente') failures.add('data.estado must be pendiente')
+        if (!(json.data.items instanceof List) || json.data.items.size() != 2)
+            failures.add('data.items must contain exactly two items')
+        try {
+            if (new BigDecimal(String.valueOf(json.data.monto)).compareTo(new BigDecimal(vars.get('montoEsperado'))) != 0)
+                failures.add('data.monto must equal CSV montoEsperado')
+        } catch (Exception ignored) {
+            failures.add('data.monto must be numeric')
+        }
+    }
+} catch (Exception ignored) {
+    failures.add('Response must be valid JSON')
+}
+if (!failures.isEmpty()) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage(failures.join('; '))
+}
+]]></stringProp>
+            </JSR223Assertion>
+            <hashTree/>
+          </hashTree>
+          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Validar correlacion antes del GET" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="script"><![CDATA[
+vars.put('g7.juan.correlationReady', 'false')
+def failures = []
+if (prev == null || !prev.isSuccessful()) failures.add('POST sample did not pass')
+String orderId = vars.get('ordenId')
+if (orderId == null || orderId.trim().isEmpty() || orderId == 'NOT_FOUND')
+    failures.add('A valid ordenId was not extracted')
+
+if (!failures.isEmpty()) {
+    vars.remove('ordenId')
+    SampleResult.setSuccessful(false)
+    SampleResult.setResponseCode('CORRELATION_ERROR')
+    SampleResult.setResponseMessage(failures.join('; '))
+    return
+}
+
+vars.put('g7.juan.correlationReady', 'true')
+SampleResult.setSuccessful(true)
+SampleResult.setIgnore()
+]]></stringProp>
+          </JSR223Sampler>
+          <hashTree/>
+          <IfController guiclass="IfControllerPanel" testclass="IfController" testname="GET solo con ordenId valido" enabled="true">
+            <stringProp name="IfController.condition">${g7.juan.correlationReady}</stringProp>
+            <boolProp name="IfController.evaluateAll">false</boolProp>
+            <boolProp name="IfController.useExpression">true</boolProp>
+          </IfController>
+          <hashTree>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="G7-JUAN-S5-02 GET consultar orden correlacionada" enabled="true">
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+                <collectionProp name="Arguments.arguments"/>
+              </elementProp>
+              <stringProp name="HTTPSampler.path">/api/v1/ordenes/${ordenId}</stringProp>
+              <stringProp name="HTTPSampler.method">GET</stringProp>
+              <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+              <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.image_parser">false</boolProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Pacing GET derivado de targetRpm" enabled="true">
+                <stringProp name="ConstantTimer.delay">${g7.juan.requestDelayMs}</stringProp>
+              </ConstantTimer>
+              <hashTree/>
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="GET debe responder HTTP 200" enabled="true">
+                <collectionProp name="Assertion.test_strings">
+                  <stringProp name="200">200</stringProp>
+                </collectionProp>
+                <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+                <boolProp name="Assertion.assume_success">false</boolProp>
+                <intProp name="Assertion.test_type">8</intProp>
+              </ResponseAssertion>
+              <hashTree/>
+              <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="Validar respuesta GET correlacionada" enabled="true">
+                <stringProp name="scriptLanguage">groovy</stringProp>
+                <stringProp name="cacheKey">true</stringProp>
+                <stringProp name="filename"></stringProp>
+                <stringProp name="parameters"></stringProp>
+                <stringProp name="script"><![CDATA[
+def failures = []
+try {
+    def json = new groovy.json.JsonSlurper().parseText(prev.getResponseDataAsString())
+    if (!(json instanceof Map) || !(json.data instanceof Map)) {
+        failures.add('Top-level data must be an object')
+    } else if (json.data.id == null || String.valueOf(json.data.id) != vars.get('ordenId')) {
+        failures.add('GET data.id must match extracted ordenId')
+    }
+} catch (Exception ignored) {
+    failures.add('Response must be valid JSON')
+}
+if (!failures.isEmpty()) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage(failures.join('; '))
+}
+]]></stringProp>
+              </JSR223Assertion>
+              <hashTree/>
+            </hashTree>
+          </hashTree>
+        </hashTree>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
