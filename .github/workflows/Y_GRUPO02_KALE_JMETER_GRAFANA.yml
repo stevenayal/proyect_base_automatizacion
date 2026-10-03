@@ -1,0 +1,165 @@
+name: Grupo 02 (Kale) - JMeter Performance (CI/CD + Grafana + informe PDF)
+
+# Tareas: "Creacion de PR de Plan de Pruebas de JMeter + CSV" y
+#         "CI CD JMeter + Reporteria Grafana con MCP"
+# Ejecuta el plan headless, captura el dashboard de Grafana del sandbox como
+# evidencia y genera el PDF con aiquaa-performance-mcp-server (MCP del curso).
+
+on:
+  push:
+    branches: ["main", "grupo-02/**"]
+    paths:
+      - "tests/performance/**/*GRUPO_02*"
+      - ".github/workflows/Y_GRUPO02_KALE_JMETER_GRAFANA.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tests/performance/**/*GRUPO_02*"
+      - ".github/workflows/Y_GRUPO02_KALE_JMETER_GRAFANA.yml"
+  workflow_dispatch:
+    inputs:
+      threads:
+        description: "Usuarios concurrentes (threads)"
+        required: false
+        default: "2"
+      loops:
+        description: "Iteraciones por thread"
+        required: false
+        default: "3"
+      monitoring_dashboard_url:
+        description: >-
+          URL publica del dashboard de Grafana a capturar como evidencia;
+          dejar vacio para omitir la captura.
+        required: false
+        default: https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958
+
+permissions:
+  contents: read
+
+env:
+  JMETER_VERSION: 5.6.3
+  RESULTS_DIR: test-results/performance
+  PLAN: tests/performance/plans/P_GRUPO_02_KALE_TRANSFERENCIAS_CSV.jmx
+  THRESHOLDS: tests/performance/thresholds/T_GRUPO_02_KALE_TRANSFERENCIAS.json
+  DASHBOARD_URL: ${{ inputs.monitoring_dashboard_url || 'https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958' }}
+
+jobs:
+  performance:
+    name: JMeter + Grafana + informe PDF
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Escalonar ejecucion (rate limit 30 req/min compartido)
+        # Los 3 workflows del Grupo 02 arrancan juntos en un push y comparten la
+        # API key: se espera 180 s para no pisarse con los otros.
+        if: github.event_name == 'push'
+        run: sleep 180
+
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Java (requerido por JMeter)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Configurar Node.js (MCP de reporteria)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Configurar Python (captura de Grafana)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar JMeter
+        run: |
+          curl --fail --location --silent --show-error \
+            "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" -o jmeter.tgz
+          tar -xzf jmeter.tgz
+
+      - name: Ejecutar plan de pruebas headless
+        env:
+          API_KEY: ${{ secrets.GRUPO02_API_KEY || 'sbx_demo_f581ca21e68a347288c94d71' }}
+        run: |
+          mkdir -p "${RESULTS_DIR}/dashboard"
+          "apache-jmeter-${JMETER_VERSION}/bin/jmeter" -n \
+            -t "${PLAN}" \
+            -l "${RESULTS_DIR}/R_GRUPO_02_KALE_TRANSFERENCIAS.jtl" \
+            -e -o "${RESULTS_DIR}/dashboard" \
+            -JcsvPath=tests/performance/data/D_GRUPO_02_KALE_TRANSFERENCIAS.csv \
+            -JapiKey="${API_KEY}" \
+            -JrunId="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            -Jthreads="${{ inputs.threads || '2' }}" \
+            -Jloops="${{ inputs.loops || '3' }}"
+
+      - name: Capturar evidencia del dashboard de Grafana
+        # Grafana Cloud gratuito "duerme" si esta inactivo: la espera larga cubre
+        # el arranque en frio. Si la captura falla, el PDF se genera igual.
+        if: ${{ always() && env.DASHBOARD_URL != '' }}
+        continue-on-error: true
+        run: |
+          pip install selenium
+          mkdir -p "${RESULTS_DIR}/evidence"
+          CAPTURE=$(npm pack aiquaa-performance-mcp-server --pack-destination . --silent)
+          tar -xzf "$CAPTURE" package/dist/monitoring/python/capture_dashboard.py
+          python3 package/dist/monitoring/python/capture_dashboard.py \
+            --url "${DASHBOARD_URL}" \
+            --output "${RESULTS_DIR}/evidence/EVIDENCIA_GRAFANA.png" \
+            --wait-seconds 8 \
+            --timeout-seconds 180
+
+      - name: Generar informe PDF (aiquaa-performance-mcp-server)
+        if: always()
+        run: |
+          EVIDENCE_ARGS=()
+          if [ -f "${RESULTS_DIR}/evidence/EVIDENCIA_GRAFANA.png" ]; then
+            EVIDENCE_ARGS=(--evidence-image "${RESULTS_DIR}/evidence/EVIDENCIA_GRAFANA.png" \
+              --evidence-label "Dashboard Grafana - AIQUAA Sandbox" \
+              --evidence-url "${DASHBOARD_URL}")
+          fi
+          set +e
+          npx -y aiquaa-performance-mcp-server --report \
+            "${RESULTS_DIR}/R_GRUPO_02_KALE_TRANSFERENCIAS.jtl" \
+            "${THRESHOLDS}" \
+            "${RESULTS_DIR}/INFORME_PERF_GRUPO02.pdf" \
+            --api-name "AIQUAA Sandbox API - Grupo 02 Transferencias" \
+            --plan "${PLAN}" \
+            --test-type carga \
+            --threads "${{ inputs.threads || '2' }}" \
+            --loops "${{ inputs.loops || '3' }}" \
+            --author "${{ github.triggering_actor }}" \
+            --api-version "${{ github.sha }}" \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            "${EVIDENCE_ARGS[@]}"
+          status=$?
+          set -e
+          if [ ! -f "${RESULTS_DIR}/INFORME_PERF_GRUPO02.pdf" ]; then
+            echo "::error::No se genero el informe PDF (exit ${status})."
+            exit "${status}"
+          fi
+
+      - name: Evaluar umbrales (SLA)
+        # Gate real del pipeline: error rate <= 5 % y p95 < 2000 ms.
+        run: |
+          npx -y aiquaa-performance-mcp-server --evaluate \
+            "${RESULTS_DIR}/R_GRUPO_02_KALE_TRANSFERENCIAS.jtl" \
+            "${THRESHOLDS}"
+
+      - name: Subir informe PDF (se abre directo en el navegador)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: INFORME_PERF_GRUPO02
+          path: ${{ env.RESULTS_DIR }}/INFORME_PERF_GRUPO02.pdf
+          if-no-files-found: warn
+
+      - name: Subir resultados completos (JTL + dashboard + evidencia)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-grupo02
+          path: ${{ env.RESULTS_DIR }}
+          retention-days: 14
