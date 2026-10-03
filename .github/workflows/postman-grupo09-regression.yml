@@ -61,7 +61,7 @@ jobs:
       - name: Generar reporte PDF
         if: always()
         run: |
-          python scripts/newman_report.py \
+          python skills/postman-newman-skill/reporter/newman_report.py \
             --results newman/results.json \
             --banner skills/postman-newman-skill/reporter/assets/banner_portada.png \
             --logo-aiquaa skills/postman-newman-skill/reporter/assets/logo_aiquaa_circle.png \
