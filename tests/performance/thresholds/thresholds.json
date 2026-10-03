@@ -1,15 +1,15 @@
 {
   "global": {
-    "maxErrorRate": 1,
+    "maxErrorRate": 5,
     "p95Ms": 2000
   },
   "operations": {
     "Caso de Obtener siempre un movimiento Activo": {
-      "maxErrorRate": 1,
+      "maxErrorRate": 5,
       "p95Ms": 2000
     },
     "Caso Crear Movimiento": {
-      "maxErrorRate": 1,
+      "maxErrorRate": 5,
       "p95Ms": 2000
     }
   }

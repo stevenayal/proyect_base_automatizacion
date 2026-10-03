@@ -61,7 +61,6 @@ jobs:
           jmeter -n \
             -t tests/performance/plans/GRUPO_9.jmx \
             -l test-results/performance/R_GRUPO9.jtl \
-            -JjtlFile=test-results/performance/plan-writer.jtl \
             -e -o test-results/performance/dashboard
 
       - name: Configurar Node.js (para el generador de informes)

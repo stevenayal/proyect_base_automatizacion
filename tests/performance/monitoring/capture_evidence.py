@@ -53,6 +53,15 @@ PASSWORD_SELECTORS = [
     (By.CSS_SELECTOR, "input[id*='password' i]"),
 ]
 
+COURSE_OPTION_SELECTORS = [
+    (By.XPATH, "//*[self::label or self::div or self::span or self::p or self::h3][contains(., 'Curso 1')]"),
+    (By.CSS_SELECTOR, "input[type='radio']"),
+]
+
+COURSE_CONTINUE_SELECTORS = [
+    (By.XPATH, "//button[contains(translate(., 'CONTINUAR', 'continuar'), 'continuar')]"),
+]
+
 SUBMIT_SELECTORS = [
     (By.CSS_SELECTOR, "button[type='submit']"),
     (By.XPATH, "//button[contains(translate(., 'INGRESARACCEDERLOGEARIR', 'ingresaraccederlogearir'), 'ingres')]"),
@@ -114,6 +123,20 @@ def main():
     try:
         print(f"Abriendo login: {args.login_url}")
         driver.get(args.login_url)
+
+        # Paso opcional: algunas sandboxes primero piden elegir un curso/grupo
+        # antes de mostrar el formulario de email. Si aparece, elegimos la
+        # primera opción y avanzamos con "Continuar".
+        course_el, used_course_sel = find_first_optional(driver, COURSE_OPTION_SELECTORS, timeout=4)
+        if course_el is not None:
+            print(f"Pantalla de selección de curso detectada (selector: {used_course_sel}). Seleccionando la primera opción.")
+            course_el.click()
+            continue_el, used_continue_sel = find_first(driver, COURSE_CONTINUE_SELECTORS, timeout=5)
+            print(f"Botón 'Continuar' encontrado con selector: {used_continue_sel}")
+            continue_el.click()
+            time.sleep(2)
+        else:
+            print("No apareció pantalla de selección de curso, se asume que no aplica.")
 
         email_el, used_email_sel = find_first(driver, EMAIL_SELECTORS)
         print(f"Campo de usuario encontrado con selector: {used_email_sel}")
