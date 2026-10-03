@@ -1,0 +1,80 @@
+name: Grupo 09 - Cucumber + Playwright (Reportes sandbox)
+
+on:
+  push:
+    branches: ["grupo-09-*"]
+    paths:
+      - "tests/bdd/sandbox-pom/**"
+      - "cucumber.js"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/Y_GRUPO09_CUCUMBER_REPORTES.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "tests/bdd/sandbox-pom/**"
+      - "cucumber.js"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/Y_GRUPO09_CUCUMBER_REPORTES.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: grupo09-cucumber-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bdd:
+    name: Cucumber + Playwright (sandbox POM)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar Chromium de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Verificar secreto de la API
+        id: check_secret
+        env:
+          SANDBOX_API_KEY: ${{ secrets.GRUPO09_API_KEY }}
+        run: |
+          if [ -z "${SANDBOX_API_KEY}" ]; then
+            echo "::warning::No hay secreto GRUPO09_API_KEY disponible en este contexto (normal en un PR desde un fork, GitHub no comparte los secretos del repo base). Se omite la ejecucion contra el sandbox real; la evidencia de la corrida real esta en el pipeline del fork del autor."
+            echo "disponible=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "disponible=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ejecutar escenarios BDD (Cucumber + Playwright)
+        if: steps.check_secret.outputs.disponible == 'true'
+        env:
+          SANDBOX_API_KEY: ${{ secrets.GRUPO09_API_KEY }}
+          BASE_URL: ${{ vars.AIQUAA_SANDBOX_BASE_URL || 'https://aiquaa-sandbox-web.vercel.app' }}
+          SANDBOX_API_URL: ${{ vars.AIQUAA_SANDBOX_API_URL || 'https://aiquaa-sandbox-api.vercel.app' }}
+        run: npm run test:bdd:sandbox
+
+      - name: Publicar reporte y evidencias
+        if: always() && steps.check_secret.outputs.disponible == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: grupo09-cucumber-reportes-${{ github.run_number }}
+          path: |
+            results/cucumber-sandbox-pom.json
+            results/YF-cucumber-report.html
+            results/traces/
+          if-no-files-found: warn
+          retention-days: 14
