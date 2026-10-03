@@ -10,8 +10,8 @@
     "test:api": "newman run postman/AIQUAA-Lab-Template.postman_collection.json -e postman/local.postman_environment.json",
     "test:bdd": "cucumber-js \"features/**/*.feature\" \"grupos/**/*.feature\"",
     "test:bdd:demo": "cucumber-js --profile demo",
-    "test:bdd:grupo05": "cucumber-js --profile grupo05",
-    "report:bdd:grupo05": "python skills/bdd-skill/reporter/bdd_report.py --results results/cucumber-grupo05.json --output grupos/grupo-05-tarjetas-credito-debito/evidence/semana-05/INFORME_BDD_GRUPO_05.pdf --grupo \"Grupo 05 - Tarjetas de Credito/Debito\"",
+    "test:bdd:sandbox": "node tests/bdd/sandbox-pom/scripts/run-sandbox.cjs",
+    "YF:classify:bdd": "node tests/bdd/YF-agentes/YF-classify-bdd.mjs",
     "smoke": "playwright test tests/e2e/smoke.spec.ts",
     "verify": "npm run test:api && npm run test:e2e"
   },

@@ -344,14 +344,22 @@ npm install
 npx playwright install chromium
 cp .env.example .env          # completar SANDBOX_API_KEY
 
-npm run test:bdd:grupo05                                    # los 8 escenarios automatizados
-npx cucumber-js --profile grupo05 --tags "@api"             # solo capa API
-npx cucumber-js --profile grupo05 --tags "@G05-TARJ-002"    # un escenario puntual
-npx cucumber-js --profile grupo05 --dry-run                 # valida que no haya steps indefinidos
-HEADED=true npm run test:bdd:grupo05                        # con navegador visible
+# La config de Cucumber del grupo vive en bdd/cucumber.js, no en la raiz del repo
+BDD=grupos/grupo-05-tarjetas-credito-debito/bdd
+
+npx cucumber-js --config $BDD/cucumber.js --profile grupo05                       # los 8 escenarios
+npx cucumber-js --config $BDD/cucumber.js --profile dryrun                        # valida que no falte ningun step
+npx cucumber-js --config $BDD/cucumber.js --profile grupo05 --tags "@api"         # solo capa API
+npx cucumber-js --config $BDD/cucumber.js --profile grupo05 --tags "@G05-TARJ-002" # un escenario puntual
+HEADED=true npx cucumber-js --config $BDD/cucumber.js --profile grupo05           # con navegador visible
 
 npx playwright test grupos/grupo-05-tarjetas-credito-debito # smoke UI con Playwright puro
-npm run report:bdd:grupo05                                  # informe PDF (requiere: pip install reportlab pillow)
+
+# informe PDF del BDD (requiere: pip install reportlab pillow)
+python skills/bdd-skill/reporter/bdd_report.py \
+  --results results/grupo05/cucumber-report.json \
+  --output grupos/grupo-05-tarjetas-credito-debito/evidence/semana-06/INFORME_BDD_GRUPO_05.pdf \
+  --grupo "Grupo 05 - Tarjetas de Credito/Debito"
 ```
 
 Variables de entorno relevantes (`.env`):
