@@ -33,10 +33,22 @@
 
 ## Escenarios entregados
 
-11 escenarios en [`features/tarjetas-credito-debito.feature`](features/tarjetas-credito-debito.feature)
-(4 automatizados contra la API, 7 marcados `@manual @sin-endpoint` — ver "Semana 05" más abajo):
-6 happy paths, 3 casos negativos (OTP inválido, PIN actual incorrecto, saldo insuficiente) y
-2 edge cases (compra igual al límite diario, desbloqueo denegado por motivo "ROBO").
+18 escenarios en total, repartidos en dos archivos:
+
+- [`features/tarjetas-credito-debito.feature`](features/tarjetas-credito-debito.feature) — 16
+  escenarios: **6 automatizados** (`@G05-TARJ-001..006`, API + BD + web), **9 `@manual
+  @sin-endpoint`** y **1 `@manual @defecto`** (el bloqueo desde el listado web, que falla:
+  [`DEF-G05-01`](docs/DEFECTOS.md)).
+- [`features/F_GRUPO_05_LOGIN.feature`](features/F_GRUPO_05_LOGIN.feature) — 2 escenarios
+  automatizados de acceso (`@G05-LOGIN-001..002`).
+
+Por tipo: 6 happy paths, 3 casos negativos (OTP inválido, PIN actual incorrecto, saldo
+insuficiente) y 2 edge cases (compra igual al límite diario, desbloqueo denegado por motivo
+"ROBO"), más los de login y el del defecto.
+
+Los 10 escenarios `@manual` se ejecutaron a mano y están asentados en
+[`docs/EJECUCION-MANUAL.md`](docs/EJECUCION-MANUAL.md): 9 en `BLOQUEADO` por falta de endpoints
+en el sandbox (evidencia verificada el 2026-10-02) y 1 en `FALLA` por `DEF-G05-01`.
 
 ## Entregables
 
@@ -49,7 +61,7 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 - [x] Evidencias en `evidence/semana-03/` (Newman) y `evidence/semana-05/` (capturas, respuestas API e informe PDF)
 - [x] Rendimiento — plan JMeter + CSV (`tests/performance/`, ver más abajo)
 - [x] CI/CD — workflow propio de BDD + Playwright
-- [ ] PR a `main` usando la plantilla del repo
+- [x] PR a `main` usando la plantilla del repo
 
 ## Trazabilidad BDD -> API (AIQUAA)
 
