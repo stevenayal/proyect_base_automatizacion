@@ -1,0 +1,32 @@
+{
+  "source": "evidencia-corrida-completa.json",
+  "summary": {
+    "total": 3,
+    "failed": 1,
+    "flaky": 0,
+    "byCategory": {
+      "PRODUCT_BUG": 0,
+      "TEST_BUG": 1,
+      "ENVIRONMENT": 0,
+      "DATA": 0,
+      "NETWORK": 0,
+      "UNKNOWN": 0
+    },
+    "healerCandidates": 1,
+    "maxHealAttempts": 2
+  },
+  "failures": [
+    {
+      "file": "grupos\\grupo-10-roles-permisos\\features\\F_GRUPO_10_ROLES_PERMISOS.feature",
+      "title": "S6-ROLES-02 Revocar un rol asignado con confirmación",
+      "project": "cucumber",
+      "step": "Entonces veo el mensaje \"Rol revocado.\"",
+      "category": "TEST_BUG",
+      "confidence": "high",
+      "matchedRule": "locator-not-found",
+      "healerAllowed": true,
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    }
+  ],
+  "flaky": []
+}
