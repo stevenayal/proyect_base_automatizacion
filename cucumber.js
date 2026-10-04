@@ -30,6 +30,11 @@ module.exports = {
     require: ['tests/bdd/steps/**/*.ts', 'tests/bdd/support/**/*.ts', 'grupos/grupo-06-notificaciones-alertas/support/**/*.ts'],
     requireModule: ['ts-node/register'],
     format: ['progress', 'json:results/cucumber-report.json', 'html:results/cucumber-report-grupo06.html'],
+    // El login del sandbox comparte la API key (30 req/min) con otros workflows: se reintenta hasta 2
+    // veces y el hook del grupo espera 61 s solo si el fallo fue por rate limit. El fallo controlado
+    // (@grupo06_fallo_controlado) queda fuera del reintento.
+    retry: 2,
+    retryTagFilter: '@grupo06',
     formatOptions: { snippetInterface: 'async-await' },
     publishQuiet: true,
   },

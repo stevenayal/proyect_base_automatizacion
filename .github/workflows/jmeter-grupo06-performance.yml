@@ -7,6 +7,7 @@ on:
     branches: ["main"]
     paths:
       - "grupos/grupo-06-notificaciones-alertas/scripts/esperar-cupo-api.sh"
+      - "grupos/grupo-06-notificaciones-alertas/scripts/esperar-plan-curso.sh"
       - "tests/performance/plans/Grupo06_Notificaciones.jmx"
       - "tests/performance/data/grupo06-notificaciones.csv"
       - "tests/performance/thresholds/grupo06-thresholds.json"
@@ -15,6 +16,7 @@ on:
     branches: ["main"]
     paths:
       - "grupos/grupo-06-notificaciones-alertas/scripts/esperar-cupo-api.sh"
+      - "grupos/grupo-06-notificaciones-alertas/scripts/esperar-plan-curso.sh"
       - "tests/performance/plans/Grupo06_Notificaciones.jmx"
       - "tests/performance/data/grupo06-notificaciones.csv"
       - "tests/performance/thresholds/grupo06-thresholds.json"
@@ -36,8 +38,10 @@ on:
         required: false
         default: ""
 
+# actions: read permite consultar si el plan del curso sigue corriendo.
 permissions:
   contents: read
+  actions: read
 
 # Mismo grupo que el workflow de Newman del Grupo 06: comparten la API key (30 req/min),
 # asi que corren uno despues del otro en lugar de pisarse.
@@ -74,6 +78,11 @@ jobs:
           curl --fail --location --silent --show-error \
             "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" -o jmeter.tgz
           tar -xzf jmeter.tgz
+
+      - name: Esperar a que termine el plan JMeter del curso (misma API key)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash grupos/grupo-06-notificaciones-alertas/scripts/esperar-plan-curso.sh "${{ github.event.pull_request.head.sha || github.sha }}"
 
       - name: Esperar cupo en el rate limit de la API
         run: bash grupos/grupo-06-notificaciones-alertas/scripts/esperar-cupo-api.sh "${{ secrets.GRUPO06_API_KEY }}"

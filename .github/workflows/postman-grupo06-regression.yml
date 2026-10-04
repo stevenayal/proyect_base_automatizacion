@@ -8,12 +8,14 @@ on:
     paths:
       - "postman/grupo-06-notificaciones-alertas.postman_collection.json"
       - "grupos/grupo-06-notificaciones-alertas/scripts/esperar-cupo-api.sh"
+      - "grupos/grupo-06-notificaciones-alertas/scripts/esperar-plan-curso.sh"
       - ".github/workflows/postman-grupo06-regression.yml"
   pull_request:
     branches: ["main"]
     paths:
       - "postman/grupo-06-notificaciones-alertas.postman_collection.json"
       - "grupos/grupo-06-notificaciones-alertas/scripts/esperar-cupo-api.sh"
+      - "grupos/grupo-06-notificaciones-alertas/scripts/esperar-plan-curso.sh"
       - ".github/workflows/postman-grupo06-regression.yml"
   workflow_dispatch:
 
@@ -22,6 +24,11 @@ on:
 concurrency:
   group: aiquaa-sandbox-grupo06
   cancel-in-progress: false
+
+# actions: read permite consultar si el plan del curso sigue corriendo.
+permissions:
+  contents: read
+  actions: read
 
 jobs:
   newman-regression:
@@ -46,6 +53,11 @@ jobs:
 
       - name: Instalar dependencias Python (reportlab, Pillow)
         run: pip install -r skills/postman-newman-skill/reporter/requirements.txt
+
+      - name: Esperar a que termine el plan JMeter del curso (misma API key)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash grupos/grupo-06-notificaciones-alertas/scripts/esperar-plan-curso.sh "${{ github.event.pull_request.head.sha || github.sha }}"
 
       - name: Esperar cupo en el rate limit de la API
         run: bash grupos/grupo-06-notificaciones-alertas/scripts/esperar-cupo-api.sh "${{ secrets.GRUPO06_API_KEY }}" "${{ vars.GRUPO06_BASE_URL || 'https://aiquaa-sandbox-api.vercel.app' }}"

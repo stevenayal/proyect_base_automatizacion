@@ -49,12 +49,24 @@ AfterStep({ tags: TAGS }, async function (this: AiquaaWorld, { pickleStep }) {
   const ev = porEscenario.get(this);
   if (!ev || !this.page) return;
   ev.paso += 1;
+  // El sitio es una SPA (Next.js): tras un goto o un click que navega, el contenido se dibuja
+  // con JavaScript. Sin esta espera la captura sale en blanco. Si no se estabiliza, se captura igual.
+  await this.page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
+  await this.page
+    .waitForFunction(() => (document.body?.innerText ?? '').trim().length > 0, undefined, { timeout: 5_000 })
+    .catch(() => undefined);
   const archivo = path.join(ev.dir, `${String(ev.paso).padStart(2, '0')}-${slug(pickleStep.text)}.png`);
   const imagen = await this.page.screenshot({ path: archivo, fullPage: true });
   await this.attach(imagen, 'image/png');
 });
 
-After({ tags: TAGS }, async function (this: AiquaaWorld) {
+After({ tags: TAGS, timeout: 90_000 }, async function (this: AiquaaWorld, { result, willBeRetried }) {
+  // El login del sitio usa la API key demo compartida (30 req/min). Si el fallo fue por ese limite y
+  // Cucumber va a reintentar (retry del perfil grupo06), se espera a que se libere la ventana de 1 minuto.
+  if (willBeRetried && /Rate limit exceeded/i.test(result?.message ?? '')) {
+    this.attach('Fallo por rate limit compartido del sandbox: se espera 61 s antes de reintentar.', 'text/plain');
+    await new Promise((r) => setTimeout(r, 61_000));
+  }
   const ev = porEscenario.get(this);
   if (!ev || !this.page) return;
   const trace = path.join(ev.dir, 'trace.zip');
