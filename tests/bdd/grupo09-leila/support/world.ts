@@ -10,6 +10,7 @@ export class LeilaWorld extends World {
   page?: Page;
   apiContext?: APIRequestContext;
   usuario?: UsuarioSandbox;
+  lastUsuarioId?: string;
 
   private get p(): Page {
     if (!this.page) throw new Error('El navegador no fue inicializado');

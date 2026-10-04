@@ -12,10 +12,16 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 export class SandboxApi {
   constructor(private readonly request: APIRequestContext) {}
 
-  private async withRetry(call: () => Promise<APIResponse>, attempts = 5): Promise<APIResponse> {
+  /**
+   * Reintenta ante 429 esperando hasta que se libere la ventana del rate
+   * limit (header x-ratelimit-reset, en ms epoch), con un tope de 65 s.
+   */
+  private async withRetry(call: () => Promise<APIResponse>, attempts = 6): Promise<APIResponse> {
     let response = await call();
     for (let i = 1; i < attempts && response.status() === 429; i++) {
-      await sleep(i * 4_000);
+      const reset = Number(response.headers()['x-ratelimit-reset'] ?? 0);
+      const wait = reset > Date.now() ? reset - Date.now() + 1_000 : i * 5_000;
+      await sleep(Math.min(wait, 65_000));
       response = await call();
     }
     return response;

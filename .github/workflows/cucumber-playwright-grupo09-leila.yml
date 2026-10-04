@@ -39,7 +39,7 @@ jobs:
   bdd:
     name: Cucumber + Playwright (Chromium)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Obtener el codigo
         uses: actions/checkout@v4
@@ -65,6 +65,26 @@ jobs:
 
       - name: Validar steps (dry-run, sin navegador)
         run: npx cucumber-js --config tests/bdd/grupo09-leila/cucumber.js --profile dryrun
+
+      - name: Esperar ventana libre del rate limit (30 req/min compartido)
+        # Los 3 pipelines de Leila arrancan juntos en un push y comparten la
+        # api-key con todo el curso: se escalona el arranque y se espera a que
+        # la API informe cupo suficiente (header x-ratelimit-remaining).
+        env:
+          API_KEY: ${{ secrets.GRUPO09_API_KEY || 'sbx_demo_f581ca21e68a347288c94d71' }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then sleep 240; fi
+          for i in $(seq 1 10); do
+            H=$(curl -s -D - -o /dev/null -H "x-api-key: ${API_KEY}" https://aiquaa-sandbox-api.vercel.app/api/v1/roles)
+            REM=$(echo "$H" | tr -d '\r' | awk -F': ' 'tolower($1)=="x-ratelimit-remaining"{print $2}')
+            RESET=$(echo "$H" | tr -d '\r' | awk -F': ' 'tolower($1)=="x-ratelimit-reset"{print $2}')
+            echo "Intento $i: cupo restante=${REM:-?}"
+            if [ -n "$REM" ] && [ "$REM" -ge 20 ]; then exit 0; fi
+            NOW=$(date +%s%3N); WAIT=$(( (${RESET:-$NOW} - NOW) / 1000 + 2 ))
+            [ "$WAIT" -lt 5 ] && WAIT=15; [ "$WAIT" -gt 65 ] && WAIT=65
+            echo "Esperando ${WAIT}s a que se libere la ventana..."; sleep "$WAIT"
+          done
+          echo "::warning::No se libero el cupo del rate limit; se ejecuta igual."
 
       - name: Ejecutar escenarios BDD
         env:

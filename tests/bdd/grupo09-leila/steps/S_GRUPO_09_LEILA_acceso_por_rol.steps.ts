@@ -32,6 +32,7 @@ When('filtro el módulo Reportes por ese usuario', async function (this: LeilaWo
 });
 
 When('filtro el módulo Reportes por el usuarioId {string}', async function (this: LeilaWorld, usuarioId: string) {
+  this.lastUsuarioId = usuarioId;
   await this.reportes.open();
   await this.reportes.filterByUser(usuarioId);
 });
@@ -55,10 +56,13 @@ Then('todos los roles figuran como {string}', async function (this: LeilaWorld, 
 Then('la cantidad de movimientos coincide con el resumen de la API', async function (this: LeilaWorld) {
   const { cantidad_movimientos } = await this.api.resumen(this.usuario!.id);
   this.attach(`API /reportes/resumen -> cantidad_movimientos=${cantidad_movimientos}`, 'text/plain');
+  await this.reportes.filterUntil(this.usuario!.id,
+    async () => (await this.reportes.movimientos()) === cantidad_movimientos);
   await expect.poll(() => this.reportes.movimientos(), { timeout: 15_000 }).toBe(cantidad_movimientos);
 });
 
 Then('veo el mensaje {string}', async function (this: LeilaWorld, mensaje: string) {
+  await this.reportes.filterUntil(this.lastUsuarioId!, () => this.reportes.emptyMessage.isVisible());
   await expect(this.reportes.emptyMessage).toHaveText(mensaje);
 });
 

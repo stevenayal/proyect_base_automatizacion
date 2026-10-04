@@ -3,7 +3,7 @@ import { chromium, request, type Browser } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import type { LeilaWorld } from './world';
 
-setDefaultTimeout(60_000);
+setDefaultTimeout(180_000);
 let browser: Browser | undefined;
 
 const BASE_URL = process.env.BASE_URL ?? 'https://aiquaa-sandbox-web.vercel.app';
