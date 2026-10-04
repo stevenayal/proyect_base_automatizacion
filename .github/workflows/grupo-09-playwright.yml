@@ -1,0 +1,35 @@
+name: Playwright - Grupo 09
+
+on:
+  push:
+    branches:
+      - grupo-09-reportes-dashboard-avalosroman
+    paths:
+      - 'grupos/grupo-09-reportes-dashboard/tests/e2e/**'
+      - 'grupos/grupo-09-reportes-dashboard/playwright/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm install
+      - run: npx playwright install chromium
+
+      - name: Ejecutar tests del Grupo 9
+        env:
+          BASE_URL: ${{ secrets.AIQUAA_BASE_URL }}
+        run: npx playwright test grupos/grupo-09-reportes-dashboard/tests/e2e/
+
+      - name: Subir reporte HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-grupo09
+          path: playwright-report/
