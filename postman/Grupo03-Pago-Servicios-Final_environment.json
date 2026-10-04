@@ -1,0 +1,65 @@
+{
+  "id": "c946faeb-9d8c-5d1b-8ec2-52d1ff92fa66",
+  "name": "Grupo 03 - Pago de Servicios - Final",
+  "values": [
+    {
+      "key": "G3_baseUrl",
+      "value": "https://aiquaa-sandbox-api.vercel.app",
+      "type": "default",
+      "enabled": true,
+      "description": "URL base del sandbox (sin barra final)."
+    },
+    {
+      "key": "G3_apiKey",
+      "value": "sbx_demo_f581ca21e68a347288c94d71",
+      "type": "secret",
+      "enabled": true,
+      "description": "API key válida. En CI se reemplaza con --env-var desde un secret."
+    },
+    {
+      "key": "G3_apiKeyInvalida",
+      "value": "sbx_invalida_grupo03",
+      "type": "default",
+      "enabled": true,
+      "description": "Clave inexistente para los escenarios de 401."
+    },
+    {
+      "key": "G3_usuarioTitularId",
+      "value": "",
+      "type": "default",
+      "enabled": true,
+      "description": "Vacío: la corrida elige como titular al usuario activo con menos facturas pendientes. Con un id, se usa ese usuario fijo."
+    },
+    {
+      "key": "G3_usuarioSinFacturasId",
+      "value": "999999999",
+      "type": "default",
+      "enabled": true,
+      "description": "Usuario sin facturas (listado vacío)."
+    },
+    {
+      "key": "G3_usuarioInexistenteId",
+      "value": "999999999",
+      "type": "default",
+      "enabled": true,
+      "description": "Usuario que no existe (alta de factura rechazada)."
+    },
+    {
+      "key": "G3_facturaInexistenteId",
+      "value": "999999999",
+      "type": "default",
+      "enabled": true,
+      "description": "Factura que no existe (404)."
+    },
+    {
+      "key": "G3_reqPorMinuto",
+      "value": "20",
+      "type": "default",
+      "enabled": true,
+      "description": "Requests por minuto que se permite la corrida (límite del sandbox: 30 por API key)."
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2026-10-02T23:06:55.000Z",
+  "_postman_exported_using": "postman-newman-skill"
+}

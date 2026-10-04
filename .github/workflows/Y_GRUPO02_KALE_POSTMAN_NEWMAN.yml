@@ -1,0 +1,112 @@
+name: Grupo 02 (Kale) - Postman Regression (Newman + reporte PDF Python)
+
+# Tarea: "Creacion de Pipeline Postman + Reporteria con Python"
+# Corre la coleccion C_GRUPO_02_KALE_TRANSFERENCIAS contra el sandbox y publica
+# el informe PDF (newman_report.py) + HTML (htmlextra) como artefactos.
+
+on:
+  push:
+    branches: ["main", "grupo-02/**"]
+    paths:
+      - "postman/C_GRUPO_02_KALE_TRANSFERENCIAS.postman_collection.json"
+      - "postman/E_GRUPO_02_KALE_TRANSFERENCIAS.postman_environment.json"
+      - "reporter/grupo02-kale/postman/**"
+      - ".github/workflows/Y_GRUPO02_KALE_POSTMAN_NEWMAN.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "postman/C_GRUPO_02_KALE_TRANSFERENCIAS.postman_collection.json"
+      - "postman/E_GRUPO_02_KALE_TRANSFERENCIAS.postman_environment.json"
+      - "reporter/grupo02-kale/postman/**"
+      - ".github/workflows/Y_GRUPO02_KALE_POSTMAN_NEWMAN.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: grupo02-newman-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  newman-regression:
+    name: Newman + reporte PDF (Python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Configurar Python (generador de PDF)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias Node
+        run: |
+          npm ci
+          npm install --no-save newman-reporter-htmlextra
+
+      - name: Instalar dependencias Python (reportlab, Pillow)
+        run: pip install -r reporter/grupo02-kale/postman/requirements.txt
+
+      - name: Ejecutar regresion Postman (Newman) - Grupo 02
+        # --delay-request 5000: cada request dispara ademas 1-2 consultas SQL
+        # (pre/post-request); asi la corrida queda debajo de 30 req/min.
+        env:
+          BASE_URL: ${{ vars.GRUPO02_BASE_URL || 'https://aiquaa-sandbox-api.vercel.app' }}
+          API_KEY: ${{ secrets.GRUPO02_API_KEY }}
+        run: |
+          mkdir -p newman
+          KEY_ARGS=()
+          if [ -n "${API_KEY}" ]; then KEY_ARGS=(--env-var "apiKey=${API_KEY}"); fi
+          npx newman run postman/C_GRUPO_02_KALE_TRANSFERENCIAS.postman_collection.json \
+            -e postman/E_GRUPO_02_KALE_TRANSFERENCIAS.postman_environment.json \
+            --env-var "baseUrl=${BASE_URL}" "${KEY_ARGS[@]}" \
+            --delay-request 5000 \
+            --reporters cli,json,htmlextra \
+            --reporter-json-export newman/results.json \
+            --reporter-htmlextra-export newman/report.html \
+            --reporter-htmlextra-title "Grupo 02 - Transferencias entre Cuentas"
+
+      - name: Generar reporte PDF (Python)
+        if: always()
+        run: >
+          python reporter/grupo02-kale/postman/newman_report.py
+          --results newman/results.json
+          --banner reporter/grupo02-kale/postman/assets/banner_portada.png
+          --logo-aiquaa reporter/grupo02-kale/postman/assets/logo_aiquaa_circle.png
+          --logo-postman reporter/grupo02-kale/postman/assets/logo_postman_clean.png
+          --repo-url "${{ github.server_url }}/${{ github.repository }}"
+          --api-version "${{ github.sha }}"
+          --author "${{ github.triggering_actor }}"
+          --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          --output newman/INFORME_REGRESION_GRUPO02.pdf
+
+      - name: Resumen en la ejecucion
+        if: always()
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          s = json.load(open("newman/results.json"))["run"]["stats"]
+          a, r = s["assertions"], s["requests"]
+          print("## Grupo 02 - Regresion Postman")
+          print(f"- Requests: {r['total']} (fallidos {r['failed']})")
+          print(f"- Assertions: {a['total']} (fallidas {a['failed']})")
+          PY
+
+      - name: Subir informe PDF + HTML
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: informe-regresion-grupo02
+          path: |
+            newman/INFORME_REGRESION_GRUPO02.pdf
+            newman/report.html
+          retention-days: 14

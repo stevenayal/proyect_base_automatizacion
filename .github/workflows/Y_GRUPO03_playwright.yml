@@ -1,0 +1,227 @@
+name: Cucumber + Playwright Grupo03 - Pago de Servicios
+
+# Ejecuta el BDD del Grupo 03 (grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature)
+# con Cucumber + Playwright, arquitectura BDD + POM de playwright-ai-agents-skill:
+#   - todos los escenarios por API (mismo contrato que la colección Postman Final);
+#   - los escenarios @web además verifican que https://aiquaa-sandbox-web.vercel.app/facturas
+#     muestre lo mismo que la API (captura + tabla API vs web en el informe).
+# Cero llamadas a modelos de IA en CI (regla de la skill): la IA generó los steps; acá solo
+# corren Cucumber y Playwright. El clasificador de fallos de la skill es un script sin IA.
+#
+# Todo vive en la carpeta del grupo y se usa con --config: no toca package.json, el lockfile,
+# playwright.config.ts ni la configuración de otros grupos.
+# Detalle: grupos/grupo-03-pagos-servicios/README_BDD.md
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: >-
+          g3-completa = los 46 escenarios del feature (61 ejecuciones, ~10 min).
+          g3-web = solo los 8 escenarios @web (~3 min, para la demo).
+        type: choice
+        options:
+          - g3-completa
+          - g3-web
+        default: g3-completa
+      req_por_minuto:
+        description: >-
+          Peticiones por minuto que se permite la corrida. La API key es compartida entre
+          grupos (30 req/min nominal); 20 deja margen.
+        required: false
+        default: '20'
+      usuario_titular_id:
+        description: >-
+          Id del usuario titular de las facturas de prueba. Vacío = el usuario activo con
+          menos facturas pendientes.
+        required: false
+        default: ''
+
+  # workflow_dispatch solo aparece en Actions cuando el archivo está en la rama por defecto.
+  # Mientras el PR no se mergee, este push acotado es la forma de ejecutarlo (suite completa).
+  push:
+    branches:
+      - grupo-03-pagos-servicios
+    paths:
+      - 'grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature'
+      - 'grupos/grupo-03-pagos-servicios/steps/**'
+      - 'grupos/grupo-03-pagos-servicios/support/**'
+      - 'grupos/grupo-03-pagos-servicios/playwright/pages/**'
+      - 'grupos/grupo-03-pagos-servicios/reporter/**'
+      - 'grupos/grupo-03-pagos-servicios/cucumber.js'
+      - 'grupos/grupo-03-pagos-servicios/tsconfig.json'
+      - '.github/workflows/Y_GRUPO03_playwright.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  # Mismo grupo que Y_GRUPO03_newman.yml: las dos suites funcionales crean y pagan facturas
+  # del mismo titular con la misma API key, así que se esperan entre sí. Nunca se cancela una
+  # corrida a mitad de camino (dejaría facturas sin limpiar).
+  group: newman-grupo03-final
+  cancel-in-progress: false
+
+env:
+  G3_DIR: grupos/grupo-03-pagos-servicios
+  G3_RESULTS: test-results/grupo-03-bdd
+  INFORME: INFORME_BDD_GRUPO03_PAGOS_SERVICIOS.pdf
+
+jobs:
+  bdd:
+    name: Cucumber + Playwright (${{ inputs.suite || 'g3-completa' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Verificar el secret del login web
+        # El curso NO es secreto: va como variable (GRUPO03_WEB_CURSO, por defecto 1). Si fuera
+        # secret, GitHub enmascararía cada "1" del log y del resumen ("6***" en vez de "61").
+        env:
+          WEB_EMAIL: ${{ secrets.GRUPO03_WEB_EMAIL }}
+        run: |
+          if [ -z "$WEB_EMAIL" ]; then
+            echo "::error::Falta el secret GRUPO03_WEB_EMAIL (Settings > Secrets and variables > Actions). Los escenarios @web lo necesitan para iniciar sesión en la web."
+            exit 1
+          fi
+          echo "Secret del login web presente."
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Configurar Python (informe PDF)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        # npm ci respeta el lockfile del repo. ts-node y typescript se instalan sin guardarlos
+        # (--no-save) para no modificar package.json ni el lockfile compartidos.
+        run: |
+          npm ci
+          npm install --no-save ts-node@10 typescript@5
+          npx playwright install --with-deps chromium
+          pip install "reportlab>=4.0.0" "Pillow>=10.0.0"
+
+      - name: Dry-run (cada paso del feature tiene step definition)
+        # Generator de la skill: 0 undefined y 0 ambiguous, sin abrir el navegador ni llamar a la API.
+        run: npx cucumber-js --config "$G3_DIR/cucumber.js" --profile dryrun
+
+      - name: Ejecutar suite
+        env:
+          G3_API_KEY: ${{ secrets.GRUPO03_API_KEY }}
+          G3_API_URL: ${{ vars.GRUPO03_BASE_URL }}
+          G3_WEB_EMAIL: ${{ secrets.GRUPO03_WEB_EMAIL }}
+          G3_WEB_CURSO: ${{ vars.GRUPO03_WEB_CURSO || '1' }}
+          G3_RPM: ${{ inputs.req_por_minuto || '20' }}
+          G3_TITULAR: ${{ inputs.usuario_titular_id }}
+          SUITE: ${{ inputs.suite || 'g3-completa' }}
+          CI: 'true'
+        run: |
+          if [ -n "$G3_API_KEY" ]; then echo "API key: secret GRUPO03_API_KEY"; else echo "API key: clave demo del sandbox"; fi
+          echo "Suite: $SUITE · ritmo: $G3_RPM req/min · titular: ${G3_TITULAR:-automático}"
+          # Sin cortar el job: el informe y el artifact se generan igual; el veredicto va al final.
+          set +e
+          npx cucumber-js --config "$G3_DIR/cucumber.js" --profile "$SUITE"
+          echo "CUCUMBER_EXIT=$?" >> "$GITHUB_ENV"
+          echo "SUITE=$SUITE" >> "$GITHUB_ENV"
+
+      - name: Clasificar fallos (playwright-ai-agents-skill, sin IA)
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -f "$G3_RESULTS/cucumber-report.json" ]; then
+            node skills/playwright-ai-agents-skill/scripts/classify-failures.mjs \
+              --input "$G3_RESULTS/cucumber-report.json" \
+              --out "$G3_RESULTS/CLASIF_BDD_GRUPO03.json"
+          fi
+
+      - name: Informe PDF con evidencias
+        if: always()
+        run: |
+          if [ ! -f "$G3_RESULTS/cucumber-report.json" ]; then
+            echo "Cucumber no generó resultados: no hay informe."
+            exit 1
+          fi
+          python "$G3_DIR/reporter/g3_bdd_report.py" \
+            --results "$G3_RESULTS/cucumber-report.json" \
+            --output "$G3_RESULTS/$INFORME" \
+            --perfil "${SUITE:-g3-completa}" \
+            --author "${{ github.triggering_actor }}" \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Resumen de la corrida
+        if: always()
+        run: |
+          python - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import json, os
+          base = os.environ["G3_RESULTS"]
+          ruta = os.path.join(base, "cucumber-report.json")
+          print("### Cucumber + Playwright · Grupo 03 · " + os.environ.get("SUITE", "g3-completa"))
+          print()
+          if not os.path.exists(ruta):
+              print("Cucumber no generó resultados."); raise SystemExit
+          info = {}
+          if os.path.exists(os.path.join(base, "run-info.json")):
+              info = json.load(open(os.path.join(base, "run-info.json"), encoding="utf8"))
+          esc, fallas, omitidos, web, web_ok = 0, [], [], 0, 0
+          for feat in json.load(open(ruta, encoding="utf8")):
+              for el in feat.get("elements", []):
+                  esc += 1
+                  tags = [t["name"] for t in el.get("tags", [])]
+                  estados = [s.get("result", {}).get("status") for s in el.get("steps", [])]
+                  visibles = [s.get("result", {}).get("status") for s in el.get("steps", []) if not s.get("hidden")]
+                  if "skipped" in visibles and all(e in ("passed", "skipped") for e in estados):
+                      omitidos.append(el["name"])   # sin datos para la precondición (ver el informe)
+                      continue
+                  ok = all(e in ("passed", "skipped") for e in estados) and "passed" in estados
+                  if "@web" in tags:
+                      web += 1; web_ok += ok
+                  if not ok:
+                      paso = next((s for s in el["steps"] if s.get("result", {}).get("status") not in ("passed", "skipped")), {})
+                      fallas.append(f'{el["name"]} › {paso.get("name") or paso.get("keyword", "")}')
+          tit = (info.get("titular") or {}).get("id", "-")
+          print("| Escenarios | Pasan | Fallan | Omitidos | @web que coinciden con la API |")
+          print("|---:|---:|---:|---:|---:|")
+          print(f"| {esc} | {esc - len(fallas) - len(omitidos)} | {len(fallas)} | {len(omitidos)} | {web_ok} de {web} |")
+          print()
+          print(f"Titular: usuario {tit} · {info.get('peticiones', '-')} peticiones a la API · "
+                f"{info.get('rechazos429', 0)} respuestas 429 reintentadas · {info.get('facturasLimpiadas', '-')} facturas limpiadas")
+          if fallas:
+              print(); print("**Escenarios que fallaron**"); print()
+              for f in fallas[:40]: print(f"- {f}")
+          if omitidos:
+              print(); print("**Escenarios omitidos por falta de datos sembrados**"); print()
+              for o in omitidos: print(f"- {o}")
+          print(); print("Informe PDF, reporte HTML de Cucumber y clasificación de fallos en el artifact.")
+          EOF
+
+      - name: Quitar la sesión web de los resultados
+        if: always()
+        run: rm -rf "$G3_RESULTS/.auth"   # la sesión guardada de la web nunca va al artifact
+
+      - name: Publicar resultados
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-grupo03-${{ github.run_number }}
+          path: ${{ env.G3_RESULTS }}
+          if-no-files-found: warn
+          retention-days: 30
+
+      # Último a propósito: si hay escenarios en rojo el job falla, pero la evidencia ya se subió.
+      - name: Veredicto
+        if: always()
+        run: |
+          if [ "${CUCUMBER_EXIT:-1}" != "0" ]; then
+            echo "Hay escenarios que no pasan (código de cucumber: ${CUCUMBER_EXIT:-sin ejecutar}). Ver el informe PDF."
+            exit 1
+          fi
+          echo "Todos los escenarios pasan."

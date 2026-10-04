@@ -1,0 +1,39 @@
+{
+  "global": {
+    "scope": "global",
+    "maxErrorRate": 1,
+    "p95Ms": 3000
+  },
+  "operations": {
+    "F1 - POST /api/v1/facturas (crear)": {
+      "scope": "F1 - POST /api/v1/facturas (crear)",
+      "maxErrorRate": 1,
+      "p95Ms": 3000
+    },
+    "F2 - GET /api/v1/facturas/{id} (consultar)": {
+      "scope": "F2 - GET /api/v1/facturas/{id} (consultar)",
+      "maxErrorRate": 1,
+      "p95Ms": 2000
+    },
+    "F3 - GET /api/v1/facturas?usuarioId&estado (listar)": {
+      "scope": "F3 - GET /api/v1/facturas?usuarioId&estado (listar)",
+      "maxErrorRate": 1,
+      "p95Ms": 2000
+    },
+    "F4 - PUT /api/v1/facturas/{id} (modificar)": {
+      "scope": "F4 - PUT /api/v1/facturas/{id} (modificar)",
+      "maxErrorRate": 1,
+      "p95Ms": 3000
+    },
+    "F5 - POST /api/v1/facturas/{id}/pagar (pagar)": {
+      "scope": "F5 - POST /api/v1/facturas/{id}/pagar (pagar)",
+      "maxErrorRate": 1,
+      "p95Ms": 3000
+    },
+    "F6 - DELETE /api/v1/facturas/{id} (dar de baja)": {
+      "scope": "F6 - DELETE /api/v1/facturas/{id} (dar de baja)",
+      "maxErrorRate": 1,
+      "p95Ms": 3000
+    }
+  }
+}

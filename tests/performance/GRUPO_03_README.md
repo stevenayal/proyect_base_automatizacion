@@ -6,14 +6,20 @@ a partir de la colección Postman `Grupo 03 - Pago de Servicios`.
 
 API bajo prueba: `https://aiquaa-sandbox-api.vercel.app` (sandbox de clase).
 
+> **Nombres con prefijo `GRUPO_03_`.** `tests/performance/` es compartido por todos los
+> grupos del curso y `README.md`, `thresholds.json` y `local.properties` ya existen en
+> `main` con contenido de otros grupos. Los archivos propios de este grupo llevan prefijo
+> para no pisarlos al mergear, siguiendo la convención que ya usan `GRUPO_07_*` y
+> `grupo04-thresholds.json`.
+
 ## Contenido
 
 | Archivo | Qué es |
 | --- | --- |
 | `plans/Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.jmx` | Plan grupal: GET facturas pendientes + POST crear factura, con el **proveedor elegido al azar** entre ANDE, ESSAP, COPACO y Tigo. Dentro de JMeter se ve como "Grupo03 - Plan de Pruebas de JMeter + CSV - Grupal". |
 | `data/Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.csv` | Dataset semilla: `usuarioId,monto,fechaVencimiento`. |
-| `thresholds/thresholds.json` | Umbrales por operación y globales. |
-| `properties/local.properties` | Host, carga, think time y API key del ambiente local. |
+| `thresholds/GRUPO_03_thresholds.json` | Umbrales por operación y globales. |
+| `properties/GRUPO_03_local.properties` | Host, carga, think time y API key del ambiente local. |
 | `monitoring/capture_dashboard.py` | Captura con Selenium el dashboard de Grafana como evidencia del informe. Copiado de `src/monitoring/python/` del MCP. |
 | `monitoring/requirements.txt` | Dependencia de la captura (`selenium>=4.16,<5`). |
 
@@ -34,7 +40,7 @@ API bajo prueba: `https://aiquaa-sandbox-api.vercel.app` (sandbox de clase).
    Con 20 hilos y think time 0 el plan mide el rate limiter, no la API.
 2. Los `usuarioId` **no se hardcodean**: se extraen en runtime de la respuesta del GET.
    El CSV solo aporta la semilla de fallback y los datos de negocio (`monto`, `fechaVencimiento`).
-3. La API key es la pública del sandbox de clase. Vive en `properties/local.properties`,
+3. La API key es la pública del sandbox de clase. Vive en `properties/GRUPO_03_local.properties`,
    nunca dentro del `.jmx`.
 
 ## Flujo de datos dinámicos
@@ -78,7 +84,7 @@ Desde la raíz del repositorio:
 ```bash
 jmeter -n \
   -t tests/performance/plans/Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.jmx \
-  -q tests/performance/properties/local.properties \
+  -q tests/performance/properties/GRUPO_03_local.properties \
   -l test-results/performance/R_Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.jtl \
   -e -o test-results/performance/dashboard
 ```
@@ -87,7 +93,7 @@ Smoke de 1 hilo antes de la corrida real:
 
 ```bash
 jmeter -n -t tests/performance/plans/Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.jmx \
-  -q tests/performance/properties/local.properties \
+  -q tests/performance/properties/GRUPO_03_local.properties \
   -Jthreads=1 -Jduration=30 -Jloops=1 \
   -l test-results/performance/R_SMOKE.jtl
 ```
@@ -97,7 +103,7 @@ Evaluar contra los umbrales e informe PDF (sin pasar por MCP):
 ```bash
 npx -y aiquaa-performance-mcp-server --evaluate \
   test-results/performance/R_Grupo03_Plan_de_Pruebas_JMeter_CSV_Grupal.jtl \
-  tests/performance/thresholds/thresholds.json
+  tests/performance/thresholds/GRUPO_03_thresholds.json
 ```
 
 ## Propiedades configurables
@@ -132,7 +138,7 @@ ejecuta **dos corridas encadenadas**.
 
 | Corrida | Carga | Para qué |
 | --- | --- | --- |
-| **BASELINE** | 1 hilo, think time 3000 ms, 300 s | Queda por debajo del rate limit del sandbox. Es la que mide la API de verdad y la que **define el veredicto del SLA**. |
+| **BASELINE** | 1 hilo, think time 6000 ms, 420 s | Queda por debajo del rate limit del sandbox. Es la que mide la API de verdad y la que **define el veredicto del SLA**. |
 | **SATURACION** | 10 hilos, think time 500 ms, 180 s | La carga del NFR. Busca el techo de capacidad, no cumplir el SLA. Su veredicto es informativo. |
 
 Entre las dos hay un enfriamiento de 90 s para que la ventana del rate limit se reinicie
@@ -158,17 +164,20 @@ Se dispara **a mano** desde la pestaña Actions (`Run workflow`), con cinco inpu
 | Input | Default |
 | --- | --- |
 | `monitoring_dashboard_url` | dashboard público de Grafana del curso |
-| `baseline_think_time` | `3000` |
-| `baseline_duration` | `300` |
+| `baseline_think_time` | `6000` |
+| `baseline_duration` | `420` |
 | `saturacion_threads` | `10` |
 | `saturacion_duration` | `180` |
 
-**Disparo temporal por `push`.** GitHub solo muestra `Run workflow` cuando el archivo del
-workflow ya está en la rama por defecto. Mientras este trabajo viva en
-`grupo-03-pagos-servicios` sin mergear, el disparo manual no está disponible, así que el
-workflow lleva además un `push` acotado a esa rama y a `tests/performance/**`. Una vez en
-`main`, ese bloque se puede borrar. En un `push` los `inputs` vienen vacíos y el paso
-*Resolver parametros* aplica los mismos valores por defecto del formulario.
+**Solo manual.** Al principio el workflow llevaba además un `push` acotado a
+`grupo-03-pagos-servicios` y a `tests/performance/**`, porque GitHub solo muestra
+`Run workflow` cuando el archivo ya está en la rama por defecto y era la única forma de
+correrlo antes del merge (las corridas documentadas en el PR salieron de ahí). Con el plan
+final ese `push` se quitó, para que los dos pipelines no corran juntos cada vez que se sube
+algo a `tests/performance/`. Hasta que el workflow esté en `main` no se puede disparar.
+
+El plan final por endpoint tiene su propio pipeline (`Y_GRUPO03_jmeter_final.yml`) y su
+documentación en `GRUPO_03_README_FINAL.md`.
 
 ### Secuencia
 
