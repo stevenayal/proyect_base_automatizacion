@@ -1,0 +1,56 @@
+name: Grupo 10 - Roles y Permisos
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'postman/Grupo10_Roles_Permisos_Tarea3.postman_collection.json'
+      - 'postman/grupo-10-roles-permisos.postman_environment.json'
+      - 'docs/GRUPO-10-API-ROLES-PERMISOS.md'
+      - '.github/workflows/postman-grupo10-roles-permisos.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'postman/Grupo10_Roles_Permisos_Tarea3.postman_collection.json'
+      - 'postman/grupo-10-roles-permisos.postman_environment.json'
+      - 'docs/GRUPO-10-API-ROLES-PERMISOS.md'
+      - '.github/workflows/postman-grupo10-roles-permisos.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  newman:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validar API key
+        env:
+          AIQUAA_API_KEY: ${{ secrets.AIQUAA_API_KEY }}
+        run: test -n "$AIQUAA_API_KEY"
+      - name: Ejecutar roles y permisos
+        env:
+          AIQUAA_API_KEY: ${{ secrets.AIQUAA_API_KEY }}
+          AIQUAA_BASE_URL: ${{ vars.AIQUAA_BASE_URL }}
+        run: |
+          mkdir -p newman
+          args=(postman/Grupo10_Roles_Permisos_Tarea3.postman_collection.json
+            --environment postman/grupo-10-roles-permisos.postman_environment.json
+            --env-var "apiKey=$AIQUAA_API_KEY"
+            --reporters cli,json
+            --reporter-json-export newman/grupo-10-roles-permisos.json)
+          if [ -n "$AIQUAA_BASE_URL" ]; then args+=(--env-var "baseUrl=$AIQUAA_BASE_URL"); fi
+          npx newman run "${args[@]}"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grupo10-roles-permisos-${{ github.run_number }}
+          path: newman/grupo-10-roles-permisos.json
+          if-no-files-found: warn

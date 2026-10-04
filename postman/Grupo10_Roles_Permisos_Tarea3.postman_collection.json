@@ -1,0 +1,443 @@
+{
+  "info": {
+    "_postman_id": "624c14cf-8f08-43b4-a9a3-8d2fe64b01eb",
+    "name": "AIQUAA - Grupo 10 - Roles y Permisos - Tarea 3 SQL REST",
+    "description": "Colección del Grupo 10 extendida con Pre-request/Post-request y validación dinámica mediante POST /api/v1/sql/select.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "57441173",
+    "_collection_link": "https://go.postman.co/collection/57441173-624c14cf-8f08-43b4-a9a3-8d2fe64b01eb?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "ESC-01 Crear usuario y asignar rol (happy path)",
+      "item": [
+        {
+          "name": "1. Listar roles y obtener id del rol",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response time menor a 3000ms', function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
+                  "var body = pm.response.json();",
+                  "var roles = body.data || body;",
+                  "pm.test('La respuesta contiene una lista de roles', function () { pm.expect(roles).to.be.an('array').that.is.not.empty; });",
+                  "var rol = roles.find(function (r) { return r.nombre === pm.collectionVariables.get('rolNombre'); });",
+                  "pm.test('Existe el rol esperado en el sistema', function () { pm.expect(rol, 'No se encontro el rol ' + pm.collectionVariables.get('rolNombre')).to.exist; });",
+                  "if (rol) { pm.collectionVariables.set('roleEditorId', rol.id); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "const sql = utils.bodySqlRest('SELECT id, nombre FROM roles WHERE nombre = $1 AND activo = $2', [pm.collectionVariables.get('rolNombre'), true]);",
+                  "pm.sendRequest(sql, (err, res) => { pm.test('La BD confirma el rol activo', () => { if (err) throw err; const row = (res.json().data || [])[0]; pm.expect(row).to.not.be.undefined; pm.collectionVariables.set('roleEditorId', row.id); }); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2. Crear usuario interno",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('emailUnico', 'qa.grupo10.' + Date.now() + '@example.com');\r",
+                  "pm.collectionVariables.set('documentoUnico', String(Date.now()).slice(-8));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 Created', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Response time menor a 3000ms', function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
+                  "var body = pm.response.json();",
+                  "var usuario = body.data || body;",
+                  "pm.test('El usuario creado trae id', function () { pm.expect(usuario.id).to.exist; });",
+                  "pm.test('El email coincide con el enviado', function () { pm.expect(usuario.email).to.eql(pm.collectionVariables.get('emailUnico')); });",
+                  "pm.collectionVariables.set('usuarioId', usuario.id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "const sql = utils.bodySqlRest('SELECT id, email FROM usuarios WHERE id = $1', [Number(pm.collectionVariables.get('usuarioId'))]);",
+                  "pm.sendRequest(sql, (err, res) => { pm.test('La BD confirma el usuario creado', () => { if (err) throw err; const row = (res.json().data || [])[0]; pm.expect(row.email).to.eql(pm.collectionVariables.get('emailUnico')); }); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Usuario QA Grupo 10\",\n  \"email\": \"{{emailUnico}}\",\n  \"documentoTipo\": \"CI\",\n  \"documentoNumero\": \"{{documentoUnico}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Asignar rol soporte al usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201 Created (asignacion nueva)', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Response time menor a 3000ms', function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
+                  "pm.test('La respuesta es JSON', function () { pm.response.to.be.json; });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "const sql = utils.bodySqlRest('SELECT COUNT(*) AS total FROM usuario_roles WHERE usuario_id = $1', [Number(pm.collectionVariables.get('usuarioId'))]);",
+                  "pm.sendRequest(sql, (err, res) => { if (err) throw err; pm.collectionVariables.set('totalRolesAntes', (res.json().data || [])[0].total); });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "const sql = utils.bodySqlRest('SELECT usuario_id, role_id, activo FROM usuario_roles WHERE usuario_id = $1 AND role_id = $2', [Number(pm.collectionVariables.get('usuarioId')), Number(pm.collectionVariables.get('roleEditorId'))]);",
+                  "pm.sendRequest(sql, (err, res) => { pm.test('La BD confirma la asignación activa', () => { if (err) throw err; const row = (res.json().data || [])[0]; pm.expect(row).to.not.be.undefined; pm.expect(row.activo).to.eql(true); }); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleId\": {{roleEditorId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios",
+                "{{usuarioId}}",
+                "roles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4. Verificar que el usuario tiene el rol asignado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "var body = pm.response.json();",
+                  "var asignados = body.data || body;",
+                  "pm.test('El usuario tiene el rol asignado en su listado', function () {",
+                  "  var ids = asignados.map(function (r) { return Number(r.role_id || r.roleId || r.id); });",
+                  "  pm.expect(ids).to.include(Number(pm.collectionVariables.get('roleEditorId')));",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "const sql = utils.bodySqlRest('SELECT role_id FROM usuario_roles WHERE usuario_id = $1 AND activo = $2', [Number(pm.collectionVariables.get('usuarioId')), true]);",
+                  "pm.sendRequest(sql, (err, res) => { pm.test('La BD y el listado tienen el mismo rol', () => { if (err) throw err; const ids = (res.json().data || []).map(r => Number(r.role_id)); pm.expect(ids).to.include(Number(pm.collectionVariables.get('roleEditorId'))); }); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios",
+                "{{usuarioId}}",
+                "roles"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "ESC-05 Asignar rol inexistente (negativo)",
+      "item": [
+        {
+          "name": "Asignar rol que no existe",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('El sistema rechaza la asignación inexistente', function () { pm.response.to.have.status(400); });",
+                  "pm.test('La respuesta trae un error', function () { var body = pm.response.json(); pm.expect(body.error).to.exist; });",
+                  "const sql = utils.bodySqlRest('SELECT COUNT(*) AS total FROM usuario_roles');",
+                  "pm.sendRequest(sql, (err, res) => { pm.test('La BD no cambió', () => { if (err) throw err; pm.expect(Number((res.json().data || [])[0].total)).to.eql(Number(pm.collectionVariables.get('totalAsignacionesAntes'))); }); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "const sql = utils.bodySqlRest('SELECT COUNT(*) AS total FROM usuario_roles');",
+                  "pm.sendRequest(sql, (err, res) => { if (err) throw err; pm.collectionVariables.set('totalAsignacionesAntes', (res.json().data || [])[0].total); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleId\": {{rolInexistenteId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios",
+                "{{usuarioId}}",
+                "roles"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "ESC-06 Usuario sin ningun rol (edge case)",
+      "item": [
+        {
+          "name": "Revocar rol y comprobar baja lógica (hallazgo del BDD)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('La API revoca el rol con baja lógica', function () { pm.response.to.have.status(204); });",
+                  "const sql = utils.bodySqlRest('SELECT activo FROM usuario_roles WHERE usuario_id = $1 AND role_id = $2', [Number(pm.collectionVariables.get('usuarioId')), Number(pm.collectionVariables.get('roleEditorId'))]);",
+                  "pm.sendRequest(sql, (err, res) => { pm.test('La BD confirma activo=false', () => { if (err) throw err; const row = (res.json().data || [])[0]; pm.expect(row).to.not.be.undefined; pm.expect(row.activo).to.eql(false); }); });",
+                  "const list = utils.bodySqlRest('SELECT COUNT(*) AS total FROM usuario_roles WHERE usuario_id = $1 AND activo = $2', [Number(pm.collectionVariables.get('usuarioId')), true]);",
+                  "pm.sendRequest(list, (err, res) => { pm.test('Hallazgo BDD: el usuario queda sin roles vigentes', () => { if (err) throw err; pm.expect(Number((res.json().data || [])[0].total)).to.eql(0); }); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/roles/{{roleEditorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios",
+                "{{usuarioId}}",
+                "roles",
+                "{{roleEditorId}}"
+              ]
+            }
+          },
+          "response": [],
+          "description": "El escenario BDD espera impedir que el usuario quede sin roles. El API actual permite la revocación y responde 204; la validación SQL deja evidencia de la baja lógica y del gap funcional."
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          "if (typeof utils === 'undefined') {",
+          "  utils = {",
+          "    bodySqlRest: (sql, params) => ({",
+          "      url: pm.variables.get('baseUrl') + '/api/v1/sql/select',",
+          "      method: 'POST',",
+          "      header: { 'Content-Type': 'application/json', 'x-api-key': pm.variables.get('apiKey') },",
+          "      body: { mode: 'raw', raw: JSON.stringify({ sql, params: params || [] }) }",
+          "    })",
+          "  };",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://aiquaa-sandbox-api.vercel.app"
+    },
+    {
+      "key": "apiKey",
+      "value": ""
+    },
+    {
+      "key": "rolNombre",
+      "value": "soporte"
+    },
+    {
+      "key": "rolInexistenteId",
+      "value": "999999"
+    },
+    {
+      "key": "usuarioId",
+      "value": ""
+    },
+    {
+      "key": "roleEditorId",
+      "value": ""
+    },
+    {
+      "key": "emailUnico",
+      "value": ""
+    },
+    {
+      "key": "documentoUnico",
+      "value": ""
+    }
+  ]
+}
