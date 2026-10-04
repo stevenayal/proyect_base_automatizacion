@@ -1,0 +1,105 @@
+name: Grupo 09 (Leila) - Cucumber + Playwright E2E (BDD + reporte + CI/CD)
+
+# Tarea: "Cucumber con Playwright con Agentes + Reporteria + CI / CD"
+# Ejecuta los .feature de Leila contra aiquaa-sandbox-web, clasifica los
+# fallos con el agente determinístico de skills/playwright-ai-agents-skill y
+# publica el reporte HTML de Cucumber, el informe PDF y los traces.
+
+on:
+  push:
+    branches: ["grupo-09-leila-entregas"]
+    paths:
+      - "tests/bdd/grupo09-leila/**"
+      - "reporter/grupo09-leila/**"
+      - ".github/workflows/cucumber-playwright-grupo09-leila.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tests/bdd/grupo09-leila/**"
+      - "reporter/grupo09-leila/**"
+      - ".github/workflows/cucumber-playwright-grupo09-leila.yml"
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: "Expresion de tags de Cucumber (ej: @happy_path)"
+        required: false
+        default: "not @wip"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: grupo09-leila-bdd-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RESULTS: results/grupo09-leila
+
+jobs:
+  bdd:
+    name: Cucumber + Playwright (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Obtener el codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Configurar Python (informe PDF)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: |
+          npm ci
+          pip install -r reporter/grupo09-leila/requirements.txt
+
+      - name: Instalar Chromium de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Validar steps (dry-run, sin navegador)
+        run: npx cucumber-js --config tests/bdd/grupo09-leila/cucumber.js --profile dryrun
+
+      - name: Ejecutar escenarios BDD
+        env:
+          CI: "true"
+          BASE_URL: ${{ vars.AIQUAA_SANDBOX_BASE_URL || 'https://aiquaa-sandbox-web.vercel.app' }}
+          SANDBOX_API_KEY: ${{ secrets.GRUPO09_API_KEY || 'sbx_demo_f581ca21e68a347288c94d71' }}
+          TEST_USER: admin@aiquaa.com
+          BDD_TAGS: ${{ inputs.tags || 'not @wip' }}
+          BDD_RETRY: "1"
+        run: npx cucumber-js --config tests/bdd/grupo09-leila/cucumber.js --profile default
+
+      - name: Clasificar fallos (agente de triage de la skill)
+        if: always() && hashFiles('results/grupo09-leila/cucumber-report.json') != ''
+        run: |
+          node skills/playwright-ai-agents-skill/scripts/classify-failures.mjs \
+            --input "${RESULTS}/cucumber-report.json" \
+            --out "${RESULTS}/CLASIF_BDD_GRUPO09_LEILA.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Generar informe PDF BDD
+        if: always() && hashFiles('results/grupo09-leila/cucumber-report.json') != ''
+        run: >
+          python reporter/grupo09-leila/bdd_report.py
+          --results "${RESULTS}/cucumber-report.json"
+          --classification "${RESULTS}/CLASIF_BDD_GRUPO09_LEILA.json"
+          --output "${RESULTS}/INFORME_BDD_GRUPO09_LEILA.pdf"
+          --author "${{ github.triggering_actor }}"
+          --repo-url "${{ github.server_url }}/${{ github.repository }}"
+          --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          --version "${{ github.sha }}"
+
+      - name: Publicar reportes y evidencias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grupo09-leila-bdd-${{ github.run_number }}
+          path: results/grupo09-leila/
+          if-no-files-found: warn
+          retention-days: 14

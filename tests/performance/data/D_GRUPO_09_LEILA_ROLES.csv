@@ -1,0 +1,7 @@
+usuarioId,rolNombre,perfilNegocio
+1,admin,Administrador
+9,auditor,Auditor
+2,soporte,Invitado (solo lectura)
+11,operador,Analista Financiero
+3,auditor,Auditor
+5,soporte,Invitado (solo lectura)

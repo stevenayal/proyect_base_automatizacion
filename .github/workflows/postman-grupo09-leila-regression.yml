@@ -1,0 +1,113 @@
+name: Grupo 09 (Leila) - Postman Regression (Newman + reporte PDF Python)
+
+# Tarea: "Creacion de Pipeline Postman + Reporteria con Python"
+# Corre la coleccion "Grupo 09 - Leila Ruiz - Control de Acceso por Rol"
+# contra la API del sandbox y publica el informe PDF generado con
+# skills/postman-newman-skill/reporter/newman_report.py (visto en clase).
+
+on:
+  push:
+    branches: ["grupo-09-leila-entregas"]
+    paths:
+      - "postman/grupo-09-leila-control-acceso-por-rol.postman_collection.json"
+      - ".github/workflows/postman-grupo09-leila-regression.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "postman/grupo-09-leila-control-acceso-por-rol.postman_collection.json"
+      - ".github/workflows/postman-grupo09-leila-regression.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: grupo09-leila-newman-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  COLLECTION: postman/grupo-09-leila-control-acceso-por-rol.postman_collection.json
+  REPORTER: skills/postman-newman-skill/reporter
+
+jobs:
+  newman-regression:
+    name: Newman + reporte PDF (Python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Configurar Python (generador de PDF)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias Node (newman)
+        run: npm ci
+
+      - name: Instalar dependencias Python (reportlab, Pillow)
+        run: pip install -r "${REPORTER}/requirements.txt"
+
+      - name: Ejecutar regresion Postman (Newman) - Grupo 09 Leila
+        # --delay-request 2500: la API del sandbox tiene rate limit de
+        # 30 req/min compartido por todo el curso (y algunos requests
+        # disparan una consulta SQL extra en el pre-request).
+        env:
+          BASE_URL: ${{ vars.GRUPO09_BASE_URL || 'https://aiquaa-sandbox-api.vercel.app' }}
+          API_KEY: ${{ secrets.GRUPO09_API_KEY }}
+        run: |
+          mkdir -p newman
+          KEY_ARGS=()
+          if [ -n "${API_KEY}" ]; then KEY_ARGS=(--env-var "apiKey=${API_KEY}"); fi
+          npx newman run "${COLLECTION}" \
+            --env-var "baseUrl=${BASE_URL}" "${KEY_ARGS[@]}" \
+            --delay-request 2500 \
+            --reporters cli,json,junit \
+            --reporter-json-export newman/results.json \
+            --reporter-junit-export newman/results.xml
+
+      - name: Generar reporte PDF (Python)
+        if: always()
+        run: >
+          python "${REPORTER}/newman_report.py"
+          --results newman/results.json
+          --banner "${REPORTER}/assets/banner_portada.png"
+          --logo-aiquaa "${REPORTER}/assets/logo_aiquaa_circle.png"
+          --logo-postman "${REPORTER}/assets/logo_postman_clean.png"
+          --repo-url "${{ github.server_url }}/${{ github.repository }}"
+          --api-version "${{ github.sha }}"
+          --author "${{ github.triggering_actor }}"
+          --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          --output newman/INFORME_REGRESION_GRUPO09_LEILA.pdf
+
+      - name: Resumen de la ejecucion
+        if: always()
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, os
+          if not os.path.exists("newman/results.json"):
+              print("Newman no genero resultados."); raise SystemExit
+          s = json.load(open("newman/results.json"))["run"]["stats"]
+          a, r = s["assertions"], s["requests"]
+          print("## Grupo 09 (Leila) - Regresion Postman")
+          print(f"- Requests: {r['total']} (fallidos {r['failed']})")
+          print(f"- Assertions: {a['total']} (fallidas {a['failed']})")
+          PY
+
+      - name: Subir informe PDF + resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-regresion-grupo09-leila
+          path: |
+            newman/INFORME_REGRESION_GRUPO09_LEILA.pdf
+            newman/results.xml
+          if-no-files-found: warn
+          retention-days: 14
