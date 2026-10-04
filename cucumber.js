@@ -26,9 +26,10 @@ module.exports = {
   // Uso: npx cucumber-js --profile grupo06 --tags "@grupo06"
   grupo06: {
     paths: ['grupos/grupo-06-notificaciones-alertas/features/**/*.feature'],
-    require: ['tests/bdd/steps/**/*.ts', 'tests/bdd/support/**/*.ts'],
+    // El support del grupo va despues del base: agrega capturas por paso y trace de Playwright.
+    require: ['tests/bdd/steps/**/*.ts', 'tests/bdd/support/**/*.ts', 'grupos/grupo-06-notificaciones-alertas/support/**/*.ts'],
     requireModule: ['ts-node/register'],
-    format: ['progress', 'json:results/cucumber-report.json'],
+    format: ['progress', 'json:results/cucumber-report.json', 'html:results/cucumber-report-grupo06.html'],
     formatOptions: { snippetInterface: 'async-await' },
     publishQuiet: true,
   },

@@ -1,9 +1,12 @@
 name: JMeter Performance - Grupo 06 Notificaciones (con informe PDF y MCP)
 
+# En la rama del grupo el CI corre via el PR hacia main (no por push), para no
+# duplicar corridas contra la misma API key.
 on:
   push:
-    branches: ["main", "grupo-06-notificaciones-alertas"]
+    branches: ["main"]
     paths:
+      - "grupos/grupo-06-notificaciones-alertas/scripts/esperar-cupo-api.sh"
       - "tests/performance/plans/Grupo06_Notificaciones.jmx"
       - "tests/performance/data/grupo06-notificaciones.csv"
       - "tests/performance/thresholds/grupo06-thresholds.json"
@@ -11,6 +14,7 @@ on:
   pull_request:
     branches: ["main"]
     paths:
+      - "grupos/grupo-06-notificaciones-alertas/scripts/esperar-cupo-api.sh"
       - "tests/performance/plans/Grupo06_Notificaciones.jmx"
       - "tests/performance/data/grupo06-notificaciones.csv"
       - "tests/performance/thresholds/grupo06-thresholds.json"
@@ -34,6 +38,12 @@ on:
 
 permissions:
   contents: read
+
+# Mismo grupo que el workflow de Newman del Grupo 06: comparten la API key (30 req/min),
+# asi que corren uno despues del otro en lugar de pisarse.
+concurrency:
+  group: aiquaa-sandbox-grupo06
+  cancel-in-progress: false
 
 env:
   JMETER_VERSION: 5.6.3
@@ -64,6 +74,9 @@ jobs:
           curl --fail --location --silent --show-error \
             "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" -o jmeter.tgz
           tar -xzf jmeter.tgz
+
+      - name: Esperar cupo en el rate limit de la API
+        run: bash grupos/grupo-06-notificaciones-alertas/scripts/esperar-cupo-api.sh "${{ secrets.GRUPO06_API_KEY }}"
 
       - name: Ejecutar plan de pruebas headless (MCP perf_generar -> JMX)
         run: |

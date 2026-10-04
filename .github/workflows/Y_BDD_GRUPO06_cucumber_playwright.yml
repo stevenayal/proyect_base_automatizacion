@@ -5,6 +5,8 @@ on:
     branches: ["main", "grupo-06-notificaciones-alertas"]
     paths:
       - "grupos/grupo-06-notificaciones-alertas/features/**"
+      - "grupos/grupo-06-notificaciones-alertas/support/**"
+      - "grupos/grupo-06-notificaciones-alertas/scripts/evidencia_bdd_pdf.py"
       - "tests/bdd/**"
       - "cucumber.js"
       - ".github/workflows/Y_BDD_GRUPO06_cucumber_playwright.yml"
@@ -12,6 +14,8 @@ on:
     branches: ["main"]
     paths:
       - "grupos/grupo-06-notificaciones-alertas/features/**"
+      - "grupos/grupo-06-notificaciones-alertas/support/**"
+      - "grupos/grupo-06-notificaciones-alertas/scripts/evidencia_bdd_pdf.py"
       - "tests/bdd/**"
       - "cucumber.js"
       - ".github/workflows/Y_BDD_GRUPO06_cucumber_playwright.yml"
@@ -53,8 +57,9 @@ jobs:
         run: mkdir -p results
 
       - name: Ejecutar escenarios BDD del Grupo 06 (Cucumber + Playwright)
+        # Sin continue-on-error: si un escenario falla, el workflow queda en rojo.
+        # El informe PDF, la evidencia y el artefacto se generan igual (if: always()).
         run: npx cucumber-js --profile grupo06 --tags "@grupo06"
-        continue-on-error: true
 
       - name: Instalar dependencia del informe PDF
         if: always()
@@ -69,6 +74,13 @@ jobs:
           --grupo "Grupo 06 - Notificaciones y Alertas"
           --author "${{ github.triggering_actor }}"
           --repo-url "${{ github.server_url }}/${{ github.repository }}"
+
+      - name: Generar PDF de evidencias (capturas por paso)
+        if: always()
+        run: >
+          python grupos/grupo-06-notificaciones-alertas/scripts/evidencia_bdd_pdf.py
+          --results results/cucumber-report.json
+          --output results/EVIDENCIA_BDD_GRUPO06.pdf
 
       - name: Subir resultados e informe
         uses: actions/upload-artifact@v4

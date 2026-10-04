@@ -1,0 +1,50 @@
+{
+  "GET - Consultar notificaciones pendientes del usuario" : {
+    "transaction" : "GET - Consultar notificaciones pendientes del usuario",
+    "sampleCount" : 5,
+    "errorCount" : 0,
+    "errorPct" : 0.0,
+    "meanResTime" : 246.4,
+    "medianResTime" : 242.0,
+    "minResTime" : 238.0,
+    "maxResTime" : 269.0,
+    "pct1ResTime" : 269.0,
+    "pct2ResTime" : 269.0,
+    "pct3ResTime" : 269.0,
+    "throughput" : 0.18945852752832404,
+    "receivedKBytesPerSec" : 1.669862299173961,
+    "sentKBytesPerSec" : 0.047549649975370395
+  },
+  "Total" : {
+    "transaction" : "Total",
+    "sampleCount" : 10,
+    "errorCount" : 0,
+    "errorPct" : 0.0,
+    "meanResTime" : 281.79999999999995,
+    "medianResTime" : 243.0,
+    "minResTime" : 232.0,
+    "maxResTime" : 607.0,
+    "pct1ResTime" : 573.2,
+    "pct2ResTime" : 607.0,
+    "pct3ResTime" : 607.0,
+    "throughput" : 0.33277870216306155,
+    "receivedKBytesPerSec" : 1.582648710482529,
+    "sentKBytesPerSec" : 0.10750311980033278
+  },
+  "POST - Crear notificacion" : {
+    "transaction" : "POST - Crear notificacion",
+    "sampleCount" : 5,
+    "errorCount" : 0,
+    "errorPct" : 0.0,
+    "meanResTime" : 317.2,
+    "medianResTime" : 246.0,
+    "minResTime" : 232.0,
+    "maxResTime" : 607.0,
+    "pct1ResTime" : 607.0,
+    "pct2ResTime" : 607.0,
+    "pct3ResTime" : 607.0,
+    "throughput" : 0.18653236336504384,
+    "receivedKBytesPerSec" : 0.1301719012311136,
+    "sentKBytesPerSec" : 0.07370214279052416
+  }
+}

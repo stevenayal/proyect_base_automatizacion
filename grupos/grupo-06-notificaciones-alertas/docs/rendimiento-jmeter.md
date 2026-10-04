@@ -59,6 +59,17 @@ evalúa el SLA (`thresholds/grupo06-thresholds.json`) como gate, y captura evide
 un dashboard de monitoreo (Grafana u otro) cuando se dispara manualmente con
 `monitoring_dashboard_url`.
 
+Antes de JMeter, el paso **"Esperar cupo"** (`scripts/esperar-cupo-api.sh`) manda una ráfaga corta a
+`GET /api/v1/notificaciones` y solo arranca cuando no hay `429`. Cumple dos funciones:
+
+- **Cupo:** la API key demo y el límite de 30 req/min son compartidos entre grupos.
+- **Calentamiento:** el sandbox corre en Vercel y la primera petición después de un rato sin uso tarda más
+  (arranque en frío, ~1,5 s). Con 5 muestras por operación el p95 coincide con el máximo, así que esa sola
+  petición rompería el SLA aunque no represente el rendimiento real.
+
+Newman y JMeter del grupo comparten el grupo de concurrencia `aiquaa-sandbox-grupo06`: corren uno después
+del otro. En la rama del grupo se ejecutan vía el PR hacia `main`.
+
 Secrets/vars a configurar en el repositorio (Settings → Secrets and variables → Actions):
 
 - `GRUPO06_API_KEY` (secret) — misma API key usada en Postman.
