@@ -78,7 +78,34 @@ principal`, `Monto`, `Estado`).
 - **Evidencia:** `evidence/semana-06/` (informe PDF con matriz de trazabilidad,
   JSON de Cucumber, clasificación del fallo controlado y propuesta del healer).
 
-## 6. Fuera de alcance
+## 6. Evidencia visual por paso
+
+La evidencia no es solo el veredicto del PDF: cada paso del recorrido deja su
+propia captura.
+
+| Pieza | Qué hace | Dónde |
+|---|---|---|
+| `AfterStep` | Adjunta una captura `fullPage` en **cada paso que pasa**, visible bajo ese paso en el reporte HTML y en el JSON de Cucumber. | `support/hooks.ts` |
+| `After` | Escribe `results/grupo07-andrea/OE-G07-01-<PASSED\|FAILED>-<Date.now()>.png` para el anexo del reporter. | `support/hooks.ts` |
+| `After` (solo si falla) | Trace `.zip` + captura adjunta. | `support/hooks.ts` |
+
+Tres detalles para reproducirlo:
+
+- **El ID viene del tag.** Se usa el mismo regex del reporter
+  (`/^@[A-Z]+\d*-[A-Z0-9]+-\d+$/`), y el nombre del archivo lleva el tag **sin la
+  `@`**: `OE-G07-01`, que es lo que `bdd_report.py` busca para el anexo.
+- **La captura va antes de `borrarOrdenCreada()`**, dentro de un `try/finally`
+  propio: si la captura falla, la limpieza de la orden se ejecuta igual.
+- **El PNG del anexo va directo** en `results/grupo07-andrea/`, porque el reporter
+  lista esa carpeta sin recursividad.
+
+Alcance real de esta evidencia: el anexo del PDF muestra **una imagen por
+escenario** (la más reciente del ID), o sea la **vista final** del recorrido. Las
+capturas por paso quedan en el HTML. El estado intermedio del formulario de alta
+no se captura en ninguna: el step `creo una orden con un ítem válido` completa y
+envía dentro del mismo paso, y `AfterStep` solo puede capturar al terminar.
+
+## 7. Fuera de alcance
 
 - RF-G7-04 / RF-G7-05 (edición y borrado por UI): no son requisito de este
   escenario. La limpieza se hace **por API** en el `After`.
