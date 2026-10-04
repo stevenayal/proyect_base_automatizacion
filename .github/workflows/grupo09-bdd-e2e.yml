@@ -41,10 +41,42 @@ jobs:
       - name: Instalar navegadores de Playwright
         run: npx playwright install --with-deps chromium
 
+      - name: Configurar Python (generador del informe PDF)
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias Python (reportlab, Pillow)
+        run: pip install -r skills/postman-newman-skill/reporter/requirements.txt
+
       - name: Ejecutar escenarios BDD del Grupo 09
         run: >
           npx cucumber-js --profile grupo09
           --format "json:grupos/grupo-09-reportes-dashboard/evidence/cucumber-report.json"
+
+      - name: Generar informe PDF del BDD
+        if: always()
+        run: >
+          python grupos/grupo-09-reportes-dashboard/reporter/cucumber_report.py
+          --results grupos/grupo-09-reportes-dashboard/evidence/cucumber-report.json
+          --output grupos/grupo-09-reportes-dashboard/evidence/INFORME_BDD_GRUPO09.pdf
+          --title "Grupo 09 - Reportes y Dashboard"
+          --banner skills/postman-newman-skill/reporter/assets/banner_portada.png
+          --logo-aiquaa skills/postman-newman-skill/reporter/assets/logo_aiquaa_circle.png
+          --logo-postman skills/postman-newman-skill/reporter/assets/logo_postman_clean.png
+          --repo-url "${{ github.server_url }}/${{ github.repository }}"
+          --api-version "${{ github.sha }}"
+          --author "${{ github.triggering_actor }}"
+          --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Subir informe PDF (visible directo desde la run)
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: informe-bdd-grupo09-pdf
+          path: grupos/grupo-09-reportes-dashboard/evidence/INFORME_BDD_GRUPO09.pdf
+          archive: false
+          retention-days: 7
 
       - name: Subir evidencias (reporte + capturas si las hay)
         uses: actions/upload-artifact@v7
