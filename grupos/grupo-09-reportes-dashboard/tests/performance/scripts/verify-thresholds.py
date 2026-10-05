@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 JTL = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("results.jtl")
-THRESHOLDS = Path("grupos/grupo-09-reportes-dashboard/tests/performance/thresholds/thresholds.json")
+THRESHOLDS = Path("grupos/grupo-09-reportes-dashboard/tests/performance/thresholds/GRUPO-09-thresholds.json")
 
 with open(THRESHOLDS, "r", encoding="utf-8") as f:
     limits = json.load(f)
