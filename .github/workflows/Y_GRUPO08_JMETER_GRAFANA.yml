@@ -1,6 +1,23 @@
-﻿name: JMeter Grupo 08 - Salma
+﻿# 1. Confirmar que estamos trabajando sobre Grupo 08
+$workflow = ".github\workflows\Y_GRUPO08_JMETER_GRAFANA.yml"
+$jmx = "grupos\grupo-08-reservas-turnos\TAREA 5 SALMAGIMENEZ\reservas_performance.jmx"
+
+# 2. Ajustar el JMX para recibir la API Key desde GitHub Actions
+$contenidoJmx = Get-Content $jmx -Raw
+$contenidoJmx = $contenidoJmx.Replace('${apiKey}', '${__P(apiKey)}')
+Set-Content $jmx -Value $contenidoJmx -Encoding UTF8
+
+# 3. Generar el workflow completo
+@'
+name: JMeter Grupo 08 - Salma
 
 on:
+  push:
+    branches:
+      - grupo-08-reservas-turnos
+    paths:
+      - "grupos/grupo-08-reservas-turnos/TAREA 5 SALMAGIMENEZ/**"
+      - ".github/workflows/Y_GRUPO08_JMETER_GRAFANA.yml"
   workflow_dispatch:
 
 permissions:
@@ -27,17 +44,17 @@ jobs:
           echo "$GITHUB_WORKSPACE/apache-jmeter-5.6.3/bin" >> "$GITHUB_PATH"
 
       - name: Crear carpeta de resultados
-        run: |
-          mkdir -p test-results/performance
+        run: mkdir -p test-results/performance
 
-      - name: Ejecutar JMeter
+      - name: Ejecutar JMeter Grupo 08
+        working-directory: grupos/grupo-08-reservas-turnos/TAREA 5 SALMAGIMENEZ
         env:
           API_KEY: ${{ secrets.SANDBOX_API_KEY }}
         run: |
           jmeter -n \
-            -t "grupos/grupo-08-reservas-turnos/TAREA 5 SALMAGIMENEZ/reservas_performance.jmx" \
+            -t "reservas_performance.jmx" \
             -JapiKey="$API_KEY" \
-            -l "test-results/performance/resultado_salma.jtl"
+            -l "$GITHUB_WORKSPACE/test-results/performance/resultado_salma.jtl"
 
       - name: Subir resultados JMeter
         if: always()
@@ -46,3 +63,4 @@ jobs:
           name: jmeter-grupo08-salma
           path: test-results/performance/
           if-no-files-found: warn
+'@ | Set-Content $workflow -Encoding UTF8
