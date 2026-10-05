@@ -1,0 +1,12 @@
+name: Postman Regression - Grupo 07 Carrito (sin reporte)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  coordinated:
+    uses: ./.github/workflows/postman-grupo07-regression.yml
+    with:
+      profile: sin-reporte
+    secrets: inherit

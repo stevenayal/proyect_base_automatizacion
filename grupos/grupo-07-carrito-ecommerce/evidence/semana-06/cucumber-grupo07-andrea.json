@@ -1,0 +1,227 @@
+[
+  {
+    "description": "  Como usuario del sistema\n  Quiero crear una orden desde el front web\n  Para verificar que el flujo funciona de principio a fin",
+    "elements": [
+      {
+        "description": "",
+        "id": "flujo-enlazado-de-órdenes;listado-→-crear-orden-→-detalle",
+        "keyword": "Scenario",
+        "line": 16,
+        "name": "Listado → crear orden → detalle",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 90639799
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 11,
+            "name": "que obtengo un usuario activo del sandbox",
+            "match": {
+              "location": "tests\\bdd\\grupo07-ordenes-andrea\\steps\\S_ORDENES_ENLAZADO_ANDREA.steps.ts:26"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 832270000
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 12,
+            "name": "que estoy autenticado en el sandbox como ese usuario",
+            "match": {
+              "location": "tests\\bdd\\grupo07-ordenes-andrea\\steps\\S_ORDENES_ENLAZADO_ANDREA.steps.ts:30"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 4471691800
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 18,
+            "name": "navego a \"/ordenes\"",
+            "match": {
+              "location": "tests\\bdd\\grupo07-ordenes-andrea\\steps\\S_ORDENES_ENLAZADO_ANDREA.steps.ts:39"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 124457099
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 19,
+            "name": "veo el listado de órdenes con sus columnas",
+            "match": {
+              "location": "tests\\bdd\\grupo07-ordenes-andrea\\steps\\S_ORDENES_ENLAZADO_ANDREA.steps.ts:43"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1222434499
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 22,
+            "name": "creo una orden con un ítem válido",
+            "match": {
+              "location": "tests\\bdd\\grupo07-ordenes-andrea\\steps\\S_ORDENES_ENLAZADO_ANDREA.steps.ts:50"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 878110899
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 23,
+            "name": "soy redirigido al detalle de la orden creada",
+            "match": {
+              "location": "tests\\bdd\\grupo07-ordenes-andrea\\steps\\S_ORDENES_ENLAZADO_ANDREA.steps.ts:67"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 839615700
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 26,
+            "name": "veo el detalle de la orden con cabecera e ítems",
+            "match": {
+              "location": "tests\\bdd\\grupo07-ordenes-andrea\\steps\\S_ORDENES_ENLAZADO_ANDREA.steps.ts:73"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 16987900
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 27,
+            "name": "el detalle muestra el producto que invoqué",
+            "match": {
+              "location": "tests\\bdd\\grupo07-ordenes-andrea\\steps\\S_ORDENES_ENLAZADO_ANDREA.steps.ts:78"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 9498099
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 28,
+            "name": "el monto del detalle coincide con el del servidor",
+            "match": {
+              "location": "tests\\bdd\\grupo07-ordenes-andrea\\steps\\S_ORDENES_ENLAZADO_ANDREA.steps.ts:84"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 355043099
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 29,
+            "name": "el estado de la orden es \"pendiente\"",
+            "match": {
+              "location": "tests\\bdd\\grupo07-ordenes-andrea\\steps\\S_ORDENES_ENLAZADO_ANDREA.steps.ts:98"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 10711699
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 30,
+            "name": "la orden existe en la base de datos",
+            "match": {
+              "location": "tests\\bdd\\grupo07-ordenes-andrea\\steps\\S_ORDENES_ENLAZADO_ANDREA.steps.ts:103"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 288507200
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 269632799
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@grupo07",
+            "line": 1
+          },
+          {
+            "name": "@web",
+            "line": 1
+          },
+          {
+            "name": "@ordenes",
+            "line": 1
+          },
+          {
+            "name": "@OE-G07-01",
+            "line": 15
+          },
+          {
+            "name": "@smoke",
+            "line": 15
+          },
+          {
+            "name": "@crea-datos",
+            "line": 15
+          }
+        ],
+        "type": "scenario",
+        "comments": [
+          {
+            "line": 14,
+            "text": "criterio: RF-G7-01 listado de órdenes, RF-G7-02 alta de orden y RF-G7-03 detalle de la orden — recorrido completo de principio a fin"
+          }
+        ]
+      }
+    ],
+    "id": "flujo-enlazado-de-órdenes",
+    "line": 2,
+    "keyword": "Feature",
+    "name": "Flujo enlazado de órdenes",
+    "tags": [
+      {
+        "name": "@grupo07",
+        "line": 1
+      },
+      {
+        "name": "@web",
+        "line": 1
+      },
+      {
+        "name": "@ordenes",
+        "line": 1
+      }
+    ],
+    "uri": "tests\\bdd\\grupo07-ordenes-andrea\\features\\F_ORDENES_ENLAZADO_ANDREA.feature"
+  }
+]

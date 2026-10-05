@@ -1,0 +1,159 @@
+{
+  "info": {
+    "_postman_id": "41fe3237-b1ba-4951-9430-65e804135d26",
+    "name": "C_grupo07_carrito_ecomerce_Armin_Avezada",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53986893",
+    "_collection_link": "https://go.postman.co/collection/53986893-41fe3237-b1ba-4951-9430-65e804135d26?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "01 - Crear orden (checkout)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const sqlBody = {\r\n  sql: \"select * from qa_training.items_orden where id = $1\",\r\n  params: [25]\r\n};\r\n\r\npm.sendRequest({\r\n    url: pm.variables.get('baseUrl') + '/api/v1/sql/select',\r\n    method: 'POST',\r\n    header: {\r\n        'Content-Type': 'application/json',\r\n        'x-api-key': pm.variables.get('x-api-key')\r\n    },\r\n    body: {\r\n        mode: 'raw',\r\n        raw: JSON.stringify(sqlBody)\r\n    }\r\n}, function (err, res) {\r\n\r\n    if (err) {\r\n        console.error('Error en pre-request (usuario):', err);\r\n        return;\r\n    }\r\n\r\n    // NUEVO: controlar 429 de la consulta auxiliar\r\n    if (res.code === 429) {\r\n        console.error('La consulta previa a la BD respondió 429 Too Many Requests.');\r\n        return;\r\n    }\r\n\r\n    // NUEVO: controlar respuesta que no sea JSON\r\n    let body;\r\n\r\n    try {\r\n        body = res.json();\r\n    } catch (e) {\r\n        console.error('La respuesta de la consulta SQL no es JSON válido.');\r\n        console.error('Respuesta recibida:', res.text());\r\n        return;\r\n    }\r\n\r\n    // NUEVO: verificar que data sea un array\r\n    if (!Array.isArray(body.data)) {\r\n        console.error('La respuesta de la consulta SQL no contiene un array data.');\r\n        return;\r\n    }\r\n\r\n    if (body.data.length === 0) {\r\n        console.error('No se encontró producto en qa_training.ordenes');\r\n        return;\r\n    }\r\n\r\n    const orden = body.data[0];\r\n\r\n    pm.collectionVariables.set('ordenId', orden.id);\r\n    pm.collectionVariables.set('producto', orden.producto);\r\n\r\n    //console.log(body.data[0].producto);\r\n});"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const statusCode = pm.response.code; //collectionVariables\r\n\r\nif (statusCode === 429) {\r\n\r\n    // NUEVO: 429 del endpoint principal\r\n    pm.test(\"El código de respuesta es 429 Too Many Requests\", () => {\r\n        pm.response.to.have.status(429);\r\n    });\r\n\r\n    console.error('El endpoint principal respondió 429 Too Many Requests.');\r\n\r\n}\r\nelse {\r\n\r\n    // NUEVO: controlar respuesta que no sea JSON\r\n    let jsonData;\r\n\r\n    try {\r\n        jsonData = pm.response.json();\r\n    } catch (e) {\r\n\r\n        pm.test(\"La respuesta del endpoint es un JSON válido\", function () {\r\n            pm.expect.fail(\r\n                \"La respuesta no es un JSON válido. Status: \" + statusCode\r\n            );\r\n        });\r\n\r\n        console.error('La respuesta del endpoint no es JSON válido.');\r\n        console.error('Respuesta recibida:', pm.response.text());\r\n\r\n        return;\r\n    }\r\n\r\n    const errorMessage = jsonData.error;\r\n\r\n    if (statusCode === 201) {\r\n\r\n        // MOVIDO: solo existe data.id cuando esperamos una respuesta 201\r\n        pm.collectionVariables.set('id', jsonData.data.id);\r\n\r\n        pm.test(\"El código de respuesta es 201 Created\", () => {\r\n            pm.response.to.have.status(201);\r\n        });\r\n\r\n        pm.test(\"La respuesta contiene el objeto 'data' con la estructura correcta\", function () {\r\n\r\n            // Validamos que exista el objeto data\r\n            pm.expect(jsonData).to.have.property('data');\r\n\r\n            // Validamos que exista el array de items y su contenido\r\n            pm.expect(jsonData.data.items)\r\n                .to.be.an('array')\r\n                .that.is.not.empty;\r\n\r\n            pm.expect(jsonData.data.items[0].producto)\r\n                .to.eql(\"Soporte Premium\");\r\n        });\r\n    }\r\n    else if (statusCode === 400) {\r\n\r\n        //console.log(jsonData.error.code);\r\n        pm.test(\"Code 400 - Body/query inválido o error de ejecución\", () => {\r\n            pm.expect(errorMessage.code).to.eql(\"VALIDATION_ERROR\");\r\n        });\r\n\r\n    }\r\n    else if (statusCode === 401) {\r\n\r\n        pm.test(\"Code 401 - API key inválida, inactiva o ausente\", () => {\r\n            pm.expect(errorMessage.code).to.eql(\"UNAUTHORIZED\");\r\n        });\r\n    }\r\n\r\n    const sqlBody = {\r\n        sql: \"SELECT id, activo FROM ordenes WHERE id = $1\",\r\n        params: [pm.collectionVariables.get('id')]\r\n    };\r\n\r\n    pm.sendRequest({\r\n        url: pm.variables.get('baseUrl') + '/api/v1/sql/select',\r\n        method: 'POST',\r\n        header: {\r\n            'Content-Type': 'application/json',\r\n            'x-api-key': pm.variables.get('x-api-key')\r\n        },\r\n        body: {\r\n            mode: 'raw',\r\n            raw: JSON.stringify(sqlBody)\r\n        }\r\n    }, function (err, res) {\r\n\r\n        if (err) {\r\n            console.error('Error en pre-request (usuario):', err);\r\n            return;\r\n        }\r\n\r\n        // NUEVO: controlar 429 de la consulta de BD\r\n        if (res.code === 429) {\r\n            console.error('La consulta de BD respondió 429 Too Many Requests.');\r\n            return;\r\n        }\r\n\r\n        // NUEVO: controlar respuesta que no sea JSON\r\n        let body;\r\n\r\n        try {\r\n            body = res.json();\r\n        } catch (e) {\r\n            console.error('La respuesta de la consulta de BD no es JSON válido.');\r\n            console.error('Respuesta recibida:', res.text());\r\n            return;\r\n        }\r\n\r\n        // NUEVO: verificar que data sea un array\r\n        if (!Array.isArray(body.data)) {\r\n\r\n            pm.test(\"La respuesta de la BD contiene un array data\", function () {\r\n                pm.expect(body).to.have.property('data');\r\n                pm.expect(body.data).to.be.an('array');\r\n            });\r\n\r\n            return;\r\n        }\r\n\r\n        if (body.data.length === 0) {\r\n            console.error('No se encontró producto en qa_training.ordenes');\r\n            return;\r\n        }\r\n\r\n        const orden = body.data[0];\r\n\r\n        pm.test(\"La BD confirma que la orden ha sido creada\", function () {\r\n            pm.expect(String(orden.activo)).to.eql(\"true\");\r\n        });\r\n    });\r\n}"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "disabledSystemHeaders": {
+          "user-agent": true,
+          "accept": true,
+          "accept-encoding": true,
+          "connection": true,
+          "content-type": true
+        }
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{x-api-key}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"usuarioId\": \"{{ordenId}}\",\r\n  \"items\": [\r\n    {\r\n      \"producto\": \"{{producto}}\",\r\n      \"cantidad\": 2,\r\n      \"precioUnitario\": 85\r\n    }\r\n  ]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://aiquaa-sandbox-api.vercel.app/api/v1/ordenes",
+          "protocol": "https",
+          "host": [
+            "aiquaa-sandbox-api",
+            "vercel",
+            "app"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "ordenes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02 - Crear orden - No existe producto",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.unset('ordenId');\r\npm.collectionVariables.unset('producto');\r\npm.collectionVariables.unset('id');\r\n\r\nconsole.log(pm.collectionVariables.get('ordenId'));\r\nconsole.log(pm.collectionVariables.get('producto'));\r\nconsole.log(pm.collectionVariables.get('id'));\r\n\r\nconst sqlBody = {\r\n  sql: \"select * from qa_training.items_orden where id = $1\",\r\n  params: [2000]\r\n};\r\n\r\npm.sendRequest({\r\n    url: pm.variables.get('baseUrl') + '/api/v1/sql/select',\r\n    method: 'POST',\r\n    header: {\r\n        'Content-Type': 'application/json',\r\n        'x-api-key': pm.variables.get('x-api-key')\r\n    },\r\n    body: {\r\n        mode: 'raw',\r\n        raw: JSON.stringify(sqlBody)\r\n    }\r\n}, function (err, res) {\r\n\r\n    if (err) {\r\n        console.error('Error en pre-request (usuario):', err);\r\n        return;\r\n    }\r\n\r\n    // NUEVO: controlar 429\r\n    if (res.code === 429) {\r\n        console.error('La consulta previa a la BD respondió 429 Too Many Requests.');\r\n        return;\r\n    }\r\n\r\n    // NUEVO: controlar respuesta que no sea JSON\r\n    let body;\r\n\r\n    try {\r\n        body = res.json();\r\n    } catch (e) {\r\n        console.error('La respuesta de la consulta SQL no es JSON válido.');\r\n        console.error('Respuesta recibida:', res.text());\r\n        return;\r\n    }\r\n\r\n    // NUEVO: verificar que data sea un array\r\n    if (!Array.isArray(body.data)) {\r\n        console.error('La respuesta de la consulta SQL no contiene un array data.');\r\n        return;\r\n    }\r\n\r\n    if (body.data.length === 0) {\r\n        console.log(\r\n            'Validación exitosa en pre-request: El producto 2000 no existe en la BD.'\r\n        );\r\n        return;\r\n    }\r\n\r\n    const orden = body.data[0];\r\n\r\n    pm.collectionVariables.set('ordenId', orden.id);\r\n    pm.collectionVariables.set('producto', orden.producto);\r\n\r\n    //console.log(body.data[0].producto);\r\n});"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const statusCode = pm.response.code;\r\n\r\nif (statusCode === 429) {\r\n\r\n    // NUEVO: 429 del endpoint principal\r\n    pm.test(\"El código de respuesta es 429 Too Many Requests\", () => {\r\n        pm.response.to.have.status(429);\r\n    });\r\n\r\n    console.error('El endpoint principal respondió 429 Too Many Requests.');\r\n\r\n}\r\nelse {\r\n\r\n    // NUEVO: controlar respuesta que no sea JSON\r\n    let jsonData;\r\n\r\n    try {\r\n        jsonData = pm.response.json();\r\n    } catch (e) {\r\n\r\n        pm.test(\"La respuesta del endpoint es un JSON válido\", function () {\r\n            pm.expect.fail(\r\n                \"La respuesta no es un JSON válido. Status: \" + statusCode\r\n            );\r\n        });\r\n\r\n        console.error('La respuesta del endpoint no es JSON válido.');\r\n        console.error('Respuesta recibida:', pm.response.text());\r\n\r\n        return;\r\n    }\r\n\r\n    const errorMessage = jsonData.error;\r\n\r\n    if (statusCode === 400) {\r\n\r\n        //console.log(jsonData.error.code);\r\n        pm.test(\"El código de respuesta es 400 Bad Request\", () => {\r\n\r\n            // Validamos la estructura del error\r\n            pm.response.to.have.status(400);\r\n\r\n        });\r\n\r\n        // Validamos que el mensaje contenga información clave de la Foreign Key\r\n        pm.test(\"La respuesta captura el error de validación de base de datos\", () => {\r\n            pm.expect(jsonData.error.code)\r\n                .to.include(\"VALIDATION_ERROR\");\r\n        });\r\n\r\n    }\r\n    else if (statusCode === 401) {\r\n\r\n        pm.test(\"Code 401 - API key inválida, inactiva o ausente\", () => {\r\n            pm.expect(errorMessage.code).to.eql(\"UNAUTHORIZED\");\r\n        });\r\n    }\r\n\r\n    const sqlBody = {\r\n        sql: \"select * from qa_training.ordenes where id = $1\",\r\n        params: [2000]\r\n    };\r\n\r\n    // Validaciones de Base de Datos\r\n    pm.sendRequest({\r\n        url: pm.variables.get('baseUrl') + '/api/v1/sql/select',\r\n        method: 'POST',\r\n        header: {\r\n            'Content-Type': 'application/json',\r\n            'x-api-key': pm.variables.get('x-api-key')\r\n        },\r\n        body: {\r\n            mode: 'raw',\r\n            raw: JSON.stringify(sqlBody)\r\n        }\r\n    }, function (err, res) {\r\n\r\n        if (err) {\r\n            console.error('Error al consultar DB en tests:', err);\r\n            return;\r\n        }\r\n\r\n        // NUEVO: controlar 429 de la consulta de BD\r\n        if (res.code === 429) {\r\n            console.error('La consulta de BD respondió 429 Too Many Requests.');\r\n            return;\r\n        }\r\n\r\n        // NUEVO: controlar respuesta que no sea JSON\r\n        let body;\r\n\r\n        try {\r\n            body = res.json();\r\n        } catch (e) {\r\n            console.error('La respuesta de la consulta de BD no es JSON válido.');\r\n            console.error('Respuesta recibida:', res.text());\r\n            return;\r\n        }\r\n\r\n        // NUEVO: verificar que data sea un array\r\n        if (!Array.isArray(body.data)) {\r\n\r\n            pm.test(\"La respuesta de la BD contiene un array data\", function () {\r\n                pm.expect(body).to.have.property('data');\r\n                pm.expect(body.data).to.be.an('array');\r\n            });\r\n\r\n            return;\r\n        }\r\n\r\n        // Como la creación debió fallar por falta de FK,\r\n        // esperamos que no se haya guardado nada\r\n        pm.test(\r\n            \"La BD confirma que la orden NO fue creada (Control de FK exitoso)\",\r\n            function () {\r\n                pm.expect(body.data.length).to.eql(0);\r\n            }\r\n        );\r\n    });\r\n}"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "disabledSystemHeaders": {
+          "user-agent": true,
+          "accept": true,
+          "accept-encoding": true,
+          "connection": true,
+          "content-type": true
+        }
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{x-api-key}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"usuarioId\": \"{{ordenId}}\",\r\n  \"items\": [\r\n    {\r\n      \"producto\": \"{{producto}}\",\r\n      \"cantidad\": 2,\r\n      \"precioUnitario\": 85\r\n    }\r\n  ]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://aiquaa-sandbox-api.vercel.app/api/v1/ordenes",
+          "protocol": "https",
+          "host": [
+            "aiquaa-sandbox-api",
+            "vercel",
+            "app"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "ordenes"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "x-api-key",
+      "value": "sbx_demo_f581ca21e68a347288c94d71"
+    },
+    {
+      "key": "baseUrl",
+      "value": "https://aiquaa-sandbox-api.vercel.app"
+    }
+  ]
+}

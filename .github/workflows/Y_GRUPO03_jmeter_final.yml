@@ -1,0 +1,376 @@
+name: JMeter Grupo03 - Plan final por endpoint
+
+# Plan final de rendimiento del Grupo 03: mide los 6 endpoints de facturas por
+# separado (crear, consultar, listar, modificar, pagar, dar de baja), cada uno con su
+# propio umbral, sin pasarse del rate limit de la API key compartida.
+#
+#   Plan      tests/performance/plans/Grupo03_Plan_de_Pruebas_JMeter_CSV_Final.jmx
+#   Datos     tests/performance/data/Grupo03_Plan_de_Pruebas_JMeter_CSV_Final.csv
+#   Umbrales  tests/performance/thresholds/GRUPO_03_thresholds_final.json
+#   Modos     tests/performance/properties/GRUPO_03_final_{completa,demo}.properties
+#   Detalle   tests/performance/GRUPO_03_README_FINAL.md
+#
+# Convive con Y_GRUPO03_jmeter.yml (baseline + saturación del plan grupal), que no se
+# modifica. Comparten el grupo de concurrencia: nunca corren a la vez contra el sandbox.
+#
+# Una sola corrida de JMeter; después el JTL se separa en:
+#   R_FINAL_ENDPOINTS.jtl   fases F1..F6, define el veredicto (cada endpoint su umbral)
+#   R_FINAL_SATURACION.jtl  saturación de lecturas, informativa (solo modo completa)
+
+on:
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: >-
+          completa = 30 muestras por endpoint + saturación de lecturas (~25 min, la que se
+          presenta). demo = 5 muestras, sin saturación (~4 min, para mostrar en vivo).
+        type: choice
+        options:
+          - completa
+          - demo
+        default: completa
+      muestras:
+        description: Muestras por endpoint. Vacío = la del modo elegido (30 / 5).
+        required: false
+        default: ''
+      rpm:
+        description: >-
+          Requests por minuto de cada fase. Vacío = 10. La API key es compartida entre
+          grupos y el techo real medido fue ~10-15 req/min.
+        required: false
+        default: ''
+      sat_hilos:
+        description: Hilos de la saturación de lecturas. Vacío = la del modo (10 / 0). 0 = no corre.
+        required: false
+        default: ''
+      usuario_titular_id:
+        description: >-
+          Id del usuario titular de las facturas de prueba. Vacío = el usuario activo con
+          menos facturas pendientes (lo elige el plan consultando la base de datos).
+        required: false
+        default: ''
+      monitoring_dashboard_url:
+        description: >-
+          URL pública del dashboard de monitoreo (Grafana) a capturar como evidencia;
+          vacío para omitir la captura.
+        required: false
+        default: https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958
+
+  # workflow_dispatch solo aparece en la pestaña Actions cuando el archivo ya está en la
+  # rama por defecto. Mientras el PR no se mergee, este push acotado es la forma de
+  # ejecutarlo (corre el modo completa). Una vez en main se puede borrar.
+  push:
+    branches:
+      - grupo-03-pagos-servicios
+    paths:
+      - 'tests/performance/plans/Grupo03_Plan_de_Pruebas_JMeter_CSV_Final.jmx'
+      - 'tests/performance/data/Grupo03_Plan_de_Pruebas_JMeter_CSV_Final.csv'
+      - 'tests/performance/thresholds/GRUPO_03_thresholds_final.json'
+      - 'tests/performance/properties/GRUPO_03_final_*.properties'
+      - 'tests/performance/scripts/GRUPO_03_resultados_final.py'
+      - '.github/workflows/Y_GRUPO03_jmeter_final.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  # Mismo grupo que Y_GRUPO03_jmeter.yml: el sandbox es compartido, el plan crea,
+  # paga y da de baja facturas reales, y cancelar a mitad dejaría facturas sin limpiar.
+  group: perf-grupo03
+  cancel-in-progress: false
+
+env:
+  JMETER_VERSION: 5.6.3
+  PLAN: tests/performance/plans/Grupo03_Plan_de_Pruebas_JMeter_CSV_Final.jmx
+  UMBRALES: tests/performance/thresholds/GRUPO_03_thresholds_final.json
+  RESULTS_PY: tests/performance/scripts/GRUPO_03_resultados_final.py
+  MCP_REPO: stevenayal/aiquaa-performance-mcp-server
+  RESULTS: test-results/performance-final
+  DEMO_API_KEY: sbx_demo_f581ca21e68a347288c94d71
+
+jobs:
+  performance-final:
+    name: Plan final por endpoint (${{ inputs.modo || 'completa' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout del repo
+        uses: actions/checkout@v5
+
+      - name: Checkout del MCP de performance
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.MCP_REPO }}
+          path: mcp
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Cache de JMeter
+        id: cache-jmeter
+        uses: actions/cache@v4
+        with:
+          path: apache-jmeter-${{ env.JMETER_VERSION }}
+          key: jmeter-${{ env.JMETER_VERSION }}
+
+      - name: Instalar JMeter
+        if: steps.cache-jmeter.outputs.cache-hit != 'true'
+        run: |
+          curl --fail --location --silent --show-error \
+            "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" -o jmeter.tgz
+          tar -xzf jmeter.tgz
+
+      - name: Resolver parámetros
+        id: params
+        env:
+          DEFAULT_DASHBOARD: https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958
+          IN_MODO: ${{ inputs.modo }}
+          IN_MUESTRAS: ${{ inputs.muestras }}
+          IN_RPM: ${{ inputs.rpm }}
+          IN_SAT: ${{ inputs.sat_hilos }}
+          IN_TITULAR: ${{ inputs.usuario_titular_id }}
+          IN_DASHBOARD: ${{ inputs.monitoring_dashboard_url }}
+          BASE_URL: ${{ vars.GRUPO03_BASE_URL }}
+        run: |
+          MODO="${IN_MODO:-completa}"
+          PROPS="tests/performance/properties/GRUPO_03_final_${MODO}.properties"
+          [ -f "$PROPS" ] || { echo "No existe $PROPS"; exit 1; }
+
+          # Solo se pasan a JMeter los valores que el formulario sobreescribe;
+          # el resto sale del archivo de propiedades del modo.
+          OVERRIDES=""
+          for par in "muestras=$IN_MUESTRAS" "rpm=$IN_RPM" "satHilos=$IN_SAT" "titular=$IN_TITULAR"; do
+            valor="${par#*=}"
+            if [ -n "$valor" ]; then
+              case "$valor" in *[!0-9]*) echo "Valor no numérico: $par"; exit 1;; esac
+              OVERRIDES="$OVERRIDES -J$par"
+            fi
+          done
+
+          # Host de la API desde la variable del repo (la misma que usa Newman).
+          if [ -n "$BASE_URL" ]; then
+            PROTO="${BASE_URL%%://*}"
+            RESTO="${BASE_URL#*://}"
+            HOSTPORT="${RESTO%%/*}"
+            HOST="${HOSTPORT%%:*}"
+            if [ "$HOSTPORT" != "$HOST" ]; then PORT="${HOSTPORT##*:}";
+            elif [ "$PROTO" = "http" ]; then PORT=80; else PORT=443; fi
+            OVERRIDES="$OVERRIDES -Jprotocol=$PROTO -Jhost=$HOST -Jport=$PORT"
+            echo "API: $PROTO://$HOST:$PORT (variable GRUPO03_BASE_URL)"
+          else
+            echo "API: la del archivo de propiedades (variable GRUPO03_BASE_URL no configurada)"
+          fi
+
+          DASHBOARD="$IN_DASHBOARD"
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            DASHBOARD="$DEFAULT_DASHBOARD"
+          fi
+
+          SAT_HILOS="${IN_SAT:-$(grep -E '^satHilos=' "$PROPS" | cut -d= -f2)}"
+
+          {
+            echo "modo=$MODO"
+            echo "props=$PROPS"
+            echo "overrides=$OVERRIDES"
+            echo "sat_hilos=${SAT_HILOS:-0}"
+            echo "dashboard=$DASHBOARD"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Modo: $MODO ($PROPS)"
+          echo "Sobreescrituras:${OVERRIDES:- ninguna}"
+
+      - name: Ejecutar plan final (JMeter)
+        env:
+          API_KEY: ${{ secrets.GRUPO03_API_KEY }}
+        run: |
+          mkdir -p "$RESULTS"
+          if [ -n "$API_KEY" ]; then
+            echo "API key: secret GRUPO03_API_KEY"
+          else
+            echo "API key: clave demo del sandbox (secret GRUPO03_API_KEY no configurado)"
+          fi
+          # csvFile no se pasa: el default del plan (../data/...) es relativo al .jmx.
+          "apache-jmeter-${JMETER_VERSION}/bin/jmeter" -n \
+            -t "$PLAN" \
+            -q "${{ steps.params.outputs.props }}" \
+            -JapiKey="${API_KEY:-$DEMO_API_KEY}" \
+            ${{ steps.params.outputs.overrides }} \
+            -JjtlFile="$GITHUB_WORKSPACE/$RESULTS/R_FINAL.jtl" \
+            -j "$RESULTS/jmeter.log"
+
+      - name: Separar endpoints y saturación
+        if: always()
+        run: |
+          if [ ! -s "$RESULTS/R_FINAL.jtl" ]; then
+            echo "JMeter no generó $RESULTS/R_FINAL.jtl"
+            exit 1
+          fi
+          python3 "$RESULTS_PY" separar --jtl "$RESULTS/R_FINAL.jtl" --salida "$RESULTS"
+
+      - name: Dashboards HTML de JMeter
+        if: always()
+        run: |
+          for RUN in ENDPOINTS SATURACION; do
+            if [ -s "$RESULTS/R_FINAL_${RUN}.jtl" ]; then
+              "apache-jmeter-${JMETER_VERSION}/bin/jmeter" \
+                -g "$RESULTS/R_FINAL_${RUN}.jtl" \
+                -o "$RESULTS/dashboard_${RUN}"
+            else
+              echo "No hay R_FINAL_${RUN}.jtl: se omite su dashboard."
+            fi
+          done
+
+      - uses: actions/setup-node@v6
+        if: always()
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+
+      - name: Parche temporal del MCP (bug del gráfico de throughput)
+        if: always()
+        working-directory: mcp
+        # Mismo parche que Y_GRUPO03_jmeter.yml: con throughput < ~0.5 req/s niceTicks()
+        # colapsa los ticks a 0 y pdfkit falla con "unsupported number: -Infinity".
+        # Cada fase corre a 10 req/min (0,17 req/s), así que cae siempre en ese caso.
+        run: |
+          F=src/reporting/pdf-kit.ts
+          sed -i 's/ticks.push(Math.round(v));/ticks.push(Number(v.toFixed(6)));/' "$F"
+          sed -i 's/const maxY = yTicks.at(-1) ?? 1;/const maxY = yTicks.at(-1) || 1;/' "$F"
+          grep -q 'Number(v.toFixed(6))' "$F" || { echo "El parche de niceTicks no aplicó"; exit 1; }
+          grep -q 'yTicks.at(-1) || 1' "$F"   || { echo "El parche de maxY no aplicó"; exit 1; }
+          echo "Parche aplicado."
+
+      - name: Compilar el MCP
+        if: always()
+        working-directory: mcp
+        run: |
+          npm ci
+          npm run build
+
+      - name: Evaluar umbrales por endpoint (MCP)
+        if: always()
+        # --evaluate sale con 1 si el veredicto GLOBAL es FAIL; acá solo interesa el JSON.
+        # El veredicto por endpoint lo aplica el último paso.
+        run: |
+          if [ ! -s "$RESULTS/R_FINAL_ENDPOINTS.jtl" ]; then
+            echo "Sin muestras de endpoints: no hay nada que evaluar."
+            exit 0
+          fi
+          node mcp/dist/server.js --evaluate \
+            "$RESULTS/R_FINAL_ENDPOINTS.jtl" "$UMBRALES" > "$RESULTS/EVALUACION_FINAL.json" || true
+
+      - name: Preparar Python para la captura
+        if: ${{ always() && steps.params.outputs.dashboard != '' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias de captura
+        if: ${{ always() && steps.params.outputs.dashboard != '' }}
+        run: pip install -r tests/performance/monitoring/requirements.txt
+
+      - name: Capturar evidencia del dashboard de monitoreo
+        if: ${{ always() && steps.params.outputs.dashboard != '' }}
+        continue-on-error: true
+        run: |
+          mkdir -p "$RESULTS/evidence"
+          python3 tests/performance/monitoring/capture_dashboard.py \
+            --url "${{ steps.params.outputs.dashboard }}" \
+            --output "$RESULTS/evidence/EVIDENCIA_MONITOREO.png" \
+            --wait-seconds 8 \
+            --ready-timeout-seconds 180
+
+      - name: Informe PDF por endpoint
+        if: always()
+        # --report sale con 1 si el veredicto es FAIL: el paso produce el documento,
+        # no decide el resultado del job (eso lo hace el último paso).
+        continue-on-error: true
+        run: |
+          EVIDENCE_ARGS=()
+          if [ -f "$RESULTS/evidence/EVIDENCIA_MONITOREO.png" ]; then
+            EVIDENCE_ARGS=(--evidence-image "$RESULTS/evidence/EVIDENCIA_MONITOREO.png" \
+              --evidence-label "Dashboard de monitoreo - base del sandbox AIQUAA" \
+              --evidence-url "${{ steps.params.outputs.dashboard }}")
+          fi
+          node mcp/dist/server.js --report \
+            "$RESULTS/R_FINAL_ENDPOINTS.jtl" \
+            "$UMBRALES" \
+            "$RESULTS/INFORME_PERF_FINAL_ENDPOINTS.pdf" \
+            --api-name "Grupo 03 - Pago de Servicios (plan final por endpoint, ${{ steps.params.outputs.modo }})" \
+            --test-type baseline \
+            --threads 1 \
+            --plan "$PLAN" \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            --author "${{ github.actor }}" \
+            "${EVIDENCE_ARGS[@]}"
+
+      - name: Informe PDF de la saturación de lecturas (informativo)
+        if: ${{ always() && steps.params.outputs.sat_hilos != '0' }}
+        continue-on-error: true
+        run: |
+          if [ ! -s "$RESULTS/R_FINAL_SATURACION.jtl" ]; then
+            echo "No hubo saturación en esta corrida."
+            exit 0
+          fi
+          # Misma evidencia de Grafana que el informe por endpoint. Sin --baseline: los
+          # samplers de la saturación ("S - ...") no se llaman como los de las fases
+          # ("F2 - ...", "F3 - ..."), así que la comparación quedaría vacía.
+          EVIDENCE_ARGS=()
+          if [ -f "$RESULTS/evidence/EVIDENCIA_MONITOREO.png" ]; then
+            EVIDENCE_ARGS=(--evidence-image "$RESULTS/evidence/EVIDENCIA_MONITOREO.png" \
+              --evidence-label "Dashboard de monitoreo - base del sandbox AIQUAA" \
+              --evidence-url "${{ steps.params.outputs.dashboard }}")
+          fi
+          node mcp/dist/server.js --report \
+            "$RESULTS/R_FINAL_SATURACION.jtl" \
+            "$UMBRALES" \
+            "$RESULTS/INFORME_PERF_FINAL_SATURACION.pdf" \
+            --api-name "Grupo 03 - Pago de Servicios (saturación de lecturas)" \
+            --test-type load \
+            --threads "${{ steps.params.outputs.sat_hilos }}" \
+            --plan "$PLAN" \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            --author "${{ github.actor }}" \
+            "${EVIDENCE_ARGS[@]}"
+
+      - name: Resumen de la corrida
+        if: always()
+        run: |
+          {
+            if [ -f "$RESULTS/RESUMEN_FINAL.md" ]; then
+              cat "$RESULTS/RESUMEN_FINAL.md"
+            else
+              echo "### JMeter Grupo 03 · plan final por endpoint"
+              echo
+              echo "No se generó el resumen (ver el log de JMeter en el artifact)."
+            fi
+            if [ -s "$RESULTS/EVALUACION_FINAL.json" ]; then
+              echo
+              echo '```'
+              python3 "$RESULTS_PY" veredicto \
+                --evaluacion "$RESULTS/EVALUACION_FINAL.json" --umbrales "$UMBRALES" || true
+              echo '```'
+            fi
+            echo
+            echo "Modo: **${{ steps.params.outputs.modo }}**. Informes PDF y dashboards en el artifact \`jmeter-GRUPO03-final-${{ github.run_number }}\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-GRUPO03-final-${{ github.run_number }}
+          path: ${{ env.RESULTS }}
+          retention-days: 30
+
+      # Último a propósito: si algún endpoint no cumple su umbral el job queda en rojo,
+      # pero los PDF, dashboards y JTL ya se subieron como artifact.
+      - name: Veredicto por endpoint (define el resultado del job)
+        if: always()
+        run: |
+          python3 "$RESULTS_PY" veredicto \
+            --evaluacion "$RESULTS/EVALUACION_FINAL.json" --umbrales "$UMBRALES"

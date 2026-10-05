@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3"><hashTree><TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Grupo03 - Plan de Pruebas de JMeter + CSV - Final por endpoint" enabled="true"><stringProp name="TestPlan.comments">Medición limpia por endpoint: 6 fases en serie sobre el mismo lote de facturas, a un ritmo fijo (rpm) por debajo del rate limit compartido. Modo completo: properties/GRUPO_03_final_completa.properties. Demo en vivo: properties/GRUPO_03_final_demo.properties.</stringProp><boolProp name="TestPlan.functional_mode">false</boolProp><boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp><boolProp name="TestPlan.serialize_threadgroups">true</boolProp><elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true"><collectionProp name="Arguments.arguments"/></elementProp><stringProp name="TestPlan.user_define_classpath"></stringProp></TestPlan><hashTree><ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults" enabled="true"><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"/></elementProp><stringProp name="HTTPSampler.domain">${__P(host,aiquaa-sandbox-api.vercel.app)}</stringProp><stringProp name="HTTPSampler.port">${__P(port,443)}</stringProp><stringProp name="HTTPSampler.protocol">${__P(protocol,https)}</stringProp><stringProp name="HTTPSampler.implementation">HttpClient4</stringProp><stringProp name="HTTPSampler.connect_timeout">10000</stringProp><stringProp name="HTTPSampler.response_timeout">30000</stringProp></ConfigTestElement><hashTree/><HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true"><collectionProp name="HeaderManager.headers"><elementProp name="Content-Type" elementType="Header"><stringProp name="Header.name">Content-Type</stringProp><stringProp name="Header.value">application/json</stringProp></elementProp><elementProp name="x-api-key" elementType="Header"><stringProp name="Header.name">x-api-key</stringProp><stringProp name="Header.value">${__P(apiKey,)}</stringProp></elementProp></collectionProp></HeaderManager><hashTree/><ResultCollector guiclass="SimpleDataWriter" testclass="ResultCollector" testname="Simple Data Writer" enabled="true"><boolProp name="ResultCollector.error_logging">false</boolProp><objProp><name>saveConfig</name><value class="SampleSaveConfiguration"><time>true</time><latency>true</latency><timestamp>true</timestamp><success>true</success><label>true</label><code>true</code><message>true</message><threadName>true</threadName><dataType>true</dataType><encoding>false</encoding><assertions>true</assertions><subresults>true</subresults><responseData>false</responseData><samplerData>false</samplerData><xml>false</xml><fieldNames>true</fieldNames><responseHeaders>false</responseHeaders><requestHeaders>false</requestHeaders><responseDataOnError>false</responseDataOnError><saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage><assertionsResultsToSave>0</assertionsResultsToSave><bytes>true</bytes><sentBytes>true</sentBytes><url>true</url><threadCounts>true</threadCounts><idleTime>true</idleTime><connectTime>true</connectTime></value></objProp><stringProp name="filename">${__P(jtlFile,~/../../../test-results/performance-final/R_FINAL.jtl)}</stringProp></ResultCollector><hashTree/><SetupThreadGroup guiclass="SetupThreadGroupGui" testclass="SetupThreadGroup" testname="00 - Preparacion (titular y datos de lectura)" enabled="true"><stringProp name="TestPlan.comments">Una vez por corrida. No forma parte de la medición.</stringProp><stringProp name="ThreadGroup.on_sample_error">continue</stringProp><elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">1</stringProp></elementProp><stringProp name="ThreadGroup.num_threads">1</stringProp><stringProp name="ThreadGroup.ramp_time">0</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp><stringProp name="ThreadGroup.duration"></stringProp><stringProp name="ThreadGroup.delay"></stringProp><boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp></SetupThreadGroup><hashTree><TestAction guiclass="TestActionGui" testclass="TestAction" testname="estado de la corrida" enabled="true"><intProp name="ActionProcessor.action">1</intProp><intProp name="ActionProcessor.target">0</intProp><stringProp name="ActionProcessor.duration">0</stringProp></TestAction><hashTree><JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Preparar estado de la corrida" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">props.put(&quot;G3_FACTURAS&quot;, java.util.Collections.synchronizedList(new java.util.ArrayList()));
+String fijo = props.getProperty(&quot;titular&quot;, &quot;&quot;).trim();
+props.put(&quot;G3_TITULAR&quot;, fijo);
+props.put(&quot;G3_ID_LECTURA&quot;, &quot;1&quot;);
+log.info(&quot;[G3] titular: &quot; + (fijo.isEmpty() ? &quot;se elige el usuario con menos facturas pendientes&quot; : &quot;fijo &quot; + fijo));
+</stringProp></JSR223PreProcessor><hashTree/></hashTree><IfController guiclass="IfControllerPanel" testclass="IfController" testname="Titular automatico" enabled="true"><stringProp name="IfController.condition">${__jexl3(&quot;${__P(G3_TITULAR,)}&quot; == &quot;&quot;)}</stringProp><boolProp name="IfController.evaluateAll">false</boolProp><boolProp name="IfController.useExpression">true</boolProp></IfController><hashTree><HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="00 - Preparacion - POST /api/v1/sql/select (elegir titular)" enabled="true"><boolProp name="HTTPSampler.postBodyRaw">true</boolProp><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"><elementProp name="" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">{&quot;sql&quot;: &quot;SELECT u.id, COUNT(f.id) AS pendientes FROM usuarios u LEFT JOIN facturas f ON f.usuario_id = u.id AND f.activo = true AND f.estado = 'pendiente' WHERE u.activo = true GROUP BY u.id ORDER BY COUNT(f.id) ASC, u.id ASC LIMIT 1&quot;, &quot;params&quot;: []}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp><stringProp name="HTTPSampler.path">/api/v1/sql/select</stringProp><stringProp name="HTTPSampler.method">POST</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp></HTTPSamplerProxy><hashTree><JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer id del titular" enabled="true"><stringProp name="JSONPostProcessor.referenceNames">G3_titularSel</stringProp><stringProp name="JSONPostProcessor.jsonPathExprs">$.data[0].id</stringProp><stringProp name="JSONPostProcessor.match_numbers">1</stringProp><stringProp name="JSONPostProcessor.defaultValues"></stringProp></JSONPostProcessor><hashTree/><JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer pendientes del titular" enabled="true"><stringProp name="JSONPostProcessor.referenceNames">G3_titularPend</stringProp><stringProp name="JSONPostProcessor.jsonPathExprs">$.data[0].pendientes</stringProp><stringProp name="JSONPostProcessor.match_numbers">1</stringProp><stringProp name="JSONPostProcessor.defaultValues">?</stringProp></JSONPostProcessor><hashTree/><JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Fijar titular de la corrida" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">String id = vars.get(&quot;G3_titularSel&quot;);
+if (&quot;200&quot;.equals(prev.getResponseCode()) &amp;&amp; id != null &amp;&amp; !id.isEmpty()) {
+    props.put(&quot;G3_TITULAR&quot;, id);
+    prev.setSampleLabel(&quot;00 - Preparacion - titular usuario &quot; + id + &quot; (&quot; + vars.get(&quot;G3_titularPend&quot;) + &quot; pendientes)&quot;);
+    log.info(&quot;[G3] titular de la corrida: usuario &quot; + id + &quot; (&quot; + vars.get(&quot;G3_titularPend&quot;) + &quot; facturas pendientes)&quot;);
+} else {
+    prev.setSuccessful(false);
+    prev.setResponseMessage(&quot;No se pudo elegir el titular: sin titular no hay facturas que medir&quot;);
+    log.error(&quot;[G3] no se pudo elegir el titular (&quot; + prev.getResponseCode() + &quot;): se detiene la prueba&quot;);
+    ctx.getEngine().stopTest(false);
+}
+</stringProp></JSR223PostProcessor><hashTree/></hashTree></hashTree><HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="00 - Preparacion - GET /api/v1/facturas?estado=pagada (factura para lecturas)" enabled="true"><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"/></elementProp><stringProp name="HTTPSampler.path">/api/v1/facturas?estado=pagada</stringProp><stringProp name="HTTPSampler.method">GET</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp></HTTPSamplerProxy><hashTree><JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer id de una factura pagada" enabled="true"><stringProp name="JSONPostProcessor.referenceNames">G3_lectura</stringProp><stringProp name="JSONPostProcessor.jsonPathExprs">$.data[0].id</stringProp><stringProp name="JSONPostProcessor.match_numbers">1</stringProp><stringProp name="JSONPostProcessor.defaultValues">1</stringProp></JSONPostProcessor><hashTree/><JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Guardar factura de lectura" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">String id = vars.get(&quot;G3_lectura&quot;);
+if (id != null &amp;&amp; !id.isEmpty()) {
+    props.put(&quot;G3_ID_LECTURA&quot;, id);
+}
+</stringProp></JSR223PostProcessor><hashTree/></hashTree></hashTree><ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="F1 - Crear (POST /facturas)" enabled="true"><stringProp name="TestPlan.comments">Crea el lote de facturas que usan F2..F6. Proveedor, medio de pago y monto salen del CSV.</stringProp><stringProp name="ThreadGroup.on_sample_error">continue</stringProp><elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">${__P(muestras,5)}</stringProp></elementProp><stringProp name="ThreadGroup.num_threads">1</stringProp><stringProp name="ThreadGroup.ramp_time">0</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp><stringProp name="ThreadGroup.duration"></stringProp><stringProp name="ThreadGroup.delay"></stringProp><boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp></ThreadGroup><hashTree><CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV: proveedor, medio de pago y monto" enabled="true"><stringProp name="filename">${__P(csvFile,../data/Grupo03_Plan_de_Pruebas_JMeter_CSV_Final.csv)}</stringProp><stringProp name="fileEncoding">UTF-8</stringProp><stringProp name="variableNames">proveedor,metodoPago,monto</stringProp><stringProp name="delimiter">,</stringProp><boolProp name="ignoreFirstLine">true</boolProp><boolProp name="quotedData">false</boolProp><boolProp name="recycle">true</boolProp><boolProp name="stopThread">false</boolProp><stringProp name="shareMode">shareMode.all</stringProp></CSVDataSet><hashTree/><TestAction guiclass="TestActionGui" testclass="TestAction" testname="iteracion" enabled="true"><intProp name="ActionProcessor.action">1</intProp><intProp name="ActionProcessor.target">0</intProp><stringProp name="ActionProcessor.duration">0</stringProp></TestAction><hashTree><JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Preparar iteracion" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">vars.put(&quot;G3_otra&quot;, &quot;1&quot;);
+vars.put(&quot;G3_intento&quot;, &quot;0&quot;);
+</stringProp></JSR223PreProcessor><hashTree/></hashTree><WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="Repetir solo si hubo 429" enabled="true"><stringProp name="WhileController.condition">${__jexl3(&quot;${G3_otra}&quot; == &quot;1&quot;)}</stringProp></WhileController><hashTree><HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="F1 - POST /api/v1/facturas (crear)" enabled="true"><boolProp name="HTTPSampler.postBodyRaw">true</boolProp><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"><elementProp name="" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">{&quot;usuarioId&quot;: ${__P(G3_TITULAR,)}, &quot;proveedor&quot;: &quot;${proveedor}&quot;, &quot;numeroFactura&quot;: &quot;G3-PERF-${__time(,)}-${__counter(FALSE,)}&quot;, &quot;monto&quot;: ${monto}, &quot;fechaVencimiento&quot;: &quot;${__timeShift(yyyy-MM-dd,,P30D,,)}&quot;}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp><stringProp name="HTTPSampler.path">/api/v1/facturas</stringProp><stringProp name="HTTPSampler.method">POST</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp></HTTPSamplerProxy><hashTree><ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Ritmo: rpm requests por minuto (propiedad rpm)" enabled="true"><intProp name="calcMode">0</intProp><stringProp name="throughput">${__P(rpm,10)}</stringProp></ConstantThroughputTimer><hashTree/><JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer id" enabled="true"><stringProp name="JSONPostProcessor.referenceNames">G3_nuevoId</stringProp><stringProp name="JSONPostProcessor.jsonPathExprs">$.data.id</stringProp><stringProp name="JSONPostProcessor.match_numbers">1</stringProp><stringProp name="JSONPostProcessor.defaultValues"></stringProp></JSONPostProcessor><hashTree/><JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extraer numero_factura" enabled="true"><stringProp name="JSONPostProcessor.referenceNames">G3_nuevoNumero</stringProp><stringProp name="JSONPostProcessor.jsonPathExprs">$.data.numero_factura</stringProp><stringProp name="JSONPostProcessor.match_numbers">1</stringProp><stringProp name="JSONPostProcessor.defaultValues"></stringProp></JSONPostProcessor><hashTree/><JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Reintento 429 y registro en el lote" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">// Reintento ante 429 (otros grupos comparten la API key). La muestra con 429 se
+// renombra &quot;429 - ...&quot; para contarla aparte: no ensucia las métricas del endpoint.
+// Si se agotan los reintentos, el último 429 conserva el nombre del endpoint y
+// cuenta como error suyo (no se esconde).
+String codigo = prev.getResponseCode();
+int intento = Integer.parseInt(vars.get(&quot;G3_intento&quot;) == null ? &quot;0&quot; : vars.get(&quot;G3_intento&quot;));
+int maximo = Integer.parseInt(props.getProperty(&quot;maxReintentos429&quot;, &quot;3&quot;));
+String endpoint = prev.getSampleLabel();
+if (&quot;429&quot;.equals(codigo)) {
+    if (intento &lt; maximo) {
+        prev.setSampleLabel(&quot;429 - &quot; + endpoint);
+        long espera = 10L;
+        String cabeceras = prev.getResponseHeaders();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(&quot;(?im)^Retry-After:\\s*(\\d+)&quot;).matcher(cabeceras == null ? &quot;&quot; : cabeceras);
+        if (m.find()) {
+            espera = Long.parseLong(m.group(1));
+        }
+        long tope = Long.parseLong(props.getProperty(&quot;esperaMax429&quot;, &quot;60&quot;));
+        if (espera &gt; tope) {
+            espera = tope;
+        }
+        if (espera &lt; 1L) {
+            espera = 1L;
+        }
+        vars.put(&quot;G3_intento&quot;, String.valueOf(intento + 1));
+        vars.put(&quot;G3_otra&quot;, &quot;1&quot;);
+        log.warn(&quot;[G3] 429 en &quot; + endpoint + &quot;: reintento &quot; + (intento + 1) + &quot; de &quot; + maximo + &quot; en &quot; + espera + &quot; s&quot;);
+        Thread.sleep(espera * 1000L);
+        return;
+    }
+    log.warn(&quot;[G3] 429 sin reintentos disponibles: cuenta como error de &quot; + endpoint);
+}
+vars.put(&quot;G3_otra&quot;, &quot;0&quot;);
+
+// F1: la factura creada entra al lote que usan F2..F6.
+if (&quot;201&quot;.equals(prev.getResponseCode())) {
+    String id = vars.get(&quot;G3_nuevoId&quot;);
+    if (id != null &amp;&amp; !id.isEmpty()) {
+        java.util.Map f = new java.util.HashMap();
+        f.put(&quot;id&quot;, id);
+        f.put(&quot;numero&quot;, vars.get(&quot;G3_nuevoNumero&quot;));
+        f.put(&quot;proveedor&quot;, vars.get(&quot;proveedor&quot;));
+        f.put(&quot;metodoPago&quot;, vars.get(&quot;metodoPago&quot;));
+        f.put(&quot;monto&quot;, vars.get(&quot;monto&quot;));
+        f.put(&quot;baja&quot;, &quot;no&quot;);
+        ((java.util.List) props.get(&quot;G3_FACTURAS&quot;)).add(f);
+    }
+}
+</stringProp></JSR223PostProcessor><hashTree/><ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Status 201" enabled="true"><collectionProp name="Asserion.test_strings"><stringProp name="201">201</stringProp></collectionProp><stringProp name="Assertion.custom_message"></stringProp><stringProp name="Assertion.test_field">Assertion.response_code</stringProp><boolProp name="Assertion.assume_success">false</boolProp><intProp name="Assertion.test_type">8</intProp></ResponseAssertion><hashTree/></hashTree></hashTree></hashTree><ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="F2 - Consultar (GET /facturas/{id})" enabled="true"><stringProp name="TestPlan.comments"></stringProp><stringProp name="ThreadGroup.on_sample_error">continue</stringProp><elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">${__P(muestras,5)}</stringProp></elementProp><stringProp name="ThreadGroup.num_threads">1</stringProp><stringProp name="ThreadGroup.ramp_time">0</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp><stringProp name="ThreadGroup.duration"></stringProp><stringProp name="ThreadGroup.delay"></stringProp><boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp></ThreadGroup><hashTree><TestAction guiclass="TestActionGui" testclass="TestAction" testname="iteracion" enabled="true"><intProp name="ActionProcessor.action">1</intProp><intProp name="ActionProcessor.target">0</intProp><stringProp name="ActionProcessor.duration">0</stringProp></TestAction><hashTree><JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Preparar iteracion" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">vars.put(&quot;G3_otra&quot;, &quot;1&quot;);
+vars.put(&quot;G3_intento&quot;, &quot;0&quot;);
+
+// Cada fase trabaja sobre la factura i del lote que creó F1.
+java.util.List lote = (java.util.List) props.get(&quot;G3_FACTURAS&quot;);
+int i = vars.getIteration() - 1;
+if (lote != null &amp;&amp; i &gt;= 0 &amp;&amp; i &lt; lote.size()) {
+    java.util.Map f = (java.util.Map) lote.get(i);
+    vars.put(&quot;G3_idx&quot;, String.valueOf(i));
+    vars.put(&quot;G3_id&quot;, (String) f.get(&quot;id&quot;));
+    vars.put(&quot;G3_numero&quot;, (String) f.get(&quot;numero&quot;));
+    vars.put(&quot;G3_proveedor&quot;, (String) f.get(&quot;proveedor&quot;));
+    vars.put(&quot;G3_metodoPago&quot;, (String) f.get(&quot;metodoPago&quot;));
+    vars.put(&quot;G3_montoNuevo&quot;, String.valueOf(Long.parseLong((String) f.get(&quot;monto&quot;)) + 5000L));
+    vars.put(&quot;G3_hay&quot;, &quot;1&quot;);
+} else {
+    vars.put(&quot;G3_hay&quot;, &quot;0&quot;);
+    log.warn(&quot;[G3] no hay factura &quot; + (i + 1) + &quot; en el lote (F1 creó &quot; + (lote == null ? 0 : lote.size()) + &quot;)&quot;);
+}
+</stringProp></JSR223PreProcessor><hashTree/></hashTree><IfController guiclass="IfControllerPanel" testclass="IfController" testname="Hay factura en el lote" enabled="true"><stringProp name="IfController.condition">${__jexl3(&quot;${G3_hay}&quot; == &quot;1&quot;)}</stringProp><boolProp name="IfController.evaluateAll">false</boolProp><boolProp name="IfController.useExpression">true</boolProp></IfController><hashTree><WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="Repetir solo si hubo 429" enabled="true"><stringProp name="WhileController.condition">${__jexl3(&quot;${G3_otra}&quot; == &quot;1&quot;)}</stringProp></WhileController><hashTree><HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="F2 - GET /api/v1/facturas/{id} (consultar)" enabled="true"><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"/></elementProp><stringProp name="HTTPSampler.path">/api/v1/facturas/${G3_id}</stringProp><stringProp name="HTTPSampler.method">GET</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp></HTTPSamplerProxy><hashTree><ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Ritmo: rpm requests por minuto (propiedad rpm)" enabled="true"><intProp name="calcMode">0</intProp><stringProp name="throughput">${__P(rpm,10)}</stringProp></ConstantThroughputTimer><hashTree/><JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Reintento 429" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">// Reintento ante 429 (otros grupos comparten la API key). La muestra con 429 se
+// renombra &quot;429 - ...&quot; para contarla aparte: no ensucia las métricas del endpoint.
+// Si se agotan los reintentos, el último 429 conserva el nombre del endpoint y
+// cuenta como error suyo (no se esconde).
+String codigo = prev.getResponseCode();
+int intento = Integer.parseInt(vars.get(&quot;G3_intento&quot;) == null ? &quot;0&quot; : vars.get(&quot;G3_intento&quot;));
+int maximo = Integer.parseInt(props.getProperty(&quot;maxReintentos429&quot;, &quot;3&quot;));
+String endpoint = prev.getSampleLabel();
+if (&quot;429&quot;.equals(codigo)) {
+    if (intento &lt; maximo) {
+        prev.setSampleLabel(&quot;429 - &quot; + endpoint);
+        long espera = 10L;
+        String cabeceras = prev.getResponseHeaders();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(&quot;(?im)^Retry-After:\\s*(\\d+)&quot;).matcher(cabeceras == null ? &quot;&quot; : cabeceras);
+        if (m.find()) {
+            espera = Long.parseLong(m.group(1));
+        }
+        long tope = Long.parseLong(props.getProperty(&quot;esperaMax429&quot;, &quot;60&quot;));
+        if (espera &gt; tope) {
+            espera = tope;
+        }
+        if (espera &lt; 1L) {
+            espera = 1L;
+        }
+        vars.put(&quot;G3_intento&quot;, String.valueOf(intento + 1));
+        vars.put(&quot;G3_otra&quot;, &quot;1&quot;);
+        log.warn(&quot;[G3] 429 en &quot; + endpoint + &quot;: reintento &quot; + (intento + 1) + &quot; de &quot; + maximo + &quot; en &quot; + espera + &quot; s&quot;);
+        Thread.sleep(espera * 1000L);
+        return;
+    }
+    log.warn(&quot;[G3] 429 sin reintentos disponibles: cuenta como error de &quot; + endpoint);
+}
+vars.put(&quot;G3_otra&quot;, &quot;0&quot;);
+</stringProp></JSR223PostProcessor><hashTree/><ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Status 200" enabled="true"><collectionProp name="Asserion.test_strings"><stringProp name="200">200</stringProp></collectionProp><stringProp name="Assertion.custom_message"></stringProp><stringProp name="Assertion.test_field">Assertion.response_code</stringProp><boolProp name="Assertion.assume_success">false</boolProp><intProp name="Assertion.test_type">8</intProp></ResponseAssertion><hashTree/></hashTree></hashTree></hashTree></hashTree><ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="F3 - Listar (GET /facturas)" enabled="true"><stringProp name="TestPlan.comments">Listado del titular de la corrida (mismo filtro que usa la colección Final).</stringProp><stringProp name="ThreadGroup.on_sample_error">continue</stringProp><elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">${__P(muestras,5)}</stringProp></elementProp><stringProp name="ThreadGroup.num_threads">1</stringProp><stringProp name="ThreadGroup.ramp_time">0</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp><stringProp name="ThreadGroup.duration"></stringProp><stringProp name="ThreadGroup.delay"></stringProp><boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp></ThreadGroup><hashTree><TestAction guiclass="TestActionGui" testclass="TestAction" testname="iteracion" enabled="true"><intProp name="ActionProcessor.action">1</intProp><intProp name="ActionProcessor.target">0</intProp><stringProp name="ActionProcessor.duration">0</stringProp></TestAction><hashTree><JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Preparar iteracion" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">vars.put(&quot;G3_otra&quot;, &quot;1&quot;);
+vars.put(&quot;G3_intento&quot;, &quot;0&quot;);
+</stringProp></JSR223PreProcessor><hashTree/></hashTree><WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="Repetir solo si hubo 429" enabled="true"><stringProp name="WhileController.condition">${__jexl3(&quot;${G3_otra}&quot; == &quot;1&quot;)}</stringProp></WhileController><hashTree><HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="F3 - GET /api/v1/facturas?usuarioId&amp;estado (listar)" enabled="true"><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"/></elementProp><stringProp name="HTTPSampler.path">/api/v1/facturas?usuarioId=${__P(G3_TITULAR,)}&amp;estado=pendiente</stringProp><stringProp name="HTTPSampler.method">GET</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp></HTTPSamplerProxy><hashTree><ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Ritmo: rpm requests por minuto (propiedad rpm)" enabled="true"><intProp name="calcMode">0</intProp><stringProp name="throughput">${__P(rpm,10)}</stringProp></ConstantThroughputTimer><hashTree/><JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Reintento 429" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">// Reintento ante 429 (otros grupos comparten la API key). La muestra con 429 se
+// renombra &quot;429 - ...&quot; para contarla aparte: no ensucia las métricas del endpoint.
+// Si se agotan los reintentos, el último 429 conserva el nombre del endpoint y
+// cuenta como error suyo (no se esconde).
+String codigo = prev.getResponseCode();
+int intento = Integer.parseInt(vars.get(&quot;G3_intento&quot;) == null ? &quot;0&quot; : vars.get(&quot;G3_intento&quot;));
+int maximo = Integer.parseInt(props.getProperty(&quot;maxReintentos429&quot;, &quot;3&quot;));
+String endpoint = prev.getSampleLabel();
+if (&quot;429&quot;.equals(codigo)) {
+    if (intento &lt; maximo) {
+        prev.setSampleLabel(&quot;429 - &quot; + endpoint);
+        long espera = 10L;
+        String cabeceras = prev.getResponseHeaders();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(&quot;(?im)^Retry-After:\\s*(\\d+)&quot;).matcher(cabeceras == null ? &quot;&quot; : cabeceras);
+        if (m.find()) {
+            espera = Long.parseLong(m.group(1));
+        }
+        long tope = Long.parseLong(props.getProperty(&quot;esperaMax429&quot;, &quot;60&quot;));
+        if (espera &gt; tope) {
+            espera = tope;
+        }
+        if (espera &lt; 1L) {
+            espera = 1L;
+        }
+        vars.put(&quot;G3_intento&quot;, String.valueOf(intento + 1));
+        vars.put(&quot;G3_otra&quot;, &quot;1&quot;);
+        log.warn(&quot;[G3] 429 en &quot; + endpoint + &quot;: reintento &quot; + (intento + 1) + &quot; de &quot; + maximo + &quot; en &quot; + espera + &quot; s&quot;);
+        Thread.sleep(espera * 1000L);
+        return;
+    }
+    log.warn(&quot;[G3] 429 sin reintentos disponibles: cuenta como error de &quot; + endpoint);
+}
+vars.put(&quot;G3_otra&quot;, &quot;0&quot;);
+</stringProp></JSR223PostProcessor><hashTree/><ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Status 200" enabled="true"><collectionProp name="Asserion.test_strings"><stringProp name="200">200</stringProp></collectionProp><stringProp name="Assertion.custom_message"></stringProp><stringProp name="Assertion.test_field">Assertion.response_code</stringProp><boolProp name="Assertion.assume_success">false</boolProp><intProp name="Assertion.test_type">8</intProp></ResponseAssertion><hashTree/></hashTree></hashTree></hashTree><ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="F4 - Modificar (PUT /facturas/{id})" enabled="true"><stringProp name="TestPlan.comments"></stringProp><stringProp name="ThreadGroup.on_sample_error">continue</stringProp><elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">${__P(muestras,5)}</stringProp></elementProp><stringProp name="ThreadGroup.num_threads">1</stringProp><stringProp name="ThreadGroup.ramp_time">0</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp><stringProp name="ThreadGroup.duration"></stringProp><stringProp name="ThreadGroup.delay"></stringProp><boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp></ThreadGroup><hashTree><TestAction guiclass="TestActionGui" testclass="TestAction" testname="iteracion" enabled="true"><intProp name="ActionProcessor.action">1</intProp><intProp name="ActionProcessor.target">0</intProp><stringProp name="ActionProcessor.duration">0</stringProp></TestAction><hashTree><JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Preparar iteracion" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">vars.put(&quot;G3_otra&quot;, &quot;1&quot;);
+vars.put(&quot;G3_intento&quot;, &quot;0&quot;);
+
+// Cada fase trabaja sobre la factura i del lote que creó F1.
+java.util.List lote = (java.util.List) props.get(&quot;G3_FACTURAS&quot;);
+int i = vars.getIteration() - 1;
+if (lote != null &amp;&amp; i &gt;= 0 &amp;&amp; i &lt; lote.size()) {
+    java.util.Map f = (java.util.Map) lote.get(i);
+    vars.put(&quot;G3_idx&quot;, String.valueOf(i));
+    vars.put(&quot;G3_id&quot;, (String) f.get(&quot;id&quot;));
+    vars.put(&quot;G3_numero&quot;, (String) f.get(&quot;numero&quot;));
+    vars.put(&quot;G3_proveedor&quot;, (String) f.get(&quot;proveedor&quot;));
+    vars.put(&quot;G3_metodoPago&quot;, (String) f.get(&quot;metodoPago&quot;));
+    vars.put(&quot;G3_montoNuevo&quot;, String.valueOf(Long.parseLong((String) f.get(&quot;monto&quot;)) + 5000L));
+    vars.put(&quot;G3_hay&quot;, &quot;1&quot;);
+} else {
+    vars.put(&quot;G3_hay&quot;, &quot;0&quot;);
+    log.warn(&quot;[G3] no hay factura &quot; + (i + 1) + &quot; en el lote (F1 creó &quot; + (lote == null ? 0 : lote.size()) + &quot;)&quot;);
+}
+</stringProp></JSR223PreProcessor><hashTree/></hashTree><IfController guiclass="IfControllerPanel" testclass="IfController" testname="Hay factura en el lote" enabled="true"><stringProp name="IfController.condition">${__jexl3(&quot;${G3_hay}&quot; == &quot;1&quot;)}</stringProp><boolProp name="IfController.evaluateAll">false</boolProp><boolProp name="IfController.useExpression">true</boolProp></IfController><hashTree><WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="Repetir solo si hubo 429" enabled="true"><stringProp name="WhileController.condition">${__jexl3(&quot;${G3_otra}&quot; == &quot;1&quot;)}</stringProp></WhileController><hashTree><HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="F4 - PUT /api/v1/facturas/{id} (modificar)" enabled="true"><boolProp name="HTTPSampler.postBodyRaw">true</boolProp><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"><elementProp name="" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">{&quot;proveedor&quot;: &quot;${G3_proveedor}&quot;, &quot;numeroFactura&quot;: &quot;${G3_numero}&quot;, &quot;monto&quot;: ${G3_montoNuevo}, &quot;fechaVencimiento&quot;: &quot;${__timeShift(yyyy-MM-dd,,P60D,,)}&quot;}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp><stringProp name="HTTPSampler.path">/api/v1/facturas/${G3_id}</stringProp><stringProp name="HTTPSampler.method">PUT</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp></HTTPSamplerProxy><hashTree><ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Ritmo: rpm requests por minuto (propiedad rpm)" enabled="true"><intProp name="calcMode">0</intProp><stringProp name="throughput">${__P(rpm,10)}</stringProp></ConstantThroughputTimer><hashTree/><JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Reintento 429" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">// Reintento ante 429 (otros grupos comparten la API key). La muestra con 429 se
+// renombra &quot;429 - ...&quot; para contarla aparte: no ensucia las métricas del endpoint.
+// Si se agotan los reintentos, el último 429 conserva el nombre del endpoint y
+// cuenta como error suyo (no se esconde).
+String codigo = prev.getResponseCode();
+int intento = Integer.parseInt(vars.get(&quot;G3_intento&quot;) == null ? &quot;0&quot; : vars.get(&quot;G3_intento&quot;));
+int maximo = Integer.parseInt(props.getProperty(&quot;maxReintentos429&quot;, &quot;3&quot;));
+String endpoint = prev.getSampleLabel();
+if (&quot;429&quot;.equals(codigo)) {
+    if (intento &lt; maximo) {
+        prev.setSampleLabel(&quot;429 - &quot; + endpoint);
+        long espera = 10L;
+        String cabeceras = prev.getResponseHeaders();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(&quot;(?im)^Retry-After:\\s*(\\d+)&quot;).matcher(cabeceras == null ? &quot;&quot; : cabeceras);
+        if (m.find()) {
+            espera = Long.parseLong(m.group(1));
+        }
+        long tope = Long.parseLong(props.getProperty(&quot;esperaMax429&quot;, &quot;60&quot;));
+        if (espera &gt; tope) {
+            espera = tope;
+        }
+        if (espera &lt; 1L) {
+            espera = 1L;
+        }
+        vars.put(&quot;G3_intento&quot;, String.valueOf(intento + 1));
+        vars.put(&quot;G3_otra&quot;, &quot;1&quot;);
+        log.warn(&quot;[G3] 429 en &quot; + endpoint + &quot;: reintento &quot; + (intento + 1) + &quot; de &quot; + maximo + &quot; en &quot; + espera + &quot; s&quot;);
+        Thread.sleep(espera * 1000L);
+        return;
+    }
+    log.warn(&quot;[G3] 429 sin reintentos disponibles: cuenta como error de &quot; + endpoint);
+}
+vars.put(&quot;G3_otra&quot;, &quot;0&quot;);
+</stringProp></JSR223PostProcessor><hashTree/><ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Status 200" enabled="true"><collectionProp name="Asserion.test_strings"><stringProp name="200">200</stringProp></collectionProp><stringProp name="Assertion.custom_message"></stringProp><stringProp name="Assertion.test_field">Assertion.response_code</stringProp><boolProp name="Assertion.assume_success">false</boolProp><intProp name="Assertion.test_type">8</intProp></ResponseAssertion><hashTree/></hashTree></hashTree></hashTree></hashTree><ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="F5 - Pagar (POST /facturas/{id}/pagar)" enabled="true"><stringProp name="TestPlan.comments"></stringProp><stringProp name="ThreadGroup.on_sample_error">continue</stringProp><elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">${__P(muestras,5)}</stringProp></elementProp><stringProp name="ThreadGroup.num_threads">1</stringProp><stringProp name="ThreadGroup.ramp_time">0</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp><stringProp name="ThreadGroup.duration"></stringProp><stringProp name="ThreadGroup.delay"></stringProp><boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp></ThreadGroup><hashTree><TestAction guiclass="TestActionGui" testclass="TestAction" testname="iteracion" enabled="true"><intProp name="ActionProcessor.action">1</intProp><intProp name="ActionProcessor.target">0</intProp><stringProp name="ActionProcessor.duration">0</stringProp></TestAction><hashTree><JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Preparar iteracion" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">vars.put(&quot;G3_otra&quot;, &quot;1&quot;);
+vars.put(&quot;G3_intento&quot;, &quot;0&quot;);
+
+// Cada fase trabaja sobre la factura i del lote que creó F1.
+java.util.List lote = (java.util.List) props.get(&quot;G3_FACTURAS&quot;);
+int i = vars.getIteration() - 1;
+if (lote != null &amp;&amp; i &gt;= 0 &amp;&amp; i &lt; lote.size()) {
+    java.util.Map f = (java.util.Map) lote.get(i);
+    vars.put(&quot;G3_idx&quot;, String.valueOf(i));
+    vars.put(&quot;G3_id&quot;, (String) f.get(&quot;id&quot;));
+    vars.put(&quot;G3_numero&quot;, (String) f.get(&quot;numero&quot;));
+    vars.put(&quot;G3_proveedor&quot;, (String) f.get(&quot;proveedor&quot;));
+    vars.put(&quot;G3_metodoPago&quot;, (String) f.get(&quot;metodoPago&quot;));
+    vars.put(&quot;G3_montoNuevo&quot;, String.valueOf(Long.parseLong((String) f.get(&quot;monto&quot;)) + 5000L));
+    vars.put(&quot;G3_hay&quot;, &quot;1&quot;);
+} else {
+    vars.put(&quot;G3_hay&quot;, &quot;0&quot;);
+    log.warn(&quot;[G3] no hay factura &quot; + (i + 1) + &quot; en el lote (F1 creó &quot; + (lote == null ? 0 : lote.size()) + &quot;)&quot;);
+}
+</stringProp></JSR223PreProcessor><hashTree/></hashTree><IfController guiclass="IfControllerPanel" testclass="IfController" testname="Hay factura en el lote" enabled="true"><stringProp name="IfController.condition">${__jexl3(&quot;${G3_hay}&quot; == &quot;1&quot;)}</stringProp><boolProp name="IfController.evaluateAll">false</boolProp><boolProp name="IfController.useExpression">true</boolProp></IfController><hashTree><WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="Repetir solo si hubo 429" enabled="true"><stringProp name="WhileController.condition">${__jexl3(&quot;${G3_otra}&quot; == &quot;1&quot;)}</stringProp></WhileController><hashTree><HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="F5 - POST /api/v1/facturas/{id}/pagar (pagar)" enabled="true"><boolProp name="HTTPSampler.postBodyRaw">true</boolProp><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"><elementProp name="" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">{&quot;metodoPago&quot;: &quot;${G3_metodoPago}&quot;}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp><stringProp name="HTTPSampler.path">/api/v1/facturas/${G3_id}/pagar</stringProp><stringProp name="HTTPSampler.method">POST</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp></HTTPSamplerProxy><hashTree><ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Ritmo: rpm requests por minuto (propiedad rpm)" enabled="true"><intProp name="calcMode">0</intProp><stringProp name="throughput">${__P(rpm,10)}</stringProp></ConstantThroughputTimer><hashTree/><JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Reintento 429" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">// Reintento ante 429 (otros grupos comparten la API key). La muestra con 429 se
+// renombra &quot;429 - ...&quot; para contarla aparte: no ensucia las métricas del endpoint.
+// Si se agotan los reintentos, el último 429 conserva el nombre del endpoint y
+// cuenta como error suyo (no se esconde).
+String codigo = prev.getResponseCode();
+int intento = Integer.parseInt(vars.get(&quot;G3_intento&quot;) == null ? &quot;0&quot; : vars.get(&quot;G3_intento&quot;));
+int maximo = Integer.parseInt(props.getProperty(&quot;maxReintentos429&quot;, &quot;3&quot;));
+String endpoint = prev.getSampleLabel();
+if (&quot;429&quot;.equals(codigo)) {
+    if (intento &lt; maximo) {
+        prev.setSampleLabel(&quot;429 - &quot; + endpoint);
+        long espera = 10L;
+        String cabeceras = prev.getResponseHeaders();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(&quot;(?im)^Retry-After:\\s*(\\d+)&quot;).matcher(cabeceras == null ? &quot;&quot; : cabeceras);
+        if (m.find()) {
+            espera = Long.parseLong(m.group(1));
+        }
+        long tope = Long.parseLong(props.getProperty(&quot;esperaMax429&quot;, &quot;60&quot;));
+        if (espera &gt; tope) {
+            espera = tope;
+        }
+        if (espera &lt; 1L) {
+            espera = 1L;
+        }
+        vars.put(&quot;G3_intento&quot;, String.valueOf(intento + 1));
+        vars.put(&quot;G3_otra&quot;, &quot;1&quot;);
+        log.warn(&quot;[G3] 429 en &quot; + endpoint + &quot;: reintento &quot; + (intento + 1) + &quot; de &quot; + maximo + &quot; en &quot; + espera + &quot; s&quot;);
+        Thread.sleep(espera * 1000L);
+        return;
+    }
+    log.warn(&quot;[G3] 429 sin reintentos disponibles: cuenta como error de &quot; + endpoint);
+}
+vars.put(&quot;G3_otra&quot;, &quot;0&quot;);
+</stringProp></JSR223PostProcessor><hashTree/><ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Status 200" enabled="true"><collectionProp name="Asserion.test_strings"><stringProp name="200">200</stringProp></collectionProp><stringProp name="Assertion.custom_message"></stringProp><stringProp name="Assertion.test_field">Assertion.response_code</stringProp><boolProp name="Assertion.assume_success">false</boolProp><intProp name="Assertion.test_type">8</intProp></ResponseAssertion><hashTree/></hashTree></hashTree></hashTree></hashTree><ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="F6 - Dar de baja (DELETE /facturas/{id})" enabled="true"><stringProp name="TestPlan.comments">Mide el endpoint y a la vez limpia el lote.</stringProp><stringProp name="ThreadGroup.on_sample_error">continue</stringProp><elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">${__P(muestras,5)}</stringProp></elementProp><stringProp name="ThreadGroup.num_threads">1</stringProp><stringProp name="ThreadGroup.ramp_time">0</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp><stringProp name="ThreadGroup.duration"></stringProp><stringProp name="ThreadGroup.delay"></stringProp><boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp></ThreadGroup><hashTree><TestAction guiclass="TestActionGui" testclass="TestAction" testname="iteracion" enabled="true"><intProp name="ActionProcessor.action">1</intProp><intProp name="ActionProcessor.target">0</intProp><stringProp name="ActionProcessor.duration">0</stringProp></TestAction><hashTree><JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Preparar iteracion" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">vars.put(&quot;G3_otra&quot;, &quot;1&quot;);
+vars.put(&quot;G3_intento&quot;, &quot;0&quot;);
+
+// Cada fase trabaja sobre la factura i del lote que creó F1.
+java.util.List lote = (java.util.List) props.get(&quot;G3_FACTURAS&quot;);
+int i = vars.getIteration() - 1;
+if (lote != null &amp;&amp; i &gt;= 0 &amp;&amp; i &lt; lote.size()) {
+    java.util.Map f = (java.util.Map) lote.get(i);
+    vars.put(&quot;G3_idx&quot;, String.valueOf(i));
+    vars.put(&quot;G3_id&quot;, (String) f.get(&quot;id&quot;));
+    vars.put(&quot;G3_numero&quot;, (String) f.get(&quot;numero&quot;));
+    vars.put(&quot;G3_proveedor&quot;, (String) f.get(&quot;proveedor&quot;));
+    vars.put(&quot;G3_metodoPago&quot;, (String) f.get(&quot;metodoPago&quot;));
+    vars.put(&quot;G3_montoNuevo&quot;, String.valueOf(Long.parseLong((String) f.get(&quot;monto&quot;)) + 5000L));
+    vars.put(&quot;G3_hay&quot;, &quot;1&quot;);
+} else {
+    vars.put(&quot;G3_hay&quot;, &quot;0&quot;);
+    log.warn(&quot;[G3] no hay factura &quot; + (i + 1) + &quot; en el lote (F1 creó &quot; + (lote == null ? 0 : lote.size()) + &quot;)&quot;);
+}
+</stringProp></JSR223PreProcessor><hashTree/></hashTree><IfController guiclass="IfControllerPanel" testclass="IfController" testname="Hay factura en el lote" enabled="true"><stringProp name="IfController.condition">${__jexl3(&quot;${G3_hay}&quot; == &quot;1&quot;)}</stringProp><boolProp name="IfController.evaluateAll">false</boolProp><boolProp name="IfController.useExpression">true</boolProp></IfController><hashTree><WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="Repetir solo si hubo 429" enabled="true"><stringProp name="WhileController.condition">${__jexl3(&quot;${G3_otra}&quot; == &quot;1&quot;)}</stringProp></WhileController><hashTree><HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="F6 - DELETE /api/v1/facturas/{id} (dar de baja)" enabled="true"><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"/></elementProp><stringProp name="HTTPSampler.path">/api/v1/facturas/${G3_id}</stringProp><stringProp name="HTTPSampler.method">DELETE</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp></HTTPSamplerProxy><hashTree><ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Ritmo: rpm requests por minuto (propiedad rpm)" enabled="true"><intProp name="calcMode">0</intProp><stringProp name="throughput">${__P(rpm,10)}</stringProp></ConstantThroughputTimer><hashTree/><JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Reintento 429 y registro" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">// Reintento ante 429 (otros grupos comparten la API key). La muestra con 429 se
+// renombra &quot;429 - ...&quot; para contarla aparte: no ensucia las métricas del endpoint.
+// Si se agotan los reintentos, el último 429 conserva el nombre del endpoint y
+// cuenta como error suyo (no se esconde).
+String codigo = prev.getResponseCode();
+int intento = Integer.parseInt(vars.get(&quot;G3_intento&quot;) == null ? &quot;0&quot; : vars.get(&quot;G3_intento&quot;));
+int maximo = Integer.parseInt(props.getProperty(&quot;maxReintentos429&quot;, &quot;3&quot;));
+String endpoint = prev.getSampleLabel();
+if (&quot;429&quot;.equals(codigo)) {
+    if (intento &lt; maximo) {
+        prev.setSampleLabel(&quot;429 - &quot; + endpoint);
+        long espera = 10L;
+        String cabeceras = prev.getResponseHeaders();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(&quot;(?im)^Retry-After:\\s*(\\d+)&quot;).matcher(cabeceras == null ? &quot;&quot; : cabeceras);
+        if (m.find()) {
+            espera = Long.parseLong(m.group(1));
+        }
+        long tope = Long.parseLong(props.getProperty(&quot;esperaMax429&quot;, &quot;60&quot;));
+        if (espera &gt; tope) {
+            espera = tope;
+        }
+        if (espera &lt; 1L) {
+            espera = 1L;
+        }
+        vars.put(&quot;G3_intento&quot;, String.valueOf(intento + 1));
+        vars.put(&quot;G3_otra&quot;, &quot;1&quot;);
+        log.warn(&quot;[G3] 429 en &quot; + endpoint + &quot;: reintento &quot; + (intento + 1) + &quot; de &quot; + maximo + &quot; en &quot; + espera + &quot; s&quot;);
+        Thread.sleep(espera * 1000L);
+        return;
+    }
+    log.warn(&quot;[G3] 429 sin reintentos disponibles: cuenta como error de &quot; + endpoint);
+}
+vars.put(&quot;G3_otra&quot;, &quot;0&quot;);
+
+// F6 y limpieza: 204 (baja) o 404 (ya no existe) sacan la factura de pendientes.
+String cod = prev.getResponseCode();
+if (&quot;204&quot;.equals(cod) || &quot;404&quot;.equals(cod)) {
+    java.util.List lote = (java.util.List) props.get(&quot;G3_FACTURAS&quot;);
+    int idx = Integer.parseInt(vars.get(&quot;G3_idx&quot;));
+    ((java.util.Map) lote.get(idx)).put(&quot;baja&quot;, &quot;si&quot;);
+}
+</stringProp></JSR223PostProcessor><hashTree/><ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Status 204" enabled="true"><collectionProp name="Asserion.test_strings"><stringProp name="204">204</stringProp></collectionProp><stringProp name="Assertion.custom_message"></stringProp><stringProp name="Assertion.test_field">Assertion.response_code</stringProp><boolProp name="Assertion.assume_success">false</boolProp><intProp name="Assertion.test_type">8</intProp></ResponseAssertion><hashTree/></hashTree></hashTree></hashTree></hashTree><ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="P - Pausa antes de la saturacion" enabled="true"><stringProp name="TestPlan.comments">Deja vaciar la ventana del rate limit. Con satHilos=0 no corre.</stringProp><stringProp name="ThreadGroup.on_sample_error">continue</stringProp><elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">1</stringProp></elementProp><stringProp name="ThreadGroup.num_threads">${__jexl3(${__P(satHilos,0)} &gt; 0 ? 1 : 0)}</stringProp><stringProp name="ThreadGroup.ramp_time">0</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp><stringProp name="ThreadGroup.duration"></stringProp><stringProp name="ThreadGroup.delay"></stringProp><boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp></ThreadGroup><hashTree><TestAction guiclass="TestActionGui" testclass="TestAction" testname="Esperar pausaSaturacion segundos" enabled="true"><intProp name="ActionProcessor.action">1</intProp><intProp name="ActionProcessor.target">0</intProp><stringProp name="ActionProcessor.duration">${__jexl3(${__P(pausaSaturacion,90)} * 1000)}</stringProp></TestAction><hashTree/></hashTree><ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="S - Saturacion de lecturas (informativa)" enabled="true"><stringProp name="TestPlan.comments">Solo lecturas: un 429 no deja facturas creadas. Sin reintentos: buscamos el techo.</stringProp><stringProp name="ThreadGroup.on_sample_error">continue</stringProp><elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true"><boolProp name="LoopController.continue_forever">true</boolProp><stringProp name="LoopController.loops">-1</stringProp></elementProp><stringProp name="ThreadGroup.num_threads">${__P(satHilos,0)}</stringProp><stringProp name="ThreadGroup.ramp_time">${__P(satRampa,10)}</stringProp><boolProp name="ThreadGroup.scheduler">true</boolProp><stringProp name="ThreadGroup.duration">${__P(satDuracion,90)}</stringProp><stringProp name="ThreadGroup.delay"></stringProp><boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp></ThreadGroup><hashTree><HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="S - GET /api/v1/facturas/{id} (consultar)" enabled="true"><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"/></elementProp><stringProp name="HTTPSampler.path">/api/v1/facturas/${__P(G3_ID_LECTURA,1)}</stringProp><stringProp name="HTTPSampler.method">GET</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp></HTTPSamplerProxy><hashTree><ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Status 200" enabled="true"><collectionProp name="Asserion.test_strings"><stringProp name="200">200</stringProp></collectionProp><stringProp name="Assertion.custom_message"></stringProp><stringProp name="Assertion.test_field">Assertion.response_code</stringProp><boolProp name="Assertion.assume_success">false</boolProp><intProp name="Assertion.test_type">8</intProp></ResponseAssertion><hashTree/></hashTree><HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="S - GET /api/v1/facturas?estado=pendiente (listar)" enabled="true"><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"/></elementProp><stringProp name="HTTPSampler.path">/api/v1/facturas?estado=pendiente</stringProp><stringProp name="HTTPSampler.method">GET</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp></HTTPSamplerProxy><hashTree><ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Status 200" enabled="true"><collectionProp name="Asserion.test_strings"><stringProp name="200">200</stringProp></collectionProp><stringProp name="Assertion.custom_message"></stringProp><stringProp name="Assertion.test_field">Assertion.response_code</stringProp><boolProp name="Assertion.assume_success">false</boolProp><intProp name="Assertion.test_type">8</intProp></ResponseAssertion><hashTree/></hashTree></hashTree><PostThreadGroup guiclass="PostThreadGroupGui" testclass="PostThreadGroup" testname="99 - Limpieza (facturas que quedaron activas)" enabled="true"><stringProp name="TestPlan.comments">Corre al final y también si se corta la prueba (tearDown_on_shutdown).</stringProp><stringProp name="ThreadGroup.on_sample_error">continue</stringProp><elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">1</stringProp></elementProp><stringProp name="ThreadGroup.num_threads">1</stringProp><stringProp name="ThreadGroup.ramp_time">0</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp><stringProp name="ThreadGroup.duration"></stringProp><stringProp name="ThreadGroup.delay"></stringProp><boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp></PostThreadGroup><hashTree><TestAction guiclass="TestActionGui" testclass="TestAction" testname="pendientes" enabled="true"><intProp name="ActionProcessor.action">1</intProp><intProp name="ActionProcessor.target">0</intProp><stringProp name="ActionProcessor.duration">0</stringProp></TestAction><hashTree><JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Preparar pendientes" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">// Busca la próxima factura del lote que siga activa (F6 no la dio de baja).
+vars.put(&quot;G3_otra&quot;, &quot;1&quot;);
+vars.put(&quot;G3_intento&quot;, &quot;0&quot;);
+java.util.List lote = (java.util.List) props.get(&quot;G3_FACTURAS&quot;);
+vars.put(&quot;G3_hay&quot;, &quot;0&quot;);
+if (lote != null) {
+    for (int i = 0; i &lt; lote.size(); i++) {
+        java.util.Map f = (java.util.Map) lote.get(i);
+        if (&quot;no&quot;.equals(f.get(&quot;baja&quot;))) {
+            vars.put(&quot;G3_idx&quot;, String.valueOf(i));
+            vars.put(&quot;G3_id&quot;, (String) f.get(&quot;id&quot;));
+            vars.put(&quot;G3_hay&quot;, &quot;1&quot;);
+            log.info(&quot;[G3] limpieza: factura &quot; + f.get(&quot;id&quot;) + &quot; sigue activa&quot;);
+            break;
+        }
+    }
+}
+</stringProp></JSR223PreProcessor><hashTree/></hashTree><WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="Mientras quede alguna activa" enabled="true"><stringProp name="WhileController.condition">${__jexl3(&quot;${G3_hay}&quot; == &quot;1&quot;)}</stringProp></WhileController><hashTree><HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="99 - Limpieza - DELETE /api/v1/facturas/{id}" enabled="true"><elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"/></elementProp><stringProp name="HTTPSampler.path">/api/v1/facturas/${G3_id}</stringProp><stringProp name="HTTPSampler.method">DELETE</stringProp><boolProp name="HTTPSampler.follow_redirects">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp></HTTPSamplerProxy><hashTree><ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Ritmo: rpm requests por minuto (propiedad rpm)" enabled="true"><intProp name="calcMode">0</intProp><stringProp name="throughput">${__P(rpm,10)}</stringProp></ConstantThroughputTimer><hashTree/><JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Marcar y buscar la siguiente" enabled="true"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">// Limpieza: ante 429 se reintenta la misma factura hasta 3 veces; después se sigue
+// con la próxima (se avisa en el log) para no quedar en un bucle infinito.
+String cod = prev.getResponseCode();
+int intento = Integer.parseInt(vars.get(&quot;G3_intento&quot;) == null ? &quot;0&quot; : vars.get(&quot;G3_intento&quot;));
+if (&quot;429&quot;.equals(cod)) {
+    prev.setSampleLabel(&quot;429 - &quot; + prev.getSampleLabel());
+    if (intento &lt; 3) {
+        vars.put(&quot;G3_intento&quot;, String.valueOf(intento + 1));
+        Thread.sleep(10000L);
+        return;
+    }
+    log.warn(&quot;[G3] limpieza: la factura &quot; + vars.get(&quot;G3_id&quot;) + &quot; puede haber quedado activa (429)&quot;);
+}
+java.util.List hechas = (java.util.List) props.get(&quot;G3_FACTURAS&quot;);
+((java.util.Map) hechas.get(Integer.parseInt(vars.get(&quot;G3_idx&quot;)))).put(&quot;baja&quot;, &quot;si&quot;);
+
+// Busca la próxima factura del lote que siga activa (F6 no la dio de baja).
+vars.put(&quot;G3_otra&quot;, &quot;1&quot;);
+vars.put(&quot;G3_intento&quot;, &quot;0&quot;);
+java.util.List lote = (java.util.List) props.get(&quot;G3_FACTURAS&quot;);
+vars.put(&quot;G3_hay&quot;, &quot;0&quot;);
+if (lote != null) {
+    for (int i = 0; i &lt; lote.size(); i++) {
+        java.util.Map f = (java.util.Map) lote.get(i);
+        if (&quot;no&quot;.equals(f.get(&quot;baja&quot;))) {
+            vars.put(&quot;G3_idx&quot;, String.valueOf(i));
+            vars.put(&quot;G3_id&quot;, (String) f.get(&quot;id&quot;));
+            vars.put(&quot;G3_hay&quot;, &quot;1&quot;);
+            log.info(&quot;[G3] limpieza: factura &quot; + f.get(&quot;id&quot;) + &quot; sigue activa&quot;);
+            break;
+        }
+    }
+}
+</stringProp></JSR223PostProcessor><hashTree/></hashTree></hashTree></hashTree></hashTree></hashTree></jmeterTestPlan>

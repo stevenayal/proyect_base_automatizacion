@@ -12,73 +12,6 @@
       "item": [
         {
           "name": "CP001 - Paciente - Crear Reserva",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code es 201 o 200', function () {",
-                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-                  "});",
-                  "",
-                  "pm.test('Tiempo de respuesta menor a 3000 ms', function () {",
-                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
-                  "});",
-                  "",
-                  "pm.test('Content-Type es JSON cuando hay body', function () {",
-                  "    var contentType = pm.response.headers.get('Content-Type') || '';",
-                  "    pm.expect(contentType.toLowerCase()).to.include('application/json');",
-                  "});",
-                  "",
-                  "pm.test('La respuesta tiene estructura de reserva', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('data');",
-                  "    pm.expect(jsonData.data).to.be.an('object');",
-                  "    pm.expect(jsonData.data).to.have.property('id');",
-                  "    pm.expect(jsonData.data).to.have.property('usuario_id');",
-                  "    pm.expect(jsonData.data).to.have.property('servicio');",
-                  "    pm.expect(jsonData.data).to.have.property('fecha_hora');",
-                  "    pm.expect(jsonData.data).to.have.property('estado');",
-                  "});",
-                  "",
-                  "pm.test('La reserva creada queda en estado válido', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.data.estado).to.be.oneOf(['pendiente', 'confirmada', 'cancelada']);",
-                  "});",
-                  "",
-                  "pm.test('Los campos clave de la reserva creada son consistentes', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    var requestData = JSON.parse(pm.request.body.raw || '{}');",
-                  "    if (requestData.usuarioId !== undefined) {",
-                  "        pm.expect(jsonData.data.usuario_id).to.eql(requestData.usuarioId);",
-                  "    }",
-                  "    if (requestData.servicio !== undefined) {",
-                  "        pm.expect(jsonData.data.servicio).to.eql(requestData.servicio);",
-                  "    }",
-                  "    if (requestData.notas !== undefined) {",
-                  "        pm.expect(jsonData.data.notas).to.eql(requestData.notas);",
-                  "    }",
-                  "});",
-                  "",
-                  "pm.test('id de reserva es numérico y fecha_hora existe', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.data.id).to.be.a('number');",
-                  "    pm.expect(jsonData.data.fecha_hora).to.be.a('string').and.not.empty;",
-                  "});"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "auth": {
               "type": "noauth"
@@ -507,44 +440,6 @@
         },
         {
           "name": "Reservas de un usuario",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code es 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Tiempo de respuesta menor a 3000 ms', function () {",
-                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
-                  "});",
-                  "",
-                  "pm.test('Content-Type es JSON', function () {",
-                  "    var contentType = pm.response.headers.get('Content-Type') || '';",
-                  "    pm.expect(contentType.toLowerCase()).to.include('application/json');",
-                  "});",
-                  "",
-                  "pm.test('La respuesta del query contiene data en arreglo', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('data');",
-                  "    pm.expect(jsonData.data).to.be.an('array');",
-                  "});",
-                  "",
-                  "pm.test('Cada fila contiene servicio, fecha_hora y estado válido', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    jsonData.data.forEach(function (row) {",
-                  "        pm.expect(row).to.have.property('servicio');",
-                  "        pm.expect(row).to.have.property('fecha_hora');",
-                  "        pm.expect(row).to.have.property('estado');",
-                  "        pm.expect(row.estado).to.be.oneOf(['pendiente', 'confirmada', 'cancelada']);",
-                  "    });",
-                  "});"
-                ]
-              }
-            }
-          ],
           "request": {
             "method": "POST",
             "header": [
@@ -578,44 +473,6 @@
         },
         {
           "name": "Confirmar una reserva",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code es 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Tiempo de respuesta menor a 3000 ms', function () {",
-                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
-                  "});",
-                  "",
-                  "pm.test('Content-Type es JSON cuando aplica', function () {",
-                  "    var contentType = pm.response.headers.get('Content-Type') || '';",
-                  "    pm.expect(contentType.toLowerCase()).to.include('application/json');",
-                  "});",
-                  "",
-                  "pm.test('La respuesta del update indica ejecución exitosa', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.be.an('object');",
-                  "    pm.expect(Object.keys(jsonData).length).to.be.above(0);",
-                  "});",
-                  "",
-                  "pm.test('Si la respuesta expone filas afectadas o mensaje, son consistentes', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    if (jsonData.rowCount !== undefined) {",
-                  "        pm.expect(jsonData.rowCount).to.be.a('number').and.to.be.at.least(0);",
-                  "    }",
-                  "    if (jsonData.message !== undefined) {",
-                  "        pm.expect(jsonData.message).to.be.a('string').and.not.empty;",
-                  "    }",
-                  "});"
-                ]
-              }
-            }
-          ],
           "request": {
             "method": "POST",
             "header": [
@@ -649,46 +506,6 @@
         },
         {
           "name": "Listado de reservas",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code es 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Tiempo de respuesta menor a 3000 ms', function () {",
-                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
-                  "});",
-                  "",
-                  "pm.test('Content-Type es JSON', function () {",
-                  "    var contentType = pm.response.headers.get('Content-Type') || '';",
-                  "    pm.expect(contentType.toLowerCase()).to.include('application/json');",
-                  "});",
-                  "",
-                  "pm.test('La respuesta contiene un arreglo de reservas', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('data');",
-                  "    pm.expect(jsonData.data).to.be.an('array');",
-                  "});",
-                  "",
-                  "pm.test('Cada reserva tiene campos clave y estado válido', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    jsonData.data.forEach(function (reserva) {",
-                  "        pm.expect(reserva).to.have.property('id');",
-                  "        pm.expect(reserva).to.have.property('usuario_id');",
-                  "        pm.expect(reserva).to.have.property('servicio');",
-                  "        pm.expect(reserva).to.have.property('fecha_hora');",
-                  "        pm.expect(reserva).to.have.property('estado');",
-                  "        pm.expect(reserva.estado).to.be.oneOf(['pendiente', 'confirmada', 'cancelada']);",
-                  "    });",
-                  "});"
-                ]
-              }
-            }
-          ],
           "protocolProfileBehavior": {
             "disableBodyPruning": true
           },
@@ -728,43 +545,6 @@
         },
         {
           "name": "Crear reserva",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code es 201 o 200', function () {",
-                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-                  "});",
-                  "",
-                  "pm.test('Tiempo de respuesta menor a 3000 ms', function () {",
-                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
-                  "});",
-                  "",
-                  "pm.test('Content-Type es JSON', function () {",
-                  "    var contentType = pm.response.headers.get('Content-Type') || '';",
-                  "    pm.expect(contentType.toLowerCase()).to.include('application/json');",
-                  "});",
-                  "",
-                  "pm.test('La respuesta contiene una reserva creada', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('data');",
-                  "    pm.expect(jsonData.data).to.be.an('object');",
-                  "});",
-                  "",
-                  "pm.test('La reserva creada tiene campos clave y estado válido', function () {",
-                  "    var reserva = pm.response.json().data;",
-                  "    pm.expect(reserva.id).to.be.a('number');",
-                  "    pm.expect(reserva.usuario_id).to.be.a('number');",
-                  "    pm.expect(reserva.servicio).to.be.a('string').and.not.empty;",
-                  "    pm.expect(reserva.fecha_hora).to.be.a('string').and.not.empty;",
-                  "    pm.expect(reserva.estado).to.be.oneOf(['pendiente', 'confirmada', 'cancelada']);",
-                  "});"
-                ]
-              }
-            }
-          ],
           "request": {
             "auth": {
               "type": "noauth"
@@ -805,44 +585,6 @@
         },
         {
           "name": "Obtener reserva por id",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code es 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Tiempo de respuesta menor a 3000 ms', function () {",
-                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
-                  "});",
-                  "",
-                  "pm.test('Content-Type es JSON', function () {",
-                  "    var contentType = pm.response.headers.get('Content-Type') || '';",
-                  "    pm.expect(contentType.toLowerCase()).to.include('application/json');",
-                  "});",
-                  "",
-                  "pm.test('La respuesta contiene una reserva', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('data');",
-                  "    pm.expect(jsonData.data).to.be.an('object');",
-                  "});",
-                  "",
-                  "pm.test('La reserva tiene estructura y consistencia básica', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    var reserva = jsonData.data;",
-                  "    pm.expect(reserva.id).to.be.a('number');",
-                  "    pm.expect(reserva.usuario_id).to.be.a('number');",
-                  "    pm.expect(reserva.servicio).to.be.a('string').and.not.empty;",
-                  "    pm.expect(reserva.fecha_hora).to.be.a('string').and.not.empty;",
-                  "    pm.expect(reserva.estado).to.be.oneOf(['pendiente', 'confirmada', 'cancelada']);",
-                  "});"
-                ]
-              }
-            }
-          ],
           "protocolProfileBehavior": {
             "disableBodyPruning": true
           },
@@ -955,44 +697,6 @@
         },
         {
           "name": "Confirmar reserva",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code es 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Tiempo de respuesta menor a 3000 ms', function () {",
-                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
-                  "});",
-                  "",
-                  "pm.test('Content-Type es JSON cuando aplica', function () {",
-                  "    var contentType = pm.response.headers.get('Content-Type') || '';",
-                  "    pm.expect(contentType.toLowerCase()).to.include('application/json');",
-                  "});",
-                  "",
-                  "pm.test('La respuesta expone una reserva confirmada o mensaje consistente', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('data');",
-                  "    pm.expect(jsonData.data).to.be.an('object');",
-                  "    pm.expect(jsonData.data).to.have.property('estado');",
-                  "    pm.expect(jsonData.data.estado).to.eql('confirmada');",
-                  "});",
-                  "",
-                  "pm.test('La reserva confirmada mantiene campos clave', function () {",
-                  "    var reserva = pm.response.json().data;",
-                  "    pm.expect(reserva.id).to.be.a('number');",
-                  "    pm.expect(reserva.usuario_id).to.be.a('number');",
-                  "    pm.expect(reserva.servicio).to.be.a('string');",
-                  "    pm.expect(reserva.fecha_hora).to.be.a('string');",
-                  "});"
-                ]
-              }
-            }
-          ],
           "request": {
             "auth": {
               "type": "noauth"
@@ -1034,44 +738,6 @@
         },
         {
           "name": "Cancelar reserva",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code es 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Tiempo de respuesta menor a 3000 ms', function () {",
-                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
-                  "});",
-                  "",
-                  "pm.test('Content-Type es JSON cuando aplica', function () {",
-                  "    var contentType = pm.response.headers.get('Content-Type') || '';",
-                  "    pm.expect(contentType.toLowerCase()).to.include('application/json');",
-                  "});",
-                  "",
-                  "pm.test('La respuesta expone una reserva cancelada o mensaje consistente', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('data');",
-                  "    pm.expect(jsonData.data).to.be.an('object');",
-                  "    pm.expect(jsonData.data).to.have.property('estado');",
-                  "    pm.expect(jsonData.data.estado).to.eql('cancelada');",
-                  "});",
-                  "",
-                  "pm.test('La reserva cancelada mantiene campos clave', function () {",
-                  "    var reserva = pm.response.json().data;",
-                  "    pm.expect(reserva.id).to.be.a('number');",
-                  "    pm.expect(reserva.usuario_id).to.be.a('number');",
-                  "    pm.expect(reserva.servicio).to.be.a('string');",
-                  "    pm.expect(reserva.fecha_hora).to.be.a('string');",
-                  "});"
-                ]
-              }
-            }
-          ],
           "request": {
             "auth": {
               "type": "noauth"

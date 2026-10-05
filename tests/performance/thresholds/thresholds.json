@@ -1,0 +1,19 @@
+{
+  "global": {
+    "scope": "global",
+    "maxErrorRate": 1,
+    "p95Ms": 3000
+  },
+  "operations": {
+    "GET /api/v1/facturas": {
+      "scope": "GET /api/v1/facturas",
+      "maxErrorRate": 1,
+      "p95Ms": 2000
+    },
+    "POST /api/v1/facturas": {
+      "scope": "POST /api/v1/facturas",
+      "maxErrorRate": 1,
+      "p95Ms": 3000
+    }
+  }
+}

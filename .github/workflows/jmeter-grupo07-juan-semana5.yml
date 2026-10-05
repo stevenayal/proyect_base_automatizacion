@@ -1,0 +1,244 @@
+name: JMeter - Grupo 07 - Juan - Semana 5
+
+on:
+  push:
+    branches:
+      - grupo-07-carrito-ecommerce-entrega
+    paths:
+      - ".github/workflows/jmeter-grupo07-juan-semana5.yml"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/SEMANA5-JUAN.md"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/data/D_GRUPO_07_ORDENES_JUAN_SEMANA5.csv"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/plans/P_GRUPO_07_ORDENES_JUAN_SEMANA5.jmx"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/properties/GRUPO_07_ORDENES_JUAN_SEMANA5.properties"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/thresholds/thresholds-grupo07-juan-semana5.json"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/scripts/grupo07_juan_semana5_preflight.py"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/scripts/grupo07_juan_semana5_report.py"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/scripts/test_grupo07_juan_semana5_preflight.py"
+      - "grupos/grupo-07-carrito-ecommerce/tests/performance/scripts/test_grupo07_juan_semana5_report.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: grupo07-juan-semana5
+  cancel-in-progress: false
+
+env:
+  JMETER_VERSION: 5.6.3
+  RESULTS_DIR: test-results/performance/grupo07-juan-semana5
+  GRAFANA_DASHBOARD_URL: https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958
+
+jobs:
+  performance:
+    name: JMeter controlado + gate + evidencia
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Preparar directorios de evidencia
+        run: mkdir -p "$RESULTS_DIR/dashboard" "$RESULTS_DIR/evidence"
+
+      - name: Configurar Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Configurar Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencia PDF
+        run: python -m pip install --disable-pip-version-check 'reportlab>=4,<5'
+
+      - name: Descargar y verificar JMeter
+        run: |
+          curl --fail --location --silent --show-error \
+            "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" -o jmeter.tgz
+          curl --fail --location --silent --show-error \
+            "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz.sha512" -o jmeter.sha512
+          python - <<'PY'
+          import hashlib, pathlib, re
+          expected = re.findall(r"\b[0-9a-fA-F]{128}\b", pathlib.Path("jmeter.sha512").read_text())
+          actual = hashlib.sha512(pathlib.Path("jmeter.tgz").read_bytes()).hexdigest()
+          assert len(expected) == 1 and expected[0].lower() == actual, "JMeter SHA512 mismatch"
+          PY
+          tar -xzf jmeter.tgz
+
+      - name: Tests locales del evaluator y preflight
+        id: unit_tests
+        run: python -m unittest discover -s grupos/grupo-07-carrito-ecommerce/tests/performance/scripts -p 'test_*.py' -v
+
+      - name: Preflight autenticado de solo lectura y rate limit
+        id: preflight
+        if: ${{ steps.unit_tests.outcome == 'success' }}
+        env:
+          GRUPO07_API_KEY: ${{ secrets.GRUPO07_API_KEY }}
+        run: python grupos/grupo-07-carrito-ecommerce/tests/performance/scripts/grupo07_juan_semana5_preflight.py
+
+      - name: Ejecutar JMeter headless (10 POST + 10 GET esperados)
+        id: jmeter
+        if: ${{ steps.preflight.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          GRUPO07_API_KEY: ${{ secrets.GRUPO07_API_KEY }}
+        run: |
+          "apache-jmeter-${JMETER_VERSION}/bin/jmeter" -n \
+            -t grupos/grupo-07-carrito-ecommerce/tests/performance/plans/P_GRUPO_07_ORDENES_JUAN_SEMANA5.jmx \
+            -q grupos/grupo-07-carrito-ecommerce/tests/performance/properties/GRUPO_07_ORDENES_JUAN_SEMANA5.properties \
+            -l "$RESULTS_DIR/results.jtl" \
+            -j "$RESULTS_DIR/jmeter.log" \
+            -e -o "$RESULTS_DIR/dashboard" \
+            -Jthreads=1 -Jloops=10 -JtargetRpm=10 \
+            -Jjmeter.save.saveservice.print_field_names=true
+
+      - name: Completar evidencia mínima si JMeter fue bloqueado
+        if: ${{ always() }}
+        run: |
+          mkdir -p "$RESULTS_DIR/dashboard" "$RESULTS_DIR/evidence"
+          test -e "$RESULTS_DIR/results.jtl" || : > "$RESULTS_DIR/results.jtl"
+          test -e "$RESULTS_DIR/jmeter.log" || : > "$RESULTS_DIR/jmeter.log"
+          test -e "$RESULTS_DIR/evidence/grafana-status.txt" || \
+            echo "Captura no intentada: no se inició JMeter o no se obtuvo una ventana JTL." > "$RESULTS_DIR/evidence/grafana-status.txt"
+          if [ ! -s "$RESULTS_DIR/dashboard/index.html" ]; then
+            cat > "$RESULTS_DIR/dashboard/index.html" <<'HTML'
+          <!doctype html><html lang="es"><meta charset="utf-8"><title>Dashboard JMeter no generado</title>
+          <h1>Dashboard JMeter no generado</h1>
+          <p>JMeter no produjo un dashboard. Revisar summary.md y jmeter.log; esta página no representa resultados de carga.</p>
+          </html>
+          HTML
+          fi
+
+      - name: Evaluar JTL, producir summary y PDF seguro
+        id: evaluate
+        if: ${{ always() }}
+        continue-on-error: true
+        run: |
+          python grupos/grupo-07-carrito-ecommerce/tests/performance/scripts/grupo07_juan_semana5_report.py \
+            --jtl "$RESULTS_DIR/results.jtl" \
+            --thresholds grupos/grupo-07-carrito-ecommerce/tests/performance/thresholds/thresholds-grupo07-juan-semana5.json \
+            --output-dir "$RESULTS_DIR" \
+            --preflight-status "${{ steps.preflight.outcome }}" \
+            --jmeter-status "${{ steps.jmeter.outcome }}"
+
+      - name: Capturar Grafana en la ventana temporal del JTL
+        id: grafana
+        if: ${{ always() && steps.jmeter.outcome != 'skipped' }}
+        continue-on-error: true
+        run: |
+          if [ ! -s "$RESULTS_DIR/results.jtl" ] || [ ! -s "$RESULTS_DIR/summary.json" ]; then
+            echo "Captura omitida: no hubo JTL utilizable para correlacionar." > "$RESULTS_DIR/evidence/grafana-status.txt"
+            exit 0
+          fi
+          python - <<'PY'
+          import json, os, pathlib, sys
+          summary = json.loads(pathlib.Path("test-results/performance/grupo07-juan-semana5/summary.json").read_text())
+          time_range = summary.get("timeRange")
+          if not time_range:
+              pathlib.Path("test-results/performance/grupo07-juan-semana5/evidence/grafana-status.txt").write_text(
+                  "Captura omitida: el JTL no contiene timestamps HTTP utilizables.\n", encoding="utf-8")
+              sys.exit(0)
+          start = max(0, int(time_range["fromEpochMs"]) - 30000)
+          end = int(time_range["toEpochMs"]) + 30000
+          pathlib.Path(os.environ["RUNNER_TEMP"], "grafana-time-range.txt").write_text(f"{start}\n{end}\n", encoding="ascii")
+          PY
+          mapfile -t GRAFANA_RANGE < "$RUNNER_TEMP/grafana-time-range.txt"
+          FROM_MS="${GRAFANA_RANGE[0]}"
+          TO_MS="${GRAFANA_RANGE[1]}"
+          if ! python -m pip install --disable-pip-version-check selenium; then
+            echo "Captura pendiente: no se pudo instalar Selenium." > "$RESULTS_DIR/evidence/grafana-status.txt"
+            exit 0
+          fi
+          CAPTURE=$(npm pack aiquaa-performance-mcp-server --pack-destination . --silent) || {
+            echo "Captura pendiente: no se pudo obtener el capturador genérico del curso." > "$RESULTS_DIR/evidence/grafana-status.txt"
+            exit 0
+          }
+          tar -xzf "$CAPTURE" package/dist/monitoring/python/capture_dashboard.py || {
+            echo "Captura pendiente: el paquete no contiene el capturador esperado." > "$RESULTS_DIR/evidence/grafana-status.txt"
+            exit 0
+          }
+          CAPTURE_URL="${GRAFANA_DASHBOARD_URL}?from=${FROM_MS}&to=${TO_MS}"
+          if python package/dist/monitoring/python/capture_dashboard.py \
+            --url "$CAPTURE_URL" \
+            --output "$RESULTS_DIR/evidence/grafana-semana5.png" \
+            --wait-seconds 8 --timeout-seconds 180; then
+            {
+              echo "Captura UTC: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              echo "Ventana JTL epoch-ms (incluye 30 s de margen): ${FROM_MS} a ${TO_MS}"
+              echo "Origen: dashboard público genérico del curso; la imagen es evidencia observacional, no fuente del gate."
+            } > "$RESULTS_DIR/evidence/grafana-status.txt"
+          else
+            echo "Captura pendiente: dashboard/capturador no disponible en este runner; no se inventó evidencia." > "$RESULTS_DIR/evidence/grafana-status.txt"
+          fi
+
+      - name: Generar PDF con el reporter genérico del curso (si está disponible)
+        if: ${{ always() }}
+        continue-on-error: true
+        env:
+          REPORT_AUTHOR: ${{ github.triggering_actor }}
+        run: |
+          if [ ! -s "$RESULTS_DIR/results.jtl" ]; then
+            echo "Reporter genérico omitido; se conserva el PDF del evaluator."
+            exit 0
+          fi
+          EVIDENCE_ARGS=()
+          if [ -s "$RESULTS_DIR/evidence/grafana-semana5.png" ]; then
+            EVIDENCE_ARGS=(--evidence-image "$RESULTS_DIR/evidence/grafana-semana5.png" \
+              --evidence-label "Grafana — ventana temporal del JTL" \
+              --evidence-url "$GRAFANA_DASHBOARD_URL")
+          fi
+          npx --yes aiquaa-performance-mcp-server --report \
+            "$RESULTS_DIR/results.jtl" \
+            grupos/grupo-07-carrito-ecommerce/tests/performance/thresholds/thresholds-grupo07-juan-semana5.json \
+            "$RESULTS_DIR/report-course.pdf" \
+            --api-name "AIQUAA sandbox API — Grupo 07 órdenes" \
+            --plan grupos/grupo-07-carrito-ecommerce/tests/performance/plans/P_GRUPO_07_ORDENES_JUAN_SEMANA5.jmx \
+            --test-type carga --threads 1 --loops 10 \
+            --author "$REPORT_AUTHOR" \
+            --api-version "$GITHUB_SHA" \
+            --repo-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            "${EVIDENCE_ARGS[@]}" || true
+          if [ -s "$RESULTS_DIR/report-course.pdf" ] && \
+             python -c 'import pathlib,sys; sys.exit(0 if pathlib.Path(sys.argv[1]).read_bytes().startswith(b"%PDF-") else 1)' "$RESULTS_DIR/report-course.pdf"; then
+            cp "$RESULTS_DIR/report-course.pdf" "$RESULTS_DIR/report.pdf"
+          else
+            echo "Reporter genérico no produjo PDF válido; se conserva el PDF de respaldo del evaluator."
+          fi
+
+      - name: Subir evidencia completa
+        id: upload
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: jmeter-grupo07-juan-semana5
+          path: |
+            test-results/performance/grupo07-juan-semana5/results.jtl
+            test-results/performance/grupo07-juan-semana5/jmeter.log
+            test-results/performance/grupo07-juan-semana5/dashboard/
+            test-results/performance/grupo07-juan-semana5/evidence/
+            test-results/performance/grupo07-juan-semana5/report.pdf
+            test-results/performance/grupo07-juan-semana5/summary.json
+            test-results/performance/grupo07-juan-semana5/summary.md
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Aplicar veredicto final del gate
+        if: ${{ always() }}
+        env:
+          GATE_RESULT: ${{ steps.evaluate.outputs.gate }}
+          ARTIFACT_RESULT: ${{ steps.upload.outcome }}
+        run: |
+          if [[ "$GATE_RESULT" != "APROBADO" ]]; then
+            echo "RECHAZADO: consultar summary.md y el artifact; no se certifica continuidad." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          if [[ "$ARTIFACT_RESULT" != "success" ]]; then
+            echo "RECHAZADO: el artifact requerido no fue publicado." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "APROBADO: gate de Semana 5 aprobado y artifact publicado." >> "$GITHUB_STEP_SUMMARY"

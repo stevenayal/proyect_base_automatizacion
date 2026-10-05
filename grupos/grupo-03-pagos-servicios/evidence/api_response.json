@@ -1,0 +1,59 @@
+{
+  "data": [
+    {
+      "id": "24",
+      "usuario_id": "14",
+      "proveedor": "ESSAP",
+      "numero_factura": "FAC-2026-0024",
+      "monto": "358837.00",
+      "fecha_vencimiento": "2026-08-19T00:00:00.000Z",
+      "estado": "pendiente",
+      "created_at": "2026-08-15T23:36:00.914Z",
+      "activo": true
+    },
+    {
+      "id": "1392",
+      "usuario_id": "14",
+      "proveedor": "ESSAP",
+      "numero_factura": "ESSAP-PERF-4-724-1789940461763",
+      "monto": "125000.00",
+      "fecha_vencimiento": "2026-12-15T00:00:00.000Z",
+      "estado": "pendiente",
+      "created_at": "2026-09-20T21:41:01.871Z",
+      "activo": true
+    },
+    {
+      "id": "1403",
+      "usuario_id": "14",
+      "proveedor": "COPACO",
+      "numero_factura": "COPACO-PERF-1-19-1789942488660",
+      "monto": "58000.00",
+      "fecha_vencimiento": "2026-11-15T00:00:00.000Z",
+      "estado": "pendiente",
+      "created_at": "2026-09-20T22:14:48.838Z",
+      "activo": true
+    },
+    {
+      "id": "1486",
+      "usuario_id": "14",
+      "proveedor": "Tigo",
+      "numero_factura": "Tigo-PERF-1-22-1789945170420",
+      "monto": "48500.00",
+      "fecha_vencimiento": "2026-12-31T00:00:00.000Z",
+      "estado": "pendiente",
+      "created_at": "2026-09-20T22:59:30.530Z",
+      "activo": true
+    },
+    {
+      "id": "1503",
+      "usuario_id": "14",
+      "proveedor": "ESSAP",
+      "numero_factura": "ESSAP-PERF-1-5-1789945415675",
+      "monto": "260000.00",
+      "fecha_vencimiento": "2026-12-31T00:00:00.000Z",
+      "estado": "pendiente",
+      "created_at": "2026-09-20T23:03:35.763Z",
+      "activo": true
+    }
+  ]
+}

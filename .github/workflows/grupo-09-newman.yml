@@ -1,0 +1,42 @@
+name: Newman - Grupo 09
+
+on:
+  push:
+    branches:
+      - grupo-09-reportes-dashboard-avalosroman
+    paths:
+      - 'grupos/grupo-09-reportes-dashboard/postman/**'
+
+jobs:
+  newman:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm install
+
+      - name: Correr Newman
+        env:
+          BASE_URL: ${{ secrets.AIQUAA_BASE_URL }}
+          API_KEY: ${{ secrets.AIQUAA_API_KEY }}
+          SQL_SANDBOX_URL: ${{ secrets.AIQUAA_SQL_SANDBOX_URL }}
+          SQL_SANDBOX_KEY: ${{ secrets.AIQUAA_SQL_SANDBOX_KEY }}
+        run: |
+          npx newman run "grupos/grupo-09-reportes-dashboard/postman/C_GRUPO_09_REPORTES.postman_collection.json" \
+            -e "grupos/grupo-09-reportes-dashboard/postman/E_GRUPO_09_REPORTES.postman_environment.json" \
+            --env-var "baseUrl=$BASE_URL" \
+            --env-var "apiKey=$API_KEY" \
+            --env-var "sqlSandboxBaseUrl=$SQL_SANDBOX_URL" \
+            --env-var "sqlSandboxApiKey=$SQL_SANDBOX_KEY" \
+            --reporters cli,json \
+            --reporter-json-export newman/grupo09-results.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: newman-grupo09
+          path: newman/grupo09-results.json

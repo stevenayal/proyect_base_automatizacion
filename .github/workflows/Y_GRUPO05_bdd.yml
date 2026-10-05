@@ -1,0 +1,194 @@
+name: AIQUAA BDD - Grupo 05 Tarjetas Credito/Debito
+
+# Semana 06: BDD conectado con Cucumber sobre el sandbox AIQUAA, con la
+# arquitectura Cucumber + POM y el Failure Classifier de
+# skills/playwright-ai-agents-skill. Mismo esqueleto que
+# Y_AIQUAA_E2E_playwright.yml: correr, generar PDF con evidencias, publicar.
+# Cero llamadas a modelos en este pipeline.
+#
+# Tambien corre en push a la rama del grupo: asi el pipeline queda ejecutado
+# sin depender de que el PR contra main este libre de conflictos.
+
+on:
+  push:
+    branches: ["main", "grupo-05-tarjetas-credito-debito"]
+    paths:
+      - "grupos/grupo-05-tarjetas-credito-debito/bdd/**"
+      - "grupos/grupo-05-tarjetas-credito-debito/playwright/**"
+      - "grupos/grupo-05-tarjetas-credito-debito/tests/e2e/**"
+      - ".github/workflows/Y_GRUPO05_bdd.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "grupos/grupo-05-tarjetas-credito-debito/bdd/**"
+      - "grupos/grupo-05-tarjetas-credito-debito/playwright/**"
+      - "grupos/grupo-05-tarjetas-credito-debito/tests/e2e/**"
+      - ".github/workflows/Y_GRUPO05_bdd.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# El rate limit del sandbox es de 30 req/min POR API-KEY. Este workflow comparte
+# key con los de Newman y JMeter del grupo, asi que comparte tambien el grupo de
+# concurrencia para no pisarse con ellos.
+concurrency:
+  group: aiquaa-sandbox-grupo05
+  cancel-in-progress: false
+
+env:
+  BASE_URL: https://aiquaa-sandbox-web.vercel.app/
+  API_URL: https://aiquaa-sandbox-api.vercel.app
+  SANDBOX_API_KEY: ${{ secrets.GRUPO05_API_KEY || 'sbx_demo_f581ca21e68a347288c94d71' }}
+  SANDBOX_CURSO: "1"
+  SANDBOX_USUARIO_ID: "1"
+  SANDBOX_EMAIL_CLIENTE: bruno.ramirez@example.com
+  BDD_DIR: grupos/grupo-05-tarjetas-credito-debito/bdd
+  EVIDENCE_DIR: grupos/grupo-05-tarjetas-credito-debito/evidence/semana-06
+  STEP_TIMEOUT_MS: "150000"
+  RATE_LIMIT_WAIT_MS: "20000"
+
+jobs:
+  bdd-grupo05:
+    name: Cucumber (web + API + BD) y smoke Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v7
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Configurar Python (generadores de PDF)
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias Node
+        run: npm install
+
+      - name: Instalar Chromium para Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Instalar dependencias Python (reportlab, Pillow)
+        run: pip install reportlab pillow
+
+      # Gate barato antes de tocar el sandbox: cada step del .feature tiene que
+      # tener definicion (0 undefined, 0 ambiguous), sin browser ni API.
+      - name: Validar catalogo de steps (dry-run)
+        run: npx cucumber-js --config "${BDD_DIR}/cucumber.js" --profile dryrun
+
+      - name: Esperar a que haya cupo en el rate limit
+        run: >
+          bash grupos/grupo-05-tarjetas-credito-debito/scripts/esperar-cupo-api.sh
+          "${SANDBOX_API_KEY}" "${API_URL}"
+
+      # Los escenarios @manual quedan fuera por configuracion del perfil grupo05:
+      # estan especificados pero el sandbox no expone endpoints para ellos.
+      - name: Ejecutar escenarios BDD del grupo 05
+        id: cucumber
+        continue-on-error: true
+        run: npx cucumber-js --config "${BDD_DIR}/cucumber.js" --profile grupo05
+
+      - name: Failure Classifier (deterministico, sin IA)
+        if: always() && hashFiles('results/grupo05/cucumber-report.json') != ''
+        run: >
+          node "${BDD_DIR}/scripts/classify-failures.mjs"
+          --input results/grupo05/cucumber-report.json
+          --out "${EVIDENCE_DIR}/CLASIF_BDD_GRUPO05.json"
+
+      - name: Generar informe PDF BDD con trazabilidad y evidencias
+        if: always() && hashFiles('results/grupo05/cucumber-report.json') != ''
+        run: >
+          python skills/bdd-skill/reporter/bdd_report.py
+          --results results/grupo05/cucumber-report.json
+          --output "${EVIDENCE_DIR}/INFORME_BDD_GRUPO_05.pdf"
+          --grupo "Grupo 05 - Tarjetas de Credito/Debito"
+          --author "${{ github.triggering_actor }}"
+          --repo-url "${{ github.server_url }}/${{ github.repository }}"
+
+      # Cucumber acaba de consumir la ventana del rate limit: sin esta espera el
+      # alta de la tarjeta del smoke recibe 429.
+      - name: Esperar cupo antes del smoke
+        if: always()
+        run: >
+          bash grupos/grupo-05-tarjetas-credito-debito/scripts/esperar-cupo-api.sh
+          "${SANDBOX_API_KEY}" "${API_URL}"
+
+      # Sin --reporter: la config del repo escribe results/playwright-results.json,
+      # que es lo que lee el generador de PDF.
+      - name: Ejecutar smoke UI con Playwright
+        id: playwright
+        continue-on-error: true
+        env:
+          CI: "true"
+        # La salida se guarda para el diagnostico del paso final.
+        run: |
+          mkdir -p results
+          npx playwright test grupos/grupo-05-tarjetas-credito-debito 2>&1 | tee results/playwright-output.txt
+          exit "${PIPESTATUS[0]}"
+
+      - name: Generar informe PDF E2E con evidencias
+        if: always() && hashFiles('results/playwright-results.json') != ''
+        run: >
+          python skills/playwright-skill/reporter/playwright_report.py
+          --results results/playwright-results.json
+          --output "${EVIDENCE_DIR}/INFORME_E2E_GRUPO_05.pdf"
+          --app-name "AIQUAA Sandbox - Tarjetas (Grupo 05)"
+          --environment "GitHub Actions"
+          --app-version "${{ github.sha }}"
+          --repo-url "${{ github.server_url }}/${{ github.repository }}"
+          --author "${{ github.triggering_actor }}"
+
+      - name: Subir evidencia e informes del grupo 05
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: aiquaa-bdd-grupo05-${{ github.run_number }}
+          path: |
+            ${{ env.EVIDENCE_DIR }}
+            results/grupo05/
+            results/playwright-results.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Subir reporte HTML de Playwright
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: aiquaa-bdd-grupo05-playwright-${{ github.run_number }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+      # Los pasos de ejecucion usan continue-on-error para que los informes y la
+      # evidencia se publiquen siempre; el job falla aqui si alguno no paso.
+      # El diagnostico sale como anotaciones, visibles en el resumen del run y
+      # en los checks del PR sin descargar artefactos.
+      - name: Verificar resultado de las corridas
+        if: always()
+        run: |
+          echo "::notice title=Resultado::BDD=${{ steps.cucumber.outcome }} Playwright=${{ steps.playwright.outcome }}"
+          CLASIF="${EVIDENCE_DIR}/CLASIF_BDD_GRUPO05.json"
+          if [ -f "$CLASIF" ]; then
+            node -e '
+              const r = require(process.argv[1]);
+              const enc = (s) => String(s ?? "").replace(/%/g, "%25").replace(/\r/g, "").replace(/\n/g, "%0A");
+              console.log(`::notice title=Classifier::${enc(JSON.stringify(r.summary.byCategory))}`);
+              for (const f of r.failures) {
+                console.log(`::error title=BDD ${enc(f.category)} - ${enc(f.title)}::${enc(f.step)}%0A${enc(f.error)}`);
+              }' "$(pwd)/$CLASIF"
+          fi
+          if [ "${{ steps.playwright.outcome }}" != "success" ] && [ -f results/playwright-output.txt ]; then
+            echo "::error title=Playwright (ultimas lineas)::$(tail -n 30 results/playwright-output.txt | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')"
+          fi
+          if [ "${{ steps.cucumber.outcome }}" != "success" ] || [ "${{ steps.playwright.outcome }}" != "success" ]; then
+            echo "::error::Hay corridas fallidas; revisar CLASIF_BDD_GRUPO05.json y los artefactos."
+            exit 1
+          fi

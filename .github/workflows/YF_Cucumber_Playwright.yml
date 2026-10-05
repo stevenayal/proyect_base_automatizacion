@@ -1,0 +1,66 @@
+name: YF - Cucumber Playwright BDD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/bdd/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/YF_Cucumber_Playwright.yml'
+
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/bdd/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/YF_Cucumber_Playwright.yml'
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bdd:
+    name: YF - Cucumber + Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias Node
+        run: npm ci
+
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Ejecutar Cucumber + Playwright
+        env:
+          CI: 'true'
+          SANDBOX_API_KEY: ${{ secrets.SANDBOX_API_KEY }}
+        run: npm run test:bdd:sandbox
+
+      - name: Clasificar resultados BDD YF
+        if: always()
+        run: npm run YF:classify:bdd
+
+      - name: Publicar evidencias YF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: YF-cucumber-playwright-${{ github.run_number }}
+          path: |
+            results/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14

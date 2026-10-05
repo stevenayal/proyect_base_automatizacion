@@ -9,8 +9,15 @@ test-results/
 playwright-report/
 blob-report/
 
+# Resultados de tests Cucumber/BDD
+results/
+
 # Resultados de Newman
 newman/
+
+# Archivos temporales de Python
+__pycache__/
+*.py[cod]
 
 # Logs
 *.log
@@ -24,3 +31,16 @@ Thumbs.db
 .vscode/settings.json
 .idea/
 *.swp
+
+# Indice local de CodeGraph (base SQLite regenerable con `codegraph init -i`)
+.codegraph/
+
+# Memoria local de Engram (chunks de sincronizacion por proyecto)
+.engram/
+
+# Configuracion personal de Claude Code (no se comparte entre integrantes)
+.claude/settings.local.json
+
+# Reportes de Newman: el JSON incluye el valor de la API key
+newman-*.json
+reporte-newman*.json

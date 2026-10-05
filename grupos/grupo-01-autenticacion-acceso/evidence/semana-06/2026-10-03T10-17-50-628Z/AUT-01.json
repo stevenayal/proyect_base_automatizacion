@@ -1,0 +1,13 @@
+{
+  "runId": "2026-10-03T10-17-50-628Z",
+  "scenario": "Login exitoso con email de usuario activo",
+  "status": "PASSED",
+  "observedAt": "2026-10-03T10:17:53.170Z",
+  "url": "https://aiquaa-sandbox-web.vercel.app/",
+  "loginRequests": [
+    {
+      "email": "ana.torres@example.com",
+      "status": 200
+    }
+  ]
+}

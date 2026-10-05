@@ -1,0 +1,122 @@
+name: Grupo 07 Ordenes - Andrea Escurra - Cucumber Playwright BDD
+
+# Estructura calcada del workflow canonico del profesor
+# (.github/workflows/Y_AIQUAA_E2E_playwright.yml), con el reporter de Cucumber.
+#
+# Sin trigger de `push`: con el PR abierto, cada push dispararia la misma corrida
+# dos veces (push + pull_request) contra la cuota compartida del sandbox. Es la
+# misma trampa que se corrigio en el workflow de la Tarea 5.
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - 'tests/bdd/grupo07-ordenes-andrea/**'
+      - 'skills/bdd-skill/reporter/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/Y_GRUPO07_ANDREA_CUCUMBER_PLAYWRIGHT.yml'
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Tags a ejecutar (default: not @wip)'
+        required: false
+        default: 'not @wip'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aiquaa-bdd-g07-andrea-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bdd:
+    name: BDD de ordenes en Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # A nivel de job, y no de step, a proposito: el cucumber.js del workspace
+    # falla si no encuentra SANDBOX_API_KEY, y el step de dryrun tambien lo carga.
+    env:
+      CI: 'true'
+      BASE_URL: ${{ vars.AIQUAA_SANDBOX_BASE_URL || 'https://aiquaa-sandbox-web.vercel.app' }}
+      SANDBOX_API_URL: ${{ vars.AIQUAA_SANDBOX_API_URL || 'https://aiquaa-sandbox-api.vercel.app' }}
+      # El secret pisa la key; si no esta cargado, cae a la key publica del
+      # sandbox (mismo patron que el workflow de la Tarea 5).
+      SANDBOX_API_KEY: ${{ secrets.SANDBOX_API_KEY || 'sbx_demo_f581ca21e68a347288c94d71' }}
+      # `inputs.*` no existe en el evento pull_request, asi que el default va
+      # aca. Misma correccion que el MONITORING_URL del workflow de la Tarea 5.
+      BDD_TAGS: ${{ inputs.tags || 'not @wip' }}
+      # retry 0: un reintento en CI taparia el fallo que el clasificador tiene
+      # que ver para poder curarlo.
+      BDD_RETRY: '0'
+
+    steps:
+      - name: Obtener el codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar dependencias del informe PDF
+        run: pip install -r skills/bdd-skill/reporter/requirements.txt
+
+      - name: Instalar Chromium de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Validar binding de steps (no abre navegador)
+        run: npx cucumber-js --config tests/bdd/grupo07-ordenes-andrea/cucumber.js --profile dryrun
+
+      - name: Ejecutar escenario BDD
+        run: npx cucumber-js --config tests/bdd/grupo07-ordenes-andrea/cucumber.js --profile default
+
+      # Clasificador de la skill playwright-ai-agents-skill: separa un fallo de
+      # la automatizacion (TEST_BUG) de uno del producto. Corre siempre, incluso
+      # con el escenario en verde, para que el artifact deje el diagnostico.
+      - name: Clasificar fallos
+        if: always()
+        run: |
+          node tests/bdd/grupo07-ordenes-andrea/scripts/classify-failures.mjs \
+            --input results/grupo07-andrea/cucumber-grupo07-andrea.json \
+            --out results/grupo07-andrea/CLASIF_GRUPO07-ANDREA.json
+
+      # El formatter json de Cucumber 11 no emite `comments`, asi que sin este
+      # paso la matriz de trazabilidad del PDF saldria sin criterios.
+      - name: Inyectar criterios de trazabilidad en el JSON
+        if: always() && hashFiles('results/grupo07-andrea/cucumber-grupo07-andrea.json') != ''
+        run: |
+          node tests/bdd/grupo07-ordenes-andrea/scripts/agregar-criterios.mjs \
+            --feature tests/bdd/grupo07-ordenes-andrea/features/F_ORDENES_ENLAZADO_ANDREA.feature \
+            --json results/grupo07-andrea/cucumber-grupo07-andrea.json
+
+      - name: Generar informe PDF con evidencias
+        if: always() && hashFiles('results/grupo07-andrea/cucumber-grupo07-andrea.json') != ''
+        run: >
+          python skills/bdd-skill/reporter/bdd_report.py
+          --results results/grupo07-andrea/cucumber-grupo07-andrea.json
+          --output results/grupo07-andrea/INFORME_BDD_GRUPO07-ANDREA.pdf
+          --grupo "Grupo 07 - Carrito de Compras/E-commerce"
+          --repo-url "${{ github.server_url }}/${{ github.repository }}"
+          --author "${{ github.triggering_actor }}"
+
+      - name: Publicar informe y evidencias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grupo07-bdd-andrea-${{ github.run_number }}
+          path: |
+            results/
+          if-no-files-found: warn
+          retention-days: 14

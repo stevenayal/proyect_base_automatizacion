@@ -1,0 +1,16 @@
+proveedor,metodoPago,monto
+ANDE,tarjeta,35000
+ESSAP,cuenta,48500
+COPACO,efectivo,72000
+Tigo,tarjeta,125000
+Personal,cuenta,260000
+ANDE,cuenta,91000
+ESSAP,efectivo,58000
+COPACO,tarjeta,143500
+Tigo,cuenta,215000
+Personal,efectivo,67250
+ANDE,efectivo,183000
+ESSAP,tarjeta,99900
+COPACO,cuenta,310000
+Tigo,efectivo,44000
+Personal,tarjeta,152500
