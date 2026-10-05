@@ -55,7 +55,6 @@ jobs:
           mkdir -p test-results/performance/dashboard
           apache-jmeter-5.6.3/bin/jmeter -n -t grupos/grupo-06-notificaciones-alertas/tests/performance/plans/P_NOTIFICACIONES.jmx \
             -JapiKey="${SANDBOX_API_KEY}" \
-            -JbodyFile="$GITHUB_WORKSPACE/grupos/grupo-06-notificaciones-alertas/tests/performance/data/body_notificacion.json" \
             -Jthreads=2 -Jloops=5 -JrampUp=2 -JthinkTimeMs=500 \
             -l test-results/performance/R_NOTIFICACIONES.jtl -e -o test-results/performance/dashboard
 
