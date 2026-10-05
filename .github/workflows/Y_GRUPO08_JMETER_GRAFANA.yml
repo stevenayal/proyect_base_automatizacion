@@ -1,23 +1,9 @@
-﻿# 1. Confirmar que estamos trabajando sobre Grupo 08
-$workflow = ".github\workflows\Y_GRUPO08_JMETER_GRAFANA.yml"
-$jmx = "grupos\grupo-08-reservas-turnos\TAREA 5 SALMAGIMENEZ\reservas_performance.jmx"
-
-# 2. Ajustar el JMX para recibir la API Key desde GitHub Actions
-$contenidoJmx = Get-Content $jmx -Raw
-$contenidoJmx = $contenidoJmx.Replace('${apiKey}', '${__P(apiKey)}')
-Set-Content $jmx -Value $contenidoJmx -Encoding UTF8
-
-# 3. Generar el workflow completo
-@'
-name: JMeter Grupo 08 - Salma
+﻿name: JMeter Grupo 08 - Salma
 
 on:
   push:
     branches:
       - grupo-08-reservas-turnos
-    paths:
-      - "grupos/grupo-08-reservas-turnos/TAREA 5 SALMAGIMENEZ/**"
-      - ".github/workflows/Y_GRUPO08_JMETER_GRAFANA.yml"
   workflow_dispatch:
 
 permissions:
@@ -25,6 +11,7 @@ permissions:
 
 jobs:
   performance:
+    name: JMeter Grupo 08 - Reservas
     runs-on: ubuntu-latest
 
     steps:
@@ -37,24 +24,58 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Instalar JMeter
+      - name: Instalar JMeter 5.6.3
+        shell: bash
         run: |
-          curl --fail --location --silent --show-error https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz -o jmeter.tgz
-          tar -xzf jmeter.tgz
-          echo "$GITHUB_WORKSPACE/apache-jmeter-5.6.3/bin" >> "$GITHUB_PATH"
+          curl --fail --location --silent --show-error \
+            "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz" \
+            -o "$RUNNER_TEMP/apache-jmeter-5.6.3.tgz"
+
+          tar -xzf "$RUNNER_TEMP/apache-jmeter-5.6.3.tgz" \
+            -C "$RUNNER_TEMP"
+
+          echo "$RUNNER_TEMP/apache-jmeter-5.6.3/bin" >> "$GITHUB_PATH"
+
+      - name: Verificar archivos Grupo 08
+        shell: bash
+        run: |
+          test -f "grupos/grupo-08-reservas-turnos/TAREA 5 SALMAGIMENEZ/reservas_performance.jmx"
+          test -f "grupos/grupo-08-reservas-turnos/TAREA 5 SALMAGIMENEZ/reservas.csv"
+
+          echo "JMX encontrado"
+          echo "CSV encontrado"
 
       - name: Crear carpeta de resultados
-        run: mkdir -p test-results/performance
+        shell: bash
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/test-results/performance"
 
       - name: Ejecutar JMeter Grupo 08
+        shell: bash
         working-directory: grupos/grupo-08-reservas-turnos/TAREA 5 SALMAGIMENEZ
         env:
           API_KEY: ${{ secrets.SANDBOX_API_KEY }}
         run: |
+          if [ -z "$API_KEY" ]; then
+            echo "SANDBOX_API_KEY no esta configurado"
+            exit 1
+          fi
+
           jmeter -n \
             -t "reservas_performance.jmx" \
             -JapiKey="$API_KEY" \
             -l "$GITHUB_WORKSPACE/test-results/performance/resultado_salma.jtl"
+
+      - name: Verificar resultado JMeter
+        if: always()
+        shell: bash
+        run: |
+          if [ -f "test-results/performance/resultado_salma.jtl" ]; then
+            echo "resultado_salma.jtl generado correctamente"
+            ls -lh "test-results/performance/resultado_salma.jtl"
+          else
+            echo "No se genero resultado_salma.jtl"
+          fi
 
       - name: Subir resultados JMeter
         if: always()
@@ -63,4 +84,4 @@ jobs:
           name: jmeter-grupo08-salma
           path: test-results/performance/
           if-no-files-found: warn
-'@ | Set-Content $workflow -Encoding UTF8
+          retention-days: 7
