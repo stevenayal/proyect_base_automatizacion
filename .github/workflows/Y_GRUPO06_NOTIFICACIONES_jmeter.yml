@@ -1,0 +1,118 @@
+name: JMeter GRUPO06 NOTIFICACIONES
+
+on:
+  push:
+    branches: [grupo-06-notificaciones-alertas]
+    paths:
+      - 'grupos/grupo-06-notificaciones-alertas/tests/performance/**'
+      - '.github/workflows/Y_GRUPO06_NOTIFICACIONES_jmeter.yml'
+  workflow_dispatch:
+    inputs:
+      monitoring_dashboard_url:
+        description: URL publica del dashboard de Grafana a capturar como evidencia
+        required: false
+        default: https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958
+
+permissions:
+  contents: read
+
+env:
+  MONITORING_URL: ${{ inputs.monitoring_dashboard_url || 'https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958' }}
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Traer scripts de reporte y monitoreo (repo publico del profe)
+        uses: actions/checkout@v5
+        with:
+          repository: stevenayal/aiquaa-performance-mcp-server
+          path: mcp-tools
+
+      - name: Copiar scripts al workspace
+        run: |
+          mkdir -p src
+          cp -r mcp-tools/src/reporting src/
+          cp -r mcp-tools/src/monitoring src/
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install JMeter
+        run: |
+          curl --fail --location --silent --show-error https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz -o jmeter.tgz
+          tar -xzf jmeter.tgz
+
+      - name: Run headless (carga baja y autorizada)
+        env:
+          SANDBOX_API_KEY: ${{ secrets.SANDBOX_API_KEY }}
+        run: |
+          mkdir -p test-results/performance/dashboard
+          apache-jmeter-5.6.3/bin/jmeter -n -t grupos/grupo-06-notificaciones-alertas/tests/performance/plans/P_NOTIFICACIONES.jmx \
+            -JapiKey="${SANDBOX_API_KEY}" \
+            -JbodyFile="$GITHUB_WORKSPACE/grupos/grupo-06-notificaciones-alertas/tests/performance/data/body_notificacion.json" \
+            -Jthreads=2 -Jloops=5 -JrampUp=2 -JthinkTimeMs=500 \
+            -l test-results/performance/R_NOTIFICACIONES.jtl -e -o test-results/performance/dashboard
+
+      - name: Set up Python
+        if: always()
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install report dependencies
+        if: always()
+        run: pip install -r src/reporting/python/requirements.txt
+
+      - name: Install monitoring capture dependencies
+        if: always()
+        run: pip install -r src/monitoring/python/requirements.txt
+
+      - name: Capture Grafana dashboard evidence
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p test-results/performance/evidence
+          python3 src/monitoring/python/capture_dashboard.py \
+            --url "${{ env.MONITORING_URL }}" \
+            --output test-results/performance/evidence/EVIDENCIA_MONITOREO.png \
+            --wait-seconds 8 \
+            --height 2400 \
+            --ready-timeout-seconds 180
+
+      - name: Generate PDF report and evaluate thresholds
+        if: always()
+        run: |
+          EVIDENCE_ARGS=()
+          if [ -f test-results/performance/evidence/EVIDENCIA_MONITOREO.png ]; then
+            EVIDENCE_ARGS=(--evidence-image test-results/performance/evidence/EVIDENCIA_MONITOREO.png \
+              --evidence-label "Dashboard de monitoreo (Grafana)" \
+              --evidence-url "${{ env.MONITORING_URL }}")
+          fi
+          python3 src/reporting/python/generate_report.py \
+            --jtl test-results/performance/R_NOTIFICACIONES.jtl \
+            --thresholds grupos/grupo-06-notificaciones-alertas/tests/performance/thresholds/thresholds.json \
+            --output test-results/performance/INFORME_PERF_NOTIFICACIONES.pdf \
+            --summary-json test-results/performance/summary.json \
+            --api-name "Notificaciones y Alertas - Grupo 06" --test-type smoke --threads 2 \
+            --plan grupos/grupo-06-notificaciones-alertas/tests/performance/plans/P_NOTIFICACIONES.jmx \
+            --repo-url "https://github.com/${{ github.repository }}" "${EVIDENCE_ARGS[@]}"
+
+      - name: Upload PDF report (se abre en el navegador)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          path: test-results/performance/INFORME_PERF_NOTIFICACIONES.pdf
+          archive: false
+          if-no-files-found: warn
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: jmeter-NOTIFICACIONES
+          path: test-results/performance
