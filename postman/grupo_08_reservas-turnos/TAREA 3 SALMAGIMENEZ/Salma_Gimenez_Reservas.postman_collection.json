@@ -1,0 +1,201 @@
+{
+  "info": {
+    "_postman_id": "salma-gimenez-reservas-automation",
+    "name": "SALMA-GIMENEZ - Reservas - Pre Request y Post Request DB",
+    "description": "Automatización de CP001 y CP002 de Reservas/Turnos con Pre-request, Tests y validación mediante API SQL.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "CP001 - Reservas - Consulta exitosa de una reserva existente",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const reservationId = pm.environment.get('reservationId');",
+              "pm.expect(reservationId, 'reservationId debe estar configurado').to.be.a('string').and.not.empty;"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code es 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const jsonData = pm.response.json();",
+              "const reservationId = String(pm.environment.get('reservationId'));",
+              "",
+              "pm.test('La reserva consultada corresponde al ID solicitado', function () {",
+              "    pm.expect(String(jsonData.data.id)).to.eql(reservationId);",
+              "});",
+              "",
+              "pm.test('La respuesta contiene los datos de la reserva', function () {",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.have.property('usuario_id');",
+              "    pm.expect(jsonData.data).to.have.property('servicio');",
+              "    pm.expect(jsonData.data).to.have.property('fecha_hora');",
+              "    pm.expect(jsonData.data).to.have.property('estado');",
+              "});",
+              "",
+              "const baseUrl = pm.environment.get('baseUrl');",
+              "const apiKey = pm.environment.get('apiKey');",
+              "pm.sendRequest({",
+              "    url: baseUrl + '/api/v1/sql/select',",
+              "    method: 'POST',",
+              "    header: {'Content-Type':'application/json','x-api-key':apiKey},",
+              "    body: {mode:'raw', raw: JSON.stringify({",
+              "        sql: 'SELECT id, usuario_id, servicio, fecha_hora, estado FROM reservas WHERE id = $1',",
+              "        params: [reservationId]",
+              "    })}",
+              "}, function (err, res) {",
+              "    pm.test('La reserva existe en la BD', function () {",
+              "        pm.expect(err).to.eql(null);",
+              "        pm.expect(res.code).to.be.oneOf([200, 201]);",
+              "        const db = res.json();",
+              "        pm.expect(db.data).to.be.an('array').that.is.not.empty;",
+              "        pm.expect(String(db.data[0].id)).to.eql(reservationId);",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/reservas/{{reservationId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "reservas",
+            "{{reservationId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "CP002 - Reservas - Reserva exitosa de un turno",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.expect(pm.environment.get('usuarioId'), 'usuarioId').to.not.be.undefined;",
+              "pm.expect(pm.environment.get('servicio'), 'servicio').to.be.a('string').and.not.empty;",
+              "pm.expect(pm.environment.get('fechaHora'), 'fechaHora').to.be.a('string').and.not.empty;",
+              "pm.expect(pm.environment.get('notas'), 'notas').to.be.a('string').and.not.empty;"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Reserva creada correctamente', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "const jsonData = pm.response.json();",
+              "",
+              "pm.test('La respuesta contiene la reserva creada', function () {",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.have.property('id');",
+              "});",
+              "",
+              "if (jsonData.data && jsonData.data.id !== undefined) {",
+              "    pm.environment.set('reservationId', String(jsonData.data.id));",
+              "}",
+              "",
+              "pm.test('Los datos principales corresponden a la reserva enviada', function () {",
+              "    pm.expect(String(jsonData.data.usuario_id)).to.eql(String(pm.environment.get('usuarioId')));",
+              "    pm.expect(jsonData.data.servicio).to.eql(pm.environment.get('servicio'));",
+              "});",
+              "",
+              "const baseUrl = pm.environment.get('baseUrl');",
+              "const apiKey = pm.environment.get('apiKey');",
+              "const newId = String(jsonData.data.id);",
+              "pm.sendRequest({",
+              "    url: baseUrl + '/api/v1/sql/select',",
+              "    method: 'POST',",
+              "    header: {'Content-Type':'application/json','x-api-key':apiKey},",
+              "    body: {mode:'raw', raw: JSON.stringify({",
+              "        sql: 'SELECT id, usuario_id, servicio, fecha_hora, estado FROM reservas WHERE id = $1',",
+              "        params: [newId]",
+              "    })}",
+              "}, function (err, res) {",
+              "    pm.test('La reserva creada existe en la BD', function () {",
+              "        pm.expect(err).to.eql(null);",
+              "        pm.expect(res.code).to.be.oneOf([200, 201]);",
+              "        const db = res.json();",
+              "        pm.expect(db.data).to.be.an('array').that.is.not.empty;",
+              "        pm.expect(String(db.data[0].id)).to.eql(newId);",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuarioId\": {{usuarioId}},\n  \"servicio\": \"{{servicio}}\",\n  \"fechaHora\": \"{{fechaHora}}\",\n  \"notas\": \"{{notas}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/reservas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "reservas"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
