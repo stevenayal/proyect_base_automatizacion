@@ -38,7 +38,13 @@ al 04/10/2026 (ver `evidence/semana-08/ALCANCE_FINAL.md`).
 - Escenario de fallo controlado aislado con el tag `@grupo06_fallo_controlado` (no corre en CI).
 - Timeout de pasos de Cucumber a 15 s en el perfil `grupo06`, para que un fallo muestre el mensaje real.
 - Workflow de BDD: genera el PDF de evidencias y se dispara también con cambios en `support/` y en el script.
-- Evidencia y documentación de las semanas 07 y 08.
+- Workflow de BDD sin `continue-on-error`: un escenario fallido deja el workflow en rojo.
+- Capturas: el hook espera a que la SPA termine de dibujar (los pasos de navegación salían en blanco).
+- BDD: reintento acotado que espera 61 s solo si el fallo fue por el rate limit compartido del sandbox.
+- CI de Newman y JMeter: grupo de concurrencia común, espera a que termine el plan JMeter del curso
+  (misma API key, 30 req/min) y espera de cupo, que también calienta el sandbox antes de medir.
+  Newman con `--delay-request 5000`; en la rama corren vía este PR (sin push duplicado).
+- Evidencia y documentación de las semanas 07 y 08. Los PDF se adjuntan por separado y no se versionan.
 
 ### Cómo verificar
 
@@ -55,8 +61,12 @@ Detalle completo en `evidence/semana-07/README.md`.
 - [x] Rama `grupo-06-notificaciones-alertas`; cambios solo en archivos del grupo y en su perfil/workflows.
 - [x] Sin credenciales versionadas (el JSON de Newman no se sube; la evidencia fue escaneada).
 - [x] Evidencia de éxito y de fallo controlado.
-- [x] Síntesis PDF con decisión, límites y riesgos.
+- [x] Síntesis PDF con decisión, límites y riesgos (adjunta por separado).
+- [x] Workflows del Grupo 06 en verde (BDD, Newman y JMeter) sobre `0e2d05f`.
 - [ ] Revisión de cada integrante completada en `evidence/semana-07/README.md` y `CONTRIBUCIONES.md`.
-- [ ] Workflows en verde tras el push final.
+
+> Los checks de **Grupo 07 Ordenes** y del **plan JMeter del curso** que fallan en este PR no dependen de estos
+> cambios: cortan por `429` (cuota compartida de la API key demo). La suite del Grupo 07 pasa completa sobre
+> `main` + esta rama cuando hay cupo. Se pueden relanzar con "Re-run failed jobs".
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
