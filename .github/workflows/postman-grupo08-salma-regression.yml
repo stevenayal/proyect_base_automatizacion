@@ -48,7 +48,7 @@ jobs:
 
       - name: Generar informe PDF con skill del profesor
         run: |
-          python "scripts/newman_report.py" \
+          python "skills/postman-newman-skill/reporter/newman_report.py" \
             --results "newman/results.json" \
             --output "grupos/grupo-08-reservas-turnos/TAREA 4 SALMAGIMENEZ/informe/Informe_Postman_Newman_Salma_Gimenez.pdf" \
             --author "Salma Gimenez" \
