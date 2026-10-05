@@ -1,4 +1,4 @@
-﻿name: JMeter Grupo 08 - Salma
+﻿name: JMeter Grupo 08 - Salma - Grafana y PDF
 
 on:
   push:
@@ -9,10 +9,15 @@ on:
 permissions:
   contents: read
 
+env:
+  RESULTS_DIR: test-results/performance
+  DASHBOARD_URL: https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958
+
 jobs:
   performance:
     name: JMeter Grupo 08 - Reservas
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Descargar repositorio
@@ -23,6 +28,16 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Instalar JMeter 5.6.3
         shell: bash
@@ -41,14 +56,17 @@ jobs:
         run: |
           test -f "grupos/grupo-08-reservas-turnos/TAREA 5 SALMAGIMENEZ/reservas_performance.jmx"
           test -f "grupos/grupo-08-reservas-turnos/TAREA 5 SALMAGIMENEZ/reservas.csv"
+          test -f "grupos/grupo-08-reservas-turnos/TAREA 5 SALMAGIMENEZ/thresholds_salma.json"
 
           echo "JMX encontrado"
           echo "CSV encontrado"
+          echo "Thresholds encontrados"
 
       - name: Crear carpeta de resultados
         shell: bash
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/test-results/performance"
+          mkdir -p "$GITHUB_WORKSPACE/${RESULTS_DIR}/dashboard"
+          mkdir -p "$GITHUB_WORKSPACE/${RESULTS_DIR}/evidence"
 
       - name: Ejecutar JMeter Grupo 08
         shell: bash
@@ -64,24 +82,112 @@ jobs:
           jmeter -n \
             -t "reservas_performance.jmx" \
             -JapiKey="$API_KEY" \
-            -l "$GITHUB_WORKSPACE/test-results/performance/resultado_salma.jtl"
+            -l "$GITHUB_WORKSPACE/${RESULTS_DIR}/resultado_salma.jtl" \
+            -e \
+            -o "$GITHUB_WORKSPACE/${RESULTS_DIR}/dashboard"
 
       - name: Verificar resultado JMeter
         if: always()
         shell: bash
         run: |
-          if [ -f "test-results/performance/resultado_salma.jtl" ]; then
+          if [ -f "${RESULTS_DIR}/resultado_salma.jtl" ]; then
             echo "resultado_salma.jtl generado correctamente"
-            ls -lh "test-results/performance/resultado_salma.jtl"
+            ls -lh "${RESULTS_DIR}/resultado_salma.jtl"
           else
             echo "No se genero resultado_salma.jtl"
           fi
 
-      - name: Subir resultados JMeter
+          if [ -f "${RESULTS_DIR}/dashboard/index.html" ]; then
+            echo "Dashboard HTML de JMeter generado correctamente"
+          else
+            echo "No se genero el dashboard HTML de JMeter"
+          fi
+
+      - name: Capturar evidencia Grafana
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          pip install selenium
+
+          CAPTURE=$(npm pack aiquaa-performance-mcp-server \
+            --pack-destination . \
+            --silent)
+
+          tar -xzf "$CAPTURE" \
+            package/dist/monitoring/python/capture_dashboard.py
+
+          python3 package/dist/monitoring/python/capture_dashboard.py \
+            --url "${DASHBOARD_URL}" \
+            --output "${RESULTS_DIR}/evidence/EVIDENCIA_GRAFANA.png" \
+            --wait-seconds 8 \
+            --timeout-seconds 180
+
+      - name: Generar informe PDF
+        if: always()
+        shell: bash
+        run: |
+          EVIDENCE_ARGS=()
+
+          if [ -f "${RESULTS_DIR}/evidence/EVIDENCIA_GRAFANA.png" ]; then
+            EVIDENCE_ARGS=(
+              --evidence-image "${RESULTS_DIR}/evidence/EVIDENCIA_GRAFANA.png"
+              --evidence-label "Dashboard Grafana - AIQUAA Sandbox"
+              --evidence-url "${DASHBOARD_URL}"
+            )
+          fi
+
+          set +e
+
+          npx -y aiquaa-performance-mcp-server --report \
+            "${RESULTS_DIR}/resultado_salma.jtl" \
+            "grupos/grupo-08-reservas-turnos/TAREA 5 SALMAGIMENEZ/thresholds_salma.json" \
+            "${RESULTS_DIR}/INFORME_PERF_GRUPO08_SALMA.pdf" \
+            --api-name "AIQUAA Sandbox API - Grupo 08 Reservas" \
+            --plan "grupos/grupo-08-reservas-turnos/TAREA 5 SALMAGIMENEZ/reservas_performance.jmx" \
+            --test-type carga \
+            --threads "20" \
+            --loops "1" \
+            --author "Salma Gimenez" \
+            --api-version "${{ github.sha }}" \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            "${EVIDENCE_ARGS[@]}"
+
+          status=$?
+
+          set -e
+
+          if [ ! -f "${RESULTS_DIR}/INFORME_PERF_GRUPO08_SALMA.pdf" ]; then
+            echo "::error::No se genero el informe PDF (exit ${status})."
+            exit "${status}"
+          fi
+
+          echo "Informe PDF generado correctamente"
+          ls -lh "${RESULTS_DIR}/INFORME_PERF_GRUPO08_SALMA.pdf"
+
+      - name: Evaluar umbrales
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          npx -y aiquaa-performance-mcp-server --evaluate \
+            "${RESULTS_DIR}/resultado_salma.jtl" \
+            "grupos/grupo-08-reservas-turnos/TAREA 5 SALMAGIMENEZ/thresholds_salma.json"
+
+      - name: Subir informe PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: INFORME_PERF_GRUPO08_SALMA
+          path: test-results/performance/INFORME_PERF_GRUPO08_SALMA.pdf
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Subir resultados completos
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: jmeter-grupo08-salma
           path: test-results/performance/
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 14
