@@ -203,8 +203,22 @@ Ruta prevista para la evidencia:
 * [x] Evidencia de setup cargada.
 * [x] Colección Postman con trazabilidad BDD → API (semana 02).
 * [x] Consultas SQL, assertions reales y evidencia (semana 03).
-* [ ] Revisión final del grupo.
-* [ ] Pull Request grupal hacia `main`.
+* [x] Workflow de Newman con informe PDF.
+* [x] Plan JMeter + CSV con SLA y pipeline de rendimiento con informe PDF (MCP).
+* [x] BDD con Cucumber + Playwright sobre el sitio web, con evidencia por paso.
+* [x] Integración: éxito, fallo controlado, evidencia API/JMeter y síntesis PDF (semana 07).
+* [x] Alcance final congelado, contribuciones y presentación (semana 08).
+* [ ] Revisión final del grupo (cada integrante completa su columna en `evidence/semana-08/CONTRIBUCIONES.md`).
+* [ ] Pull Request grupal hacia `main` aprobado: [#93](https://github.com/stevenayal/proyect_base_automatizacion/pull/93) abierto.
+
+## Semanas 07 y 08 — Integración y entrega final
+
+| Semana | Contenido | Ubicación |
+|---|---|---|
+| 07 | Flujo BDD acotado, evidencia de éxito y de fallo controlado, evidencia API/JMeter vinculada, síntesis PDF, cómo repetirlo y revisión por integrante | [`evidence/semana-07/`](evidence/semana-07/) |
+| 08 | Presentación final, alcance congelado, contribuciones y descripción del PR final | [`evidence/semana-08/`](evidence/semana-08/) |
+
+Decisión de la integración: **apto con observaciones** (HG06-03 abierto; monitoreo con Grafana sin integrar).
 
 ## Entregables generales del proyecto
 
@@ -213,7 +227,7 @@ Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 * [x] Análisis y alcance.
 * [x] BDD en `features/`.
 * [x] API — colección Postman/Newman con validación SQL.
-* [ ] UI — pruebas en `tests/e2e/` con Playwright.
-* [x] Evidencias en `evidence/` y `evidence/semana-03/`.
-* [ ] CI/CD verde.
-* [ ] Pull Request hacia `main`.
+* [x] UI — Cucumber + Playwright (`features/notificaciones-acceso-ui.feature`). El spec `tests/e2e/notificaciones-alertas.spec.ts` sigue pendiente (`test.fixme`).
+* [x] Evidencias en `evidence/`, `evidence/semana-03/`, `evidence/semana-07/` y `evidence/semana-08/`.
+* [ ] CI/CD verde: el workflow de BDD pasó en GitHub (03/10/2026); falta verificar los de Newman y JMeter tras el push final.
+* [ ] Pull Request hacia `main` aprobado (#93 abierto).
