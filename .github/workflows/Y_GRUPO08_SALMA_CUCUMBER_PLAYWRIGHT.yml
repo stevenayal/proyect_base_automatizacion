@@ -14,7 +14,7 @@ jobs:
 
     env:
       BASE_URL: https://aiquaa-sandbox-web.vercel.app
-      API_URL: https://aiquaa-sandbox-api.vercel.app
+      SANDBOX_API_URL: https://aiquaa-sandbox-api.vercel.app
       SANDBOX_API_KEY: ${{ secrets.SANDBOX_API_KEY }}
       HEADED: "0"
 
