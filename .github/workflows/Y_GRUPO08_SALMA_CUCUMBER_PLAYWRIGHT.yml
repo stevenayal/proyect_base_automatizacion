@@ -1,0 +1,65 @@
+﻿name: Cucumber Playwright - Grupo 08 Salma
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  cucumber-playwright:
+    runs-on: ubuntu-latest
+
+    env:
+      BASE_URL: https://aiquaa-sandbox-web.vercel.app
+      API_URL: https://aiquaa-sandbox-api.vercel.app
+      SANDBOX_API_KEY: ${{ secrets.SANDBOX_API_KEY }}
+      HEADED: "0"
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Validar escenarios Cucumber
+        run: >
+          npx cucumber-js
+          --config "grupos/grupo-08-reservas-turnos/TAREA 6 SALMAGIMENEZ/cucumber.js"
+          --profile dryrun
+
+      - name: Ejecutar Cucumber con Playwright
+        id: cucumber
+        continue-on-error: true
+        run: >
+          npx cucumber-js
+          --config "grupos/grupo-08-reservas-turnos/TAREA 6 SALMAGIMENEZ/cucumber.js"
+          --profile pr
+
+      - name: Subir reporte Cucumber
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: RESULTADOS_CUCUMBER_PLAYWRIGHT_GRUPO08_SALMA
+          path: |
+            grupos/grupo-08-reservas-turnos/TAREA 6 SALMAGIMENEZ/reports/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Resultado de la automatizacion
+        if: always()
+        run: |
+          echo "Ejecucion Cucumber + Playwright finalizada."
+          echo "Los resultados y evidencias se encuentran en el artifact."
