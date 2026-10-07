@@ -1,0 +1,568 @@
+{
+  "info": {
+    "_postman_id": "0502fed7-21c1-4cc1-81fc-5b0a6af178dd",
+    "name": "Coleccion_GRUPO_9",
+    "description": "Colección de práctica para consumir el API sandbox del curso de Automatización de Pruebas de Software. Configura las variables `baseUrl` y `apiKey` antes de correr los requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "25562665"
+  },
+  "item": [
+    {
+      "name": "Grupo 9 - Reportes y Dashboard",
+      "item": [
+        {
+          "name": "Obtener tipo de movimiento su ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 1. Obtener la respuesta JSON\r\nconst responseData = pm.response.json();\r\n\r\n// 2. Extraer el 'id' desde el arreglo \"data\"\r\nconst idMovimiento = responseData.data[0].id;\r\n\r\n// 3. Guardar en la variable de la colección\r\npm.collectionVariables.set(\"movimientoId\", idMovimiento);\r\n\r\n// 4. Confirmación en consola\r\nconsole.log(\"ID capturado correctamente:\", idMovimiento);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sql\": \"SELECT id FROM movimientos WHERE activo = true ORDER BY RANDOM() LIMIT 1;\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sql/select",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sql",
+                "select"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener tipo de movimiento su  Nombre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 1. Convertir la respuesta del servidor a formato JSON\r\nconst responseData = pm.response.json();\r\n\r\n// 2. Extraer 'tipo_movimiento' del primer elemento del arreglo 'data'\r\nconst tipoMovimientoObtenido = responseData.data[0].tipo_movimiento;\r\n\r\n// 3. Guardar el resultado en una variable de colección\r\npm.collectionVariables.set(\"tipoMovimientoDinamico\", tipoMovimientoObtenido);\r\n\r\n// 4. Imprimir en consola para confirmar la captura\r\nconsole.log(\"Tipo de movimiento capturado:\", tipoMovimientoObtenido);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sql\": \"SELECT tipo_movimiento FROM movimientos WHERE activo = true ORDER BY RANDOM() LIMIT 1;\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sql/select",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sql",
+                "select"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Movimientos agrupados por tipo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// 1. Validar que el código de estado sea 200 OK\r",
+                  "pm.test(\"Status code es 200 OK\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "\r",
+                  "// 2. Comprobación rápida de la estructura del Body\r",
+                  "pm.test(\"El body tiene la estructura esperada\", function () {\r",
+                  "    var jsonData = pm.response.json();\r",
+                  "    \r",
+                  "    // Verifica que exista 'data' y que no esté vacío\r",
+                  "    pm.expect(jsonData).to.have.property('data').that.is.an('array').that.is.not.empty;\r",
+                  "    \r",
+                  "    // Verifica que el primer elemento tenga exactamente los campos requeridos\r",
+                  "    pm.expect(jsonData.data[0]).to.have.all.keys('tipo_movimiento', 'cantidad', 'total');\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reportes/movimientos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reportes",
+                "movimientos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Resumen de movimientos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 1. Validar que el código de estado sea 200 OK\r\npm.test(\"Status code es 200 OK\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Comprobación rápida de la estructura del Body\r\npm.test(\"El body tiene la estructura esperada\", function () {\r\n    var jsonData = pm.response.json();\r\n    \r\n    // Verifica que exista 'data' y que no esté vacío\r\n\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reportes/resumen",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reportes",
+                "resumen"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar movimientos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 1. Validar que el código de estado sea 200 OK\r\npm.test(\"Status code es 200 OK\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Comprobación rápida de la estructura del Body\r\npm.test(\"El body tiene la estructura esperada\", function () {\r\n    var jsonData = pm.response.json();\r\n    \r\n  \r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/movimientos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movimientos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Caso de Obtener siempre un movimiento Activo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 1. Validar que el código de estado sea 200 OK\r\npm.test(\"Status code es 200 OK\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Comprobación rápida de la estructura del Body\r\npm.test(\"El body tiene la estructura esperada\", function () {\r\n    var jsonData = pm.response.json();\r\n    \r\n   \r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/movimientos/{{movimientoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movimientos",
+                "{{movimientoId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Caso Crear Movimiento Aleatorio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 1. Validar que el código de estado sea 200 OK\r\npm.test(\"201 Created\", function () {\r\n    pm.response.to.have.status(201);\r\n});\r\n\r\n// 2. Comprobación rápida de la estructura del Body\r\n// 1. Parsear la respuesta en formato JSON\r\nconst responseData = pm.response.json();\r\n\r\n// 2. Extraer el 'id' generado dentro del objeto 'data'\r\nconst idNuevoMovimiento = responseData.data.id;\r\n\r\n// 3. Guardar el ID en una variable de colección llamada 'nuevoMovimientoId'\r\npm.collectionVariables.set(\"nuevoMovimientoId\", idNuevoMovimiento);\r\n\r\n// 4. Imprimir en consola para verificar\r\nconsole.log(\"Nuevo movimiento creado con ID:\", idNuevoMovimiento);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"usuarioId\": 1,\r\n  \"tipoMovimiento\": \"{{tipoMovimientoDinamico}}\",\r\n  \"monto\":{{$randomPrice}},\r\n  \"referenciaId\": 1,\r\n  \"descripcion\": \"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/movimientos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movimientos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Caso Actualizar Movimiento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 1. Validar que el código de estado sea 200 OK\r\npm.test(\"Status code es 200 OK\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Comprobación rápida de la estructura del Body\r\npm.test(\"El body tiene la estructura esperada\", function () {\r\n    var jsonData = pm.response.json();\r\n    \r\n    \r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"tipoMovimiento\": \"{{tipoMovimientoDinamico}}\",\r\n  \"monto\": 999.99,\r\n  \"referenciaId\": {{movimientoId}},\r\n  \"descripcion\": \"Movimiento actualizado en prueba QA\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/movimientos/{{nuevoMovimientoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movimientos",
+                "{{nuevoMovimientoId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Caso Eliminar Movimiento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 1. Validar que el código de estado sea 200 OK\r\npm.test(\"204\", function () {\r\n    pm.response.to.have.status(204);\r\n});\r\n\r\n// 2. Comprobación rápida de la estructura del Body\r\n;"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/movimientos/{{nuevoMovimientoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movimientos",
+                "{{nuevoMovimientoId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Corregir descripcion de un movimiento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sql\": \"UPDATE movimientos SET descripcion = $1 WHERE id = $2\",\n  \"params\": [\n    \"Revisado por auditoria\",\n    1\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sql/update",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sql",
+                "update"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Docs",
+      "item": [
+        {
+          "name": "OpenAPI spec (JSON)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/docs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "docs"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pre-request Script DE LA COLECCION (icono de la coleccion > pestaña",
+          "// \"Scripts\" > \"Pre-request script\"). Corre antes de CADA request de",
+          "// toda la coleccion, asi que es el lugar para declarar UNA sola vez",
+          "// helpers/valores que todos los requests van a reutilizar, en vez de",
+          "// repetirlos en el pre-request de cada item.",
+          "",
+          "// 1) Helper reusable para consultar la BD via el endpoint sandbox.",
+          "//    Arma el objeto que despues se le pasa a pm.sendRequest(...) para",
+          "//    correr un SELECT de solo lectura contra qa_training.",
+          "if (typeof utils === \"undefined\") {",
+          "  utils = {",
+          "    bodySqlRest: function (sql, params) {",
+          "      return {",
+          "        url: pm.collectionVariables.get(\"baseUrl\") + \"/api/v1/sql/select\",",
+          "        method: \"POST\",",
+          "        header: {",
+          "          \"Content-Type\": \"application/json\",",
+          "          \"x-api-key\": pm.collectionVariables.get(\"apiKey\")",
+          "        },",
+          "        body: {",
+          "          mode: \"raw\",",
+          "          raw: JSON.stringify({ sql: sql, params: params || [] })",
+          "        }",
+          "      };",
+          "    }",
+          "  };",
+          "}",
+          "",
+          "// 2) Valores por defecto del body de \"Crear transferencia\". Se",
+          "//    resetean a su default ANTES DE CADA request (porque este script",
+          "//    corre siempre primero). Si un item necesita un caso distinto,",
+          "//    sobreescribe SOLO el campo que le interesa en su propio",
+          "//    Pre-request Script -- no hace falta tocar el body completo.",
+          "pm.collectionVariables.set(\"cuentaOrigenId\", 1);",
+          "pm.collectionVariables.set(\"cuentaDestinoId\", 2);",
+          "pm.collectionVariables.set(\"monto\", 25000);",
+          "pm.collectionVariables.set(\"descripcion\", \"Pago de alquiler - E2E\");"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://aiquaa-sandbox-api.vercel.app"
+    },
+    {
+      "key": "apiKey",
+      "value": "sbx_demo_f581ca21e68a347288c94d71"
+    },
+    {
+      "key": "cuentaOrigenId",
+      "value": "1"
+    },
+    {
+      "key": "cuentaDestinoId",
+      "value": "2"
+    },
+    {
+      "key": "monto",
+      "value": "25000"
+    },
+    {
+      "key": "descripcion",
+      "value": "Pago de alquiler - E2E"
+    },
+    {
+      "key": "movimientoId",
+      "value": ""
+    },
+    {
+      "key": "tipoMovimientoDinamico",
+      "value": ""
+    },
+    {
+      "key": "nuevoMovimientoId",
+      "value": ""
+    }
+  ]
+}

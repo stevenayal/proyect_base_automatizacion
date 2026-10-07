@@ -1,0 +1,146 @@
+name: Performance Grupo 09 - JMeter + Evidencia + Reporte PDF
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tests/performance/**"
+      - ".github/workflows/grupo09-performance-regression.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tests/performance/**"
+      - ".github/workflows/grupo09-performance-regression.yml"
+  workflow_dispatch:
+
+env:
+  JMETER_VERSION: "5.6.3"
+  # COMPLETAR: email de la cuenta sandbox usada para ver el panel de reportes.
+  # Es un entorno de prueba/demo, por eso se hardcodea directo aca.
+  # Este login solo pide email (sin contraseña), por eso SANDBOX_PASSWORD queda vacío.
+  SANDBOX_USER: "admin@aiquaa.com"
+  SANDBOX_PASSWORD: ""
+  SANDBOX_LOGIN_URL: "https://aiquaa-sandbox-web.vercel.app/auth/login"
+  SANDBOX_REPORTS_URL: "https://aiquaa-sandbox-web.vercel.app/reportes"
+
+jobs:
+  jmeter-performance:
+    name: JMeter + Evidencia + PDF
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v7
+
+      - name: Configurar Java (requerido por JMeter)
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Descargar e instalar Apache JMeter
+        run: |
+          wget -q "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz"
+          tar -xzf "apache-jmeter-${JMETER_VERSION}.tgz"
+          echo "JMETER_HOME=$PWD/apache-jmeter-${JMETER_VERSION}" >> "$GITHUB_ENV"
+          echo "$PWD/apache-jmeter-${JMETER_VERSION}/bin" >> "$GITHUB_PATH"
+
+      - name: Instalar plugin Custom Thread Groups (bzm Concurrency Thread Group)
+        run: |
+          JM="$JMETER_HOME"
+          wget -q -O "$JM/lib/cmdrunner-2.3.jar" \
+            "https://repo1.maven.org/maven2/kg/apc/cmdrunner/2.3/cmdrunner-2.3.jar"
+          wget -q -O "$JM/lib/ext/jmeter-plugins-manager.jar" \
+            "https://repo1.maven.org/maven2/kg/apc/jmeter-plugins-manager/1.10/jmeter-plugins-manager-1.10.jar"
+          java -cp "$JM/lib/ext/jmeter-plugins-manager.jar" org.jmeterplugins.repository.PluginManagerCMDInstaller
+          chmod +x "$JM/bin/PluginsManagerCMD.sh"
+          "$JM/bin/PluginsManagerCMD.sh" install jpgc-casutg
+
+      - name: Ejecutar prueba de rendimiento (JMeter, non-GUI)
+        run: |
+          mkdir -p test-results/performance/dashboard
+          jmeter -n \
+            -t tests/performance/plans/GRUPO_9.jmx \
+            -l test-results/performance/R_GRUPO9.jtl \
+            -e -o test-results/performance/dashboard
+
+      - name: Configurar Node.js (para el generador de informes)
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Configurar Python (para la evidencia de monitoreo)
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Configurar Chrome (para Selenium)
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Instalar dependencias de Python (Selenium)
+        run: pip install -r tests/performance/monitoring/requirements.txt
+
+      - name: Capturar evidencia del panel de reportes (login + screenshot)
+        id: evidence
+        continue-on-error: true
+        run: |
+          mkdir -p test-results/performance/evidence
+          python tests/performance/monitoring/capture_evidence.py \
+            --login-url "$SANDBOX_LOGIN_URL" \
+            --target-url "$SANDBOX_REPORTS_URL" \
+            --output test-results/performance/evidence/evidencia_monitoreo.png \
+            --wait 6
+
+      - name: Evaluar umbrales de la corrida
+        id: evaluate
+        run: |
+          npx -y aiquaa-performance-mcp-server --evaluate \
+            test-results/performance/R_GRUPO9.jtl \
+            tests/performance/thresholds/GRUPO_09_CLAUDIO_thresholds.json \
+            | tee test-results/performance/evaluation.json
+
+      - name: Generar informe PDF
+        if: always()
+        run: |
+          EVIDENCE_ARGS=""
+          if [ -f "test-results/performance/evidence/evidencia_monitoreo.png" ]; then
+            EVIDENCE_ARGS="--evidence-image test-results/performance/evidence/evidencia_monitoreo.png --evidence-label Panel de reportes - Sandbox --evidence-url $SANDBOX_REPORTS_URL"
+          fi
+          npx -y aiquaa-performance-mcp-server --report \
+            test-results/performance/R_GRUPO9.jtl \
+            tests/performance/thresholds/GRUPO_09_CLAUDIO_thresholds.json \
+            test-results/performance/INFORME_PERF_GRUPO9.pdf \
+            --api-name "Grupo 09 - Carrito / Movimientos" \
+            --test-type smoke --threads 1 --loops 1 \
+            --api-version "${{ github.sha }}" \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            --author "${{ github.triggering_actor }}" \
+            $EVIDENCE_ARGS
+
+      - name: Verificar que la corrida haya aprobado los umbrales
+        run: |
+          if grep -q '"FAIL"' test-results/performance/evaluation.json; then
+            echo "La corrida no cumplió los umbrales definidos (ver evaluation.json)."
+            exit 1
+          fi
+          echo "Umbrales cumplidos."
+
+      - name: Subir informe PDF (visible directo desde la run)
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: informe-performance-grupo09-pdf
+          path: test-results/performance/INFORME_PERF_GRUPO9.pdf
+          archive: false
+          retention-days: 7
+
+      - name: Subir resultados completos (JTL, dashboard, evidencia)
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: resultados-performance-grupo09
+          path: |
+            test-results/performance/R_GRUPO9.jtl
+            test-results/performance/dashboard/**
+            test-results/performance/evidence/**
+            test-results/performance/evaluation.json
+          retention-days: 7
