@@ -1,0 +1,14 @@
+Agrega tests de roles y usuarios
+
+se inclueyen los archivos con los request y los tests y el archivo del
+enviroment
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch prueba-tecnica-julieta-sanabria
+# Your branch is up to date with 'origin/prueba-tecnica-julieta-sanabria'.
+#
+# Changes to be committed:
+#	new file:   postman/Grupo-10-Administracion-Roles-Permisos.postman_collection.json
+#	new file:   postman/Grupo-10-Administracion-Roles-Permisos.postman_environment.json
+#

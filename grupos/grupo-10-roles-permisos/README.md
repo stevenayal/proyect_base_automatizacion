@@ -40,13 +40,31 @@ permisos adecuados puedan crear, editar o eliminar usuarios internos.
 - Pruebas de carga o rendimiento sobre el modulo de usuarios
 - Integracion con sistemas externos de autenticacion (SSO, LDAP, etc.)
 
+## CI: regresion Postman
+
+El workflow [postman-grupo10-regression-julieta.yml](../../.github/workflows/postman-grupo10-regression-julieta.yml)
+ejecuta la coleccion con Newman y genera un informe PDF con el reporter Python compartido.
+El artifact `informe-regresion-grupo10` queda disponible en cada ejecucion de Actions por 7 dias.
+Se activa manualmente o al abrir un PR/actualizar `main` con cambios en los archivos Postman,
+el workflow o el reporter.
+
+Configurar en Settings → Secrets and variables → Actions:
+
+- **Variable** `GRUPO10_BASE_URL` — URL del backend de pruebas.
+- **Secret** `GRUPO10_API_KEY` — API key del entorno.
+- La colección usa el usuario seed `1` y el rol seed `2`; cada corrida asigna/reactiva el rol, lo revoca y prueba el rechazo de un identificador inválido.
+
+La API key se envía como `x-api-key`; el environment local deja `baseUrl` y `apiKey` vacíos para que
+se completen sin guardar credenciales en el repositorio. Ejecutar la regresión solo contra el entorno
+de pruebas, ya que asignar y revocar roles modifica `usuario_roles`.
+
 ## Entregables
 
 Checklist según [ENTREGABLES.md](../../ENTREGABLES.md):
 
 - [ ] Análisis y alcance
 - [ ] BDD — `features/` (mínimo 3 escenarios: happy path, negativo, edge case)
-- [ ] API — colección Postman/Newman (si aplica al módulo)
+- [x] API — [colección Postman/Newman](../../postman/Grupo-10-Administracion-Roles-Permisos.postman_collection.json)
 - [ ] UI — `tests/e2e/` con Playwright
 - [ ] Evidencias en `evidence/`
 - [ ] CI/CD verde
