@@ -31,7 +31,7 @@ los gates verificados uno por uno y documentados en `evidence/semana-06/HEAL_OE-
 | # | Decisión | Por qué |
 |---|---|---|
 | 1 | Workspace en `tests/bdd/grupo07-ordenes-andrea/`, no en `grupos/` | El `cucumber.js:6` raíz globa `grupos/**/*.feature` pero solo carga steps de `tests/bdd/steps/**`. Un feature ahí daría colisión de definiciones. |
-| 2 | **No** mergear `main` | El plan original pedía `git merge origin/main` (además con el remoto mal nombrado). Todo lo necesario ya estaba en la rama; mergear `main` solo suma riesgo sobre la rama compartida. |
+| 2 | **No** mergear `main` | El plan original pedía `git merge origin/main` (además con el remoto mal nombrado). Todo lo necesario ya estaba en la rama; mergear `main` solo suma riesgo sobre la rama compartida. **Actualizado el 2026-10-04:** al abrir el PR semanal la rama estaba 18 commits atrás de `main`, y el diff mostraba **91 eliminaciones de archivos de Grupo 02, 03 y 09** que nunca se tocaron. Se integró `main` (merge sin conflictos); ver §8. |
 | 3 | Identificador de Andrea en todos los nombres | Convención ya usada por Andrea en el repo (`jmeter-grupo07-andrea-...`, `informe-perf-ordenes-andrea.pdf`). Los POM conservan nombres de clase limpios. |
 | 4 | API key tomada del repo, no inventada | `P_ORDENES.jmx:5` la tiene versionada (es la key pública del sandbox). Se verificó que responde `200` antes de construir nada. |
 | 5 | Monto leído del **atributo** `data-value` | Verificado en vivo: el atributo trae `320.98` y el texto en pantalla `320,98`. Un `toHaveText` fallaría siempre. |
@@ -49,6 +49,8 @@ los gates verificados uno por uno y documentados en `evidence/semana-06/HEAL_OE-
 | 17 | Un **único** `# criterio:` arriba del `Scenario` | El plan pedía tres dentro del scenario. Leyendo `bdd_report.py:120-136`, el reporter toma `elements[].comments` y **gana la última coincidencia**, con una fila por escenario: tres comentarios habrían mostrado solo RF-G7-03. Los comentarios por paso quedaron sin el prefijo `criterio:`. |
 | 18 | `agregar-criterios.mjs` (script propio) | El formatter `json:` de Cucumber 11 **no emite `comments`** (0 referencias en `json_formatter.js`). Sin inyectarlos, la matriz del PDF salía `(sin criterio documentado)`. |
 | 19 | Evidencia en `evidence/semana-06/` | Convención real del repo (Tarea 3 y 5). `results/` es gitignored, así que si no se copia, la evidencia no entra al repo. |
+| 20 | Evidencia visual **por paso** (hook `AfterStep`) | El PDF solo muestra el veredicto; no se veía qué dejaba cada paso. `bdd_report.py` **solo lee PNG cuyo nombre coincide con el ID** y no consume attachments de Cucumber, así que hacen falta las dos piezas: adjuntos por paso (HTML/JSON) y un PNG con nombre `<ID>-<PASSED\|FAILED>-<sello>.png` (anexo del PDF). Ver §8. |
+| 21 | El ID se deriva del **tag del escenario** | Se reutiliza el regex del reporter (`ID_TAG_RE`, `bdd_report.py:95`) en vez de hardcodear `OE-G07-01`. El nombre del archivo usa el tag **sin la `@`**, que es lo que `id_escenario()` (`bdd_report.py:144`) espera. |
 
 ## 3. Decisiones rechazadas
 
@@ -87,6 +89,11 @@ Registro honesto, porque son los que se repiten al estudiar:
 | Restaurado | `git diff` limpio → **11/11 PASS** |
 | Informe PDF | `VEREDICTO: CRITERIOS CUMPLIDOS`, matriz con RF-G7-01/02/03 |
 | Workflow simulado localmente | 6 pasos OK con el env del job |
+| Evidencia por paso (`AfterStep`) | **13/13 pasos con 1 PNG adjunto** (11 de negocio + `Before` + `After`), 0 pasos sin captura |
+| PNG para el anexo del reporter | `OE-G07-01-PASSED-1791113281405.png` (78 KB) escrito en `results/grupo07-andrea/` |
+| Anexo del PDF | 4 páginas, **1 imagen embebida**, rótulo `Anexo — Evidencia por escenario` con `OE-G07-01` y `PASSED` |
+| Reporte HTML | 1,82 MB (era 911 KB): las capturas van embebidas en base64 |
+| Secretos en los artefactos | 0 patrones reales (los `eyJ…` son base64 de las capturas y los `*_TOKEN="…"` son constantes del lexer Gherkin del bundle del reporter) |
 
 ## 6. Cobertura de los 5 puntos de la consigna
 
@@ -109,3 +116,36 @@ Lo que más conviene recordar para estudiar: **el sandbox es client-side**. Los
 `data-testid` no se pueden verificar con un `curl`, y `dryrun` no abre navegador.
 Por eso el contrato de locators se verificó con un smoke test real antes de
 escribir un solo Page Object.
+
+## 8. Actualización 2026-10-04 — evidencia visual por paso
+
+Cambio pedido: que el recorrido se pueda ver, no solo el resultado final. Se tocó
+**un solo archivo**, `tests/bdd/grupo07-ordenes-andrea/support/hooks.ts`:
+
+| Pieza | Qué hace |
+|---|---|
+| `AfterStep` | Adjunta una captura `fullPage` en cada paso que pasa. Queda bajo ese paso en el HTML y en el JSON. |
+| `After` | Escribe `results/grupo07-andrea/OE-G07-01-<PASSED\|FAILED>-<Date.now()>.png`, que es el nombre que el reporter busca para su anexo. Va **antes** de `borrarOrdenCreada()` y en un `try/finally` propio, para que la limpieza de la orden no se saltee si la captura falla. |
+| `After` (fallo) | Trace `.zip` + captura adjunta, sin cambios. |
+
+**Por qué dos mecanismos y no uno:** `bdd_report.py` no lee los attachments de
+Cucumber; arma su anexo con los PNG cuyo nombre coincide con el ID del escenario
+(`bdd_report.py:212`), y delega el filesystem (`os.listdir`, **no recursivo**).
+Por eso el PNG del anexo va **directo** en `results/grupo07-andrea/`.
+
+**Lo que esto NO cubre, y conviene saberlo:**
+
+- El anexo del PDF muestra **una sola imagen por escenario** (la más reciente del
+  ID), así que el PDF queda con la **vista final** del recorrido.
+- El estado intermedio del formulario de alta **no aparece en ninguna captura**:
+  el step `creo una orden con un ítem válido` completa y envía dentro del mismo
+  paso, y un hook `AfterStep` solo puede capturar **después** de que termina. Para
+  las tres vistas (listado, alta, detalle) en el PDF haría falta una composición
+  de imágenes o separar el step — ninguna de las dos se hizo.
+
+**Merge de `main` para el PR:** la rama estaba 18 commits atrás de `main`, y el
+diff contra `main` mostraba 91 eliminaciones de archivos de Grupo 02, 03 y 09
+(nunca tocados por nosotros: `main` los agrego después de `172928a`). Se integró
+`main` con `git merge`, que dio **sin conflictos** (`git merge-tree` lo confirmó
+antes de tocar nada) y no tocó ninguno de los 4 archivos del cambio. El commit
+`a9e907f` ya había hecho lo mismo antes.
