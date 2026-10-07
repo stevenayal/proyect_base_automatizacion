@@ -1,0 +1,11 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1791045942104,607,POST - Crear notificacion,201,Created,Flujo crear y consultar notificacion 1-1,text,true,,714,404,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones,607,0,302
+1791045945763,269,GET - Consultar notificaciones pendientes del usuario,200,OK,Flujo crear y consultar notificacion 1-1,text,true,,10348,257,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1&leido=false,269,0,0
+1791045949153,263,POST - Crear notificacion,201,Created,Flujo crear y consultar notificacion 1-1,text,true,,714,404,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones,263,0,0
+1791045952420,242,GET - Consultar notificaciones pendientes del usuario,200,OK,Flujo crear y consultar notificacion 1-1,text,true,,10577,257,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1&leido=false,242,0,0
+1791045955678,246,POST - Crear notificacion,201,Created,Flujo crear y consultar notificacion 1-1,text,true,,717,407,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones,246,0,0
+1791045958933,238,GET - Consultar notificaciones pendientes del usuario,200,OK,Flujo crear y consultar notificacion 1-1,text,true,,2361,257,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=2&leido=false,238,0,0
+1791045962182,238,POST - Crear notificacion,201,Created,Flujo crear y consultar notificacion 1-1,text,true,,714,404,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones,238,0,0
+1791045965428,244,GET - Consultar notificaciones pendientes del usuario,200,OK,Flujo crear y consultar notificacion 1-1,text,true,,10806,257,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1&leido=false,243,0,0
+1791045968677,232,POST - Crear notificacion,201,Created,Flujo crear y consultar notificacion 1-1,text,true,,714,404,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones,232,0,0
+1791045971915,239,GET - Consultar notificaciones pendientes del usuario,200,OK,Flujo crear y consultar notificacion 1-1,text,true,,11035,257,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/notificaciones?usuarioId=1&leido=false,238,0,0

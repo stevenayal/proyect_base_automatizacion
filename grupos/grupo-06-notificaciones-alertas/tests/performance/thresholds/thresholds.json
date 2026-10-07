@@ -1,0 +1,6 @@
+{
+  "global": {
+    "maxErrorRate": 1,
+    "p95Ms": 2000
+  }
+}

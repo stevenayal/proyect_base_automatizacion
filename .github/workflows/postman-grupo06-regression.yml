@@ -1,0 +1,94 @@
+name: Postman Regression - Grupo 06 Notificaciones (con reporte PDF en Python)
+
+# En la rama del grupo el CI corre via el PR hacia main (no por push), para no
+# duplicar corridas contra la misma API key.
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "postman/grupo-06-notificaciones-alertas.postman_collection.json"
+      - "grupos/grupo-06-notificaciones-alertas/scripts/esperar-cupo-api.sh"
+      - "grupos/grupo-06-notificaciones-alertas/scripts/esperar-plan-curso.sh"
+      - ".github/workflows/postman-grupo06-regression.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "postman/grupo-06-notificaciones-alertas.postman_collection.json"
+      - "grupos/grupo-06-notificaciones-alertas/scripts/esperar-cupo-api.sh"
+      - "grupos/grupo-06-notificaciones-alertas/scripts/esperar-plan-curso.sh"
+      - ".github/workflows/postman-grupo06-regression.yml"
+  workflow_dispatch:
+
+# Mismo grupo que el workflow de JMeter del Grupo 06: comparten la API key (30 req/min),
+# asi que corren uno despues del otro en lugar de pisarse.
+concurrency:
+  group: aiquaa-sandbox-grupo06
+  cancel-in-progress: false
+
+# actions: read permite consultar si el plan del curso sigue corriendo.
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  newman-regression:
+    name: Newman + reporte PDF (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Configurar Python (generador de PDF)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias Node
+        run: npm install
+
+      - name: Instalar dependencias Python (reportlab, Pillow)
+        run: pip install -r skills/postman-newman-skill/reporter/requirements.txt
+
+      - name: Esperar a que termine el plan JMeter del curso (misma API key)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash grupos/grupo-06-notificaciones-alertas/scripts/esperar-plan-curso.sh "${{ github.event.pull_request.head.sha || github.sha }}"
+
+      - name: Esperar cupo en el rate limit de la API
+        run: bash grupos/grupo-06-notificaciones-alertas/scripts/esperar-cupo-api.sh "${{ secrets.GRUPO06_API_KEY }}" "${{ vars.GRUPO06_BASE_URL || 'https://aiquaa-sandbox-api.vercel.app' }}"
+
+      - name: Ejecutar regresion Postman (Newman) - Grupo 06
+        run: >
+          npx newman run postman/grupo-06-notificaciones-alertas.postman_collection.json
+          --env-var "baseUrl=${{ vars.GRUPO06_BASE_URL }}"
+          --env-var "apiKey=${{ secrets.GRUPO06_API_KEY }}"
+          --delay-request 5000
+          --reporters cli,json
+          --reporter-json-export newman/results.json
+
+      - name: Generar reporte PDF
+        if: always()
+        run: >
+          python skills/postman-newman-skill/reporter/newman_report.py
+          --results newman/results.json
+          --banner skills/postman-newman-skill/reporter/assets/banner_portada.png
+          --logo-aiquaa skills/postman-newman-skill/reporter/assets/logo_aiquaa_circle.png
+          --logo-postman skills/postman-newman-skill/reporter/assets/logo_postman_clean.png
+          --repo-url "${{ github.server_url }}/${{ github.repository }}"
+          --api-version "${{ github.sha }}"
+          --author "${{ github.triggering_actor }}"
+          --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          --output newman/report.pdf
+
+      - name: Subir informe PDF de la regresion
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: informe-regresion-grupo06
+          path: newman/report.pdf
+          retention-days: 7
