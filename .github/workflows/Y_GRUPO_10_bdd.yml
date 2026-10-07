@@ -1,0 +1,124 @@
+﻿name: Grupo 10 - BDD Roles (Cucumber + Playwright)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'grupos/grupo-10-roles-permisos/**'
+      - 'tests/bdd/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/Y_GRUPO_10_bdd.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: grupo10-bdd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bdd:
+    name: Escenarios BDD del Grupo 10
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar Chromium de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Instalar dependencias del informe PDF
+        run: pip install -r skills/bdd-skill/reporter/requirements.txt
+
+      - name: Ejecutar escenarios BDD
+        id: bdd
+        continue-on-error: true
+        env:
+          CI: 'true'
+          BASE_URL: ${{ vars.AIQUAA_SANDBOX_BASE_URL || 'https://aiquaa-sandbox-web.vercel.app/' }}
+        run: npx cucumber-js --config grupos/grupo-10-roles-permisos/cucumber.js
+
+      - name: Clasificar fallos (reglas, sin IA)
+        if: always() && hashFiles('results/grupo10/cucumber-report.json') != ''
+        continue-on-error: true
+        run: >
+          node skills/playwright-ai-agents-skill/scripts/classify-failures.mjs
+          --input results/grupo10/cucumber-report.json
+          --out results/grupo10/CLASIF_GRUPO10.json
+
+      - name: Generar informe PDF con matriz de trazabilidad
+        if: always() && hashFiles('results/grupo10/cucumber-report.json') != ''
+        continue-on-error: true
+        run: >
+          python skills/bdd-skill/reporter/bdd_report.py
+          --results results/grupo10/cucumber-report.json
+          --output results/grupo10/INFORME_BDD_GRUPO_10.pdf
+          --grupo "Grupo 10 - Administración de Roles y Permisos"
+          --author "Grupo 10"
+          --repo-url "${{ github.server_url }}/${{ github.repository }}"
+
+      - name: Publicar informe y evidencias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bdd-grupo10-${{ github.run_number }}
+          path: |
+            results/grupo10/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Puerta de control (el defecto conocido no deja el pipeline en rojo)
+        if: always()
+        run: |
+          node - <<'EOF'
+          const fs = require('fs');
+          const ruta = 'results/grupo10/cucumber-report.json';
+          const reporte = JSON.parse(fs.readFileSync(ruta, 'utf8'));
+          const MALOS = new Set(['failed', 'undefined', 'pending', 'ambiguous']);
+          const inesperados = [], conocidos = [], correctos = [];
+          for (const feature of reporte) {
+            for (const el of feature.elements || []) {
+              if (el.type !== 'scenario') continue;
+              const etiquetas = (el.tags || []).map((t) => t.name);
+              const malo = (el.steps || []).some((s) => MALOS.has(s.result && s.result.status));
+              const defecto = etiquetas.includes('@defecto-conocido');
+              if (malo && defecto) conocidos.push(el.name);
+              else if (malo) inesperados.push(el.name);
+              else correctos.push({ nombre: el.name, defecto });
+            }
+          }
+          const lineas = [
+            '## Grupo 10 - Resultado de la puerta de control',
+            '- Escenarios correctos: ' + correctos.length,
+            '- Fallos inesperados: ' + inesperados.length,
+            '- Defecto conocido que sigue fallando (S6-H01): ' + conocidos.length,
+          ];
+          inesperados.forEach((n) => lineas.push('  - INESPERADO: ' + n));
+          conocidos.forEach((n) => lineas.push('  - Conocido: ' + n));
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lineas.join('\n') + '\n');
+          correctos.filter((c) => c.defecto).forEach((c) =>
+            console.log('::notice::El defecto conocido ya no falla (' + c.nombre + '). Quitar la etiqueta @defecto-conocido.'));
+          conocidos.forEach((n) => console.log('::warning::Defecto conocido S6-H01 sigue presente: ' + n));
+          if (inesperados.length > 0) {
+            inesperados.forEach((n) => console.log('::error::Fallo inesperado: ' + n));
+            process.exit(1);
+          }
+          EOF
