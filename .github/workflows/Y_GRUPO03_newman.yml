@@ -37,6 +37,7 @@ on:
       - 'postman/Grupo03-Pago-Servicios-Final_collection.json'
       - 'postman/Grupo03-Pago-Servicios-Final_environment.json'
       - 'grupos/grupo-03-pagos-servicios/features/pagos-servicios-FINAL.feature'
+      - 'grupos/grupo-03-pagos-servicios/reporter/g3_newman_principal.py'
       - '.github/workflows/Y_GRUPO03_newman.yml'
 
 permissions:
@@ -119,7 +120,8 @@ jobs:
             --environment "$ENVIRONMENT" \
             "${args[@]}" \
             --reporters cli,json \
-            --reporter-json-export "$RESULTS/newman-results.json"
+            --reporter-json-export "$RESULTS/newman-results.json" \
+            --export-globals "$RESULTS/newman-globals.json"
           rc=$?
           set -e
           echo "NEWMAN_EXIT=$rc" >> "$GITHUB_ENV"
@@ -174,8 +176,17 @@ jobs:
             echo "Sin resultados de Newman: no se genera el informe"
             exit 1
           fi
+          # Una entrada por escenario con su request principal (no la baja de la limpieza).
+          # Si algo falla, el informe se arma con el JSON original de Newman.
+          INFORME_JSON="$RESULTS/newman-results.json"
+          if python grupos/grupo-03-pagos-servicios/reporter/g3_newman_principal.py \
+               --results "$RESULTS/newman-results.json" \
+               --globals "$RESULTS/newman-globals.json" \
+               --output "$RESULTS/newman-results-informe.json"; then
+            INFORME_JSON="$RESULTS/newman-results-informe.json"
+          fi
           python "$REPORTER/newman_report.py" \
-            --results "$RESULTS/newman-results.json" \
+            --results "$INFORME_JSON" \
             --banner "$REPORTER/assets/banner_portada.png" \
             --logo-aiquaa "$REPORTER/assets/logo_aiquaa_circle.png" \
             --logo-postman "$REPORTER/assets/logo_postman_clean.png" \
