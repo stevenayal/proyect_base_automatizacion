@@ -1,22 +1,212 @@
 {
-	"id": "eb513788-4b57-4933-a6c5-d098fc7cec88",
-	"name": "Grupo 10 — Administración de Roles y Permisos",
-	"values": [
+	"info": {
+		"_postman_id": "c92109e4-8f98-4ef0-a35e-6d3ec89eb726",
+		"name": "Grupo 10 - Administracion de Roles y Permisos",
+		"description": "Regresion de asignacion y revocacion de roles con validacion pre/post en qa_training.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"event": [
 		{
-			"key": "Api-Key",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "Rol_Usuario",
-			"value": "",
-			"type": "any",
-			"enabled": true
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"if (typeof utils === 'undefined') {",
+					"  utils = {",
+					"    bodySqlRest: function (sql, params) {",
+					"      return {",
+					"        url: pm.variables.get('baseUrl') + '/api/v1/sql/select',",
+					"        method: 'POST',",
+					"        header: { 'Content-Type': 'application/json', 'x-api-key': pm.variables.get('apiKey') },",
+					"        body: { mode: 'raw', raw: JSON.stringify({ sql: sql, params: params || [] }) }",
+					"      };",
+					"    }",
+					"  };",
+					"}"
+				]
+			}
 		}
 	],
-	"color": null,
-	"_postman_variable_scope": "environment",
-	"_postman_exported_at": "2026-08-31T22:59:33.554Z",
-	"_postman_exported_using": "Postman/12.25.0"
+	"variable": [
+		{ "key": "baseUrl", "value": "" },
+		{ "key": "apiKey", "value": "" },
+		{ "key": "usuarioId", "value": "1" },
+		{ "key": "roleId", "value": "2" },
+		{ "key": "invalidRoleId", "value": "-1" }
+	],
+	"item": [
+		{
+			"name": "Asignar rol a usuario (upsert + validacion SQL)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "x-api-key", "value": "{{apiKey}}" }
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/roles",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "usuarios", "{{usuarioId}}", "roles"]
+				},
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"roleId\": {{roleId}}\n}",
+					"options": { "raw": { "language": "json" } }
+				}
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"const sql = utils.bodySqlRest(",
+							"  'SELECT u.id AS usuario_id, r.id AS role_id FROM usuarios u CROSS JOIN roles r WHERE u.id = $1 AND r.id = $2 AND r.activo = true',",
+							"  [Number(pm.variables.get('usuarioId')), Number(pm.variables.get('roleId'))]",
+							");",
+							"pm.sendRequest(sql, (err, res) => {",
+							"  if (err) throw err;",
+							"  pm.expect(res.json().data, 'el usuario y el rol deben existir y estar activos').to.have.length(1);",
+							"});"
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Asignacion nueva o reactivada: HTTP 201/200', () => {",
+							"  pm.expect([200, 201]).to.include(pm.response.code);",
+							"  const data = pm.response.json().data;",
+							"  pm.expect(Number(data.usuario_id)).to.eql(Number(pm.variables.get('usuarioId')));",
+							"  pm.expect(Number(data.role_id)).to.eql(Number(pm.variables.get('roleId')));",
+							"  pm.expect(data.activo).to.eql(true);",
+							"});",
+							"const sql = utils.bodySqlRest(",
+							"  'SELECT id, usuario_id, role_id, activo FROM usuario_roles WHERE usuario_id = $1 AND role_id = $2',",
+							"  [Number(pm.variables.get('usuarioId')), Number(pm.variables.get('roleId'))]",
+							");",
+							"pm.sendRequest(sql, (err, res) => {",
+							"  pm.test('La BD confirma una asignacion vigente, sin duplicados', () => {",
+							"    if (err) throw err;",
+							"    const rows = res.json().data;",
+							"    pm.expect(rows).to.have.length(1);",
+							"    pm.expect(rows[0].activo).to.eql(true);",
+							"  });",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Revocar rol de usuario (soft-delete + validacion SQL)",
+			"request": {
+				"method": "DELETE",
+				"header": [{ "key": "x-api-key", "value": "{{apiKey}}" }],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/roles/{{roleId}}",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "usuarios", "{{usuarioId}}", "roles", "{{roleId}}"]
+				}
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"const sql = utils.bodySqlRest(",
+							"  'SELECT activo FROM usuario_roles WHERE usuario_id = $1 AND role_id = $2 AND activo = true',",
+							"  [Number(pm.variables.get('usuarioId')), Number(pm.variables.get('roleId'))]",
+							");",
+							"pm.sendRequest(sql, (err, res) => {",
+							"  if (err) throw err;",
+							"  pm.expect(res.json().data, 'la asignacion debe estar vigente antes de revocarla').to.have.length(1);",
+							"});"
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Revocacion responde 204 No Content', () => pm.response.to.have.status(204));",
+							"const sql = utils.bodySqlRest(",
+							"  'SELECT id, activo FROM usuario_roles WHERE usuario_id = $1 AND role_id = $2',",
+							"  [Number(pm.variables.get('usuarioId')), Number(pm.variables.get('roleId'))]",
+							");",
+							"pm.sendRequest(sql, (err, res) => {",
+							"  pm.test('La fila permanece en la BD como baja logica', () => {",
+							"    if (err) throw err;",
+							"    const rows = res.json().data;",
+							"    pm.expect(rows).to.have.length(1);",
+							"    pm.expect(rows[0].activo).to.eql(false);",
+							"  });",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Caso negativo - asignar un roleId inexistente",
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "x-api-key", "value": "{{apiKey}}" }
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioId}}/roles",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "v1", "usuarios", "{{usuarioId}}", "roles"]
+				},
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"roleId\": {{invalidRoleId}}\n}",
+					"options": { "raw": { "language": "json" } }
+				}
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"const sql = utils.bodySqlRest(",
+							"  'SELECT id FROM usuario_roles WHERE usuario_id = $1 AND role_id = $2',",
+							"  [Number(pm.variables.get('usuarioId')), Number(pm.variables.get('invalidRoleId'))]",
+							");",
+							"pm.sendRequest(sql, (err, res) => {",
+							"  if (err) throw err;",
+							"  pm.expect(res.json().data, 'el caso negativo debe comenzar sin asignacion').to.have.length(0);",
+							"});"
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('El roleId inexistente se rechaza con HTTP 400', () => pm.response.to.have.status(400));",
+							"const sql = utils.bodySqlRest(",
+							"  'SELECT id FROM usuario_roles WHERE usuario_id = $1 AND role_id = $2',",
+							"  [Number(pm.variables.get('usuarioId')), Number(pm.variables.get('invalidRoleId'))]",
+							");",
+							"pm.sendRequest(sql, (err, res) => {",
+							"  pm.test('El rechazo no modifica la tabla usuario_roles', () => {",
+							"    if (err) throw err;",
+							"    pm.expect(res.json().data).to.have.length(0);",
+							"  });",
+							"});"
+						]
+					}
+				}
+			]
+		}
+	]
 }
