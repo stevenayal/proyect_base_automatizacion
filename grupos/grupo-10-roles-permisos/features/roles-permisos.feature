@@ -27,6 +27,7 @@ Feature: Administración de Roles y Permisos
     When intenta aprobar un desembolso por el monto límite exacto de "USD 49.999"
     Then el sistema procesa la transacción exitosamente
     And no solicita la autorización de un Gerente de Sucursal
+    
   Scenario: Usuario con rol limitado intenta ejecutar una accion sobre el limite permitido
     Given que el usuario autenticado en el backoffice tiene el rol "Operador"
     When intenta ejecutar una accion que excede el limite permitido para su rol

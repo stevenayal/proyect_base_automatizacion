@@ -1,0 +1,5 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1790540839965,1313,HTTP Request,200,OK,Thread Group 1-1,text,true,,623,309,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sql/select,1312,0,738
+1790540841393,397,HTTP Request,200,OK,Thread Group 1-1,text,true,,633,308,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sql/select,396,0,0
+1790540841792,306,HTTP Request,200,OK,Thread Group 1-1,text,true,,590,306,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sql/select,305,0,0
+1790540842100,304,HTTP Request,200,OK,Thread Group 1-1,text,true,,607,308,1,1,https://aiquaa-sandbox-api.vercel.app/api/v1/sql/select,304,0,0
