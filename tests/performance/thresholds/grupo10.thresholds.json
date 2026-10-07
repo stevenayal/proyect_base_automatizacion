@@ -1,0 +1,24 @@
+{
+  "global": {
+    "scope": "global",
+    "maxErrorRate": 1,
+    "p95Ms": 3000
+  },
+  "operations": {
+    "GET /api/v1/roles": {
+      "scope": "GET /api/v1/roles",
+      "maxErrorRate": 1,
+      "p95Ms": 2000
+    },
+    "POST /api/v1/usuarios/{id}/roles": {
+      "scope": "POST /api/v1/usuarios/{id}/roles",
+      "maxErrorRate": 1,
+      "p95Ms": 3000
+    },
+    "GET /api/v1/usuarios/{id}/roles": {
+      "scope": "GET /api/v1/usuarios/{id}/roles",
+      "maxErrorRate": 1,
+      "p95Ms": 2000
+    }
+  }
+}

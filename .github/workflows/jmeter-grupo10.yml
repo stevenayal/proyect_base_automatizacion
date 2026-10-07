@@ -1,0 +1,179 @@
+name: JMeter Grupo 10 - Roles y Permisos
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/performance/plans/Grupo10_Plan_de_Pruebas_JMeter_CSV_Grupal.jmx'
+      - 'tests/performance/data/Grupo10_Plan_de_Pruebas_JMeter_CSV_Grupal.csv'
+      - 'tests/performance/properties/grupo10.properties'
+      - 'tests/performance/thresholds/grupo10.thresholds.json'
+      - '.github/workflows/jmeter-grupo10.yml'
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: Duracion en segundos (480 da unas 140 muestras)
+        required: false
+        default: '480'
+      think_time:
+        description: Espera entre peticiones en ms
+        required: false
+        default: '3000'
+      monitoring_dashboard_url:
+        description: URL publica del dashboard de Grafana a capturar como evidencia
+        required: false
+        default: https://purplespinach239.grafana.net/public-dashboards/32c376cff7ef437faa3435bd863f5a79
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: grupo10-sandbox-jmeter
+  cancel-in-progress: false
+
+jobs:
+  performance:
+    name: Grupo 10 - JMeter con limites, PDF y Grafana
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DURATION: ${{ inputs.duration || '480' }}
+      THINK_TIME: ${{ inputs.think_time || '3000' }}
+      DASHBOARD_URL: ${{ inputs.monitoring_dashboard_url || 'https://purplespinach239.grafana.net/public-dashboards/32c376cff7ef437faa3435bd863f5a79' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar JMeter 5.6.3
+        run: |
+          curl --fail --location --silent --show-error https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz -o jmeter.tgz
+          tar -xzf jmeter.tgz
+      - name: Esperar una ventana limpia (clave compartida)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          WF_NAME: ${{ github.workflow }}
+        run: |
+          QUIET=0
+          for i in $(seq 1 60); do
+            OTHERS=$(gh run list --repo "$GITHUB_REPOSITORY" --limit 50 --json databaseId,status,workflowName --jq '[.[] | select((.status=="in_progress" or .status=="queued" or .status=="pending") and (.databaseId != ($ENV.RUN_ID|tonumber)) and (.workflowName != $ENV.WF_NAME) and (.workflowName | test("JMeter|Postman|Newman"; "i")))] | length')
+            echo "Intento $i: otras pruebas activas = $OTHERS"
+            if [ "$OTHERS" = "0" ]; then QUIET=$((QUIET+1)); else QUIET=0; fi
+            if [ "$QUIET" -ge 3 ]; then echo "Ventana limpia"; exit 0; fi
+            sleep 20
+          done
+          echo "::warning::No hubo ventana limpia en 20 minutos; se ejecuta igual y puede haber 429."
+      - name: Ejecutar JMeter sin interfaz grafica
+        env:
+          API_KEY: ${{ secrets.GRUPO10_API_KEY }}
+        run: |
+          test -n "$API_KEY" || { echo "::error::Falta el secret GRUPO10_API_KEY"; exit 1; }
+          mkdir -p test-results/performance
+          apache-jmeter-5.6.3/bin/jmeter -n \
+            -t tests/performance/plans/Grupo10_Plan_de_Pruebas_JMeter_CSV_Grupal.jmx \
+            -q tests/performance/properties/grupo10.properties \
+            "-JapiKey=$API_KEY" "-Jduration=$DURATION" "-JthinkTime=$THINK_TIME" \
+            -j test-results/performance/jmeter.log \
+            -l test-results/performance/R_GRUPO10.jtl \
+            -e -o test-results/performance/dashboard
+
+      - name: Verificar que hubo muestras
+        run: |
+          SAMPLES=$(( $(wc -l < test-results/performance/R_GRUPO10.jtl) - 1 ))
+          echo "Muestras registradas: $SAMPLES"
+          test "$SAMPLES" -ge 1 || { echo "::error::JMeter no registro muestras (revisar CSV y propiedades)"; exit 1; }
+          test "$SAMPLES" -ge 100 || echo "::warning::Menos de 100 muestras: el veredicto puede ser INCONCLUSIVE"
+
+      - name: Descargar el MCP de rendimiento
+        uses: actions/checkout@v4
+        with:
+          repository: stevenayal/aiquaa-performance-mcp-server
+          path: mcp
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Construir el MCP (evaluador y generador de PDF)
+        working-directory: mcp
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Capturar el dashboard de Grafana (evidencia)
+        continue-on-error: true
+        run: |
+          pip install -r mcp/src/monitoring/python/requirements.txt
+          mkdir -p test-results/performance/evidence
+          python3 mcp/src/monitoring/python/capture_dashboard.py \
+            --url "$DASHBOARD_URL" \
+            --output test-results/performance/evidence/EVIDENCIA_MONITOREO.png \
+            --wait-seconds 8 \
+            --ready-timeout-seconds 180
+      - name: Parche temporal del generador de PDF (bug con throughput bajo)
+        run: |
+          sed -i 's/ticks\.push(Math\.round(v))/ticks.push(Math.round(v * 1000) \/ 1000)/' mcp/dist/reporting/pdf-kit.js
+          grep -n "Math.round(v \* 1000)" mcp/dist/reporting/pdf-kit.js || echo "::warning::No se pudo aplicar el parche"
+      - name: Generar el informe PDF
+        continue-on-error: true
+        run: |
+          EVIDENCE_ARGS=()
+          if [ -f test-results/performance/evidence/EVIDENCIA_MONITOREO.png ]; then
+            EVIDENCE_ARGS=(--evidence-image test-results/performance/evidence/EVIDENCIA_MONITOREO.png \
+              --evidence-label "Dashboard de monitoreo (Grafana)" \
+              --evidence-url "$DASHBOARD_URL")
+          fi
+          node mcp/dist/server.js --report \
+            test-results/performance/R_GRUPO10.jtl \
+            tests/performance/thresholds/grupo10.thresholds.json \
+            test-results/performance/INFORME_PERF_GRUPO10.pdf \
+            --api-name "AIQUAA Sandbox - Grupo 10 Roles y Permisos" \
+            --test-type baseline --threads 1 \
+            --api-version "$GITHUB_SHA" \
+            --repo-url "https://github.com/$GITHUB_REPOSITORY" \
+            --author "$GITHUB_ACTOR" \
+            "${EVIDENCE_ARGS[@]}"
+
+      - name: Evaluar limites (APROBADO / RECHAZADO)
+        id: gate
+        continue-on-error: true
+        run: |
+          node mcp/dist/server.js --evaluate \
+            test-results/performance/R_GRUPO10.jtl \
+            tests/performance/thresholds/grupo10.thresholds.json \
+            > test-results/performance/veredicto.json
+
+      - name: Publicar la evidencia
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-grupo10-${{ github.run_number }}
+          path: test-results/performance
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Mostrar el veredicto
+        if: always()
+        run: |
+          if [ -f test-results/performance/veredicto.json ]; then
+            VERDICT=$(jq -r '.verdict' test-results/performance/veredicto.json)
+            echo "Veredicto: $VERDICT"
+            echo "### Veredicto de rendimiento: $VERDICT" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          test -s test-results/performance/INFORME_PERF_GRUPO10.pdf \
+            && echo "PDF generado" || echo "::warning::No se genero el PDF"
+
+      - name: Puerta de control
+        if: steps.gate.outcome == 'failure'
+        run: |
+          echo "::error::RECHAZADO: la prueba no cumple los limites (ver veredicto.json y el PDF)."
+          exit 1

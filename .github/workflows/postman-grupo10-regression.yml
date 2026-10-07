@@ -1,0 +1,58 @@
+name: Postman Regression - Grupo 10 Roles y Permisos
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'postman/Grupo10_Roles_Permisos.postman_collection.json'
+      - '.github/workflows/postman-grupo10-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: grupo10-postman-regression
+  cancel-in-progress: false
+
+jobs:
+  newman:
+    name: Grupo 10 - Newman con validacion en BD
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BASE_URL: ${{ vars.GRUPO10_BASE_URL || 'https://aiquaa-sandbox-api.vercel.app' }}
+      API_KEY: ${{ secrets.GRUPO10_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Verificar configuracion
+        run: |
+          test -n "$API_KEY" || { echo "::error::Falta el secret GRUPO10_API_KEY"; exit 1; }
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar la coleccion con Newman
+        run: |
+          mkdir -p newman
+          npx --no-install newman run postman/Grupo10_Roles_Permisos.postman_collection.json \
+            --env-var "baseUrl=$BASE_URL" \
+            --env-var "apiKey=$API_KEY" \
+            --delay-request 2000 \
+            --reporters cli,junit \
+            --reporter-junit-export newman/results.xml
+
+      - name: Publicar resultados (sin credenciales)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-grupo10
+          path: newman/results.xml
+          if-no-files-found: warn
+          retention-days: 7
