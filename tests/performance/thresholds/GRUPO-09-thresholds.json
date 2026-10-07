@@ -1,0 +1,6 @@
+{
+  "max_error_rate_percent": 1.0,
+  "max_p95_ms": 800,
+  "min_samples": 100,
+  "descripcion": "Límites de aceptación para la ruta crítica RF-G9-01 (Semana 5)"
+}

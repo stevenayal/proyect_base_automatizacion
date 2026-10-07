@@ -1,0 +1,332 @@
+========================================================================
+RF-G9-01 — REPORTE DE MOVIMIENTOS AGRUPADOS
+BITÁCORA TÉCNICA — MONITOREO Y ANÁLISIS CON GRAFANA (SEMANA 5)
+========================================================================
+
+Proyecto        : Automatización de Pruebas de Software — Semana 5
+Institución     : Centro de Innovación TIC — Facultad Politécnica, UNA
+Grupo           : Grupo 09
+Responsables     : Natalia Roman / Edith Avalos
+Fecha           : 2026-10-05
+Hora            : 00:01 PYT
+Herramientas    : Apache JMeter 5.6.3 | InfluxDB Cloud | Grafana
+Sistema bajo prueba: aiquaa-sandbox-api.vercel.app
+Endpoint        : GET /api/v1/reportes/movimientos
+Requisito       : RF-G9-01 — Reporte de movimientos agrupados
+
+========================================================================
+1. OBJETIVO
+========================================================================
+
+Visualizar en Grafana las métricas de la prueba de rendimiento RF-G9-01,
+validar los límites de aceptación definidos para la clase (errores <= 1 %,
+p95 <= 800 ms, muestras >= 100) y dejar evidencia auditable del
+comportamiento del sistema bajo carga, dentro del flujo CI/CD de la
+Semana 5.
+
+========================================================================
+2. ARQUITECTURA DEL FLUJO DE MONITOREO
+========================================================================
+
+    JMeter (sin GUI)
+         |
+         |  Backend Listener (InfluxdbBackendListenerClient)
+         |  HTTP POST a /api/v2/write
+         v
+    InfluxDB Cloud (bucket: jmeter)
+         |
+         |  Consultas Flux
+         v
+    Grafana (dashboards y paneles)
+         |
+         |  Alertas y evidencia visual
+         v
+    Evidencia (capturas PNG + PDF + JTL)
+
+========================================================================
+3. CONFIGURACIÓN DEL BACKEND LISTENER EN JMETER
+========================================================================
+
+Archivo      : Grupo09_RF-G9-01_Reportes.jmx
+Elemento     : Backend Listener - InfluxDB Cloud
+Clase        : org.apache.jmeter.visualizers.backend.influxdb.InfluxdbBackendListenerClient
+
+Parámetros configurados:
+------------------------------------------------------------------------
+influxdbMetricsSender  : org.apache.jmeter.visualizers.backend.influxdb.HttpMetricsSender
+influxdbUrl            : https://us-east-1-1.aws.cloud2.influxdata.com/api/v2/write?org=d09f11a92310bd58&bucket=jmeter&precision=ms
+influxdbToken          : *** (rotado, valor real en user.properties)
+application            : grupo09-reportes
+measurement            : jmeter
+testTitle              : RF-G9-01
+percentiles            : 90;95;99
+summaryOnly            : false
+------------------------------------------------------------------------
+
+Correcciones aplicadas durante la configuración:
+- Se reemplazó GraphiteBackendListenerClient por InfluxdbBackendListenerClient
+- Se eliminaron los parámetros graphiteHost, graphitePort, rootMetricsPrefix,
+  summaryOnly, samplersList (residuales de Graphite)
+- Se corrigió el nombre del bucket de "jmeter" (antes no existía → error 404)
+- Se cambió precision=ns a precision=ms (JMeter envía timestamps en ms)
+
+========================================================================
+4. PARAMETRIZACIÓN DEL JMX CON __P
+========================================================================
+
+El plan JMX ahora usa variables externas inyectables desde CI:
+
+    ${__P(base_url,aiquaa-sandbox-api.vercel.app)}
+    ${__P(threads,1)}
+    ${__P(rampup,1)}
+    ${__P(loops,1)}
+
+Ejemplo de invocación desde CI/local:
+
+    jmeter -n ^
+      -t Grupo09_RF-G9-01_Reportes.jmx ^
+      -Jbase_url=aiquaa-sandbox-api.vercel.app ^
+      -Jthreads=10 ^
+      -Jrampup=10 ^
+      -Jloops=10 ^
+      -l evidencia\results.jtl ^
+      -e -o evidencia\html ^
+      -j evidencia\jmeter.log
+
+========================================================================
+5. EJECUCIÓN SIN INTERFAZ GRÁFICA
+========================================================================
+
+Comando ejecutado:
+
+    D:\apache-jmeter-5.6.3\bin\jmeter.bat -n ^
+      -t "Grupo09_RF-G9-01_Reportes.jmx" ^
+      -l "evidencia\results.jtl" ^
+      -e -o "evidencia\html" ^
+      -j "evidencia\jmeter.log"
+
+Parámetros:
+    -n  → ejecuta sin interfaz gráfica
+    -t  → selecciona el archivo JMX
+    -l  → guarda los resultados en JTL
+    -e  → genera el reporte HTML al finalizar
+    -o  → carpeta de salida del reporte HTML
+    -j  → archivo de log de JMeter
+
+Resultado de la ejecución final:
+------------------------------------------------------------------------
+summary = 1 in 00:00:01 = 0.7/s Avg: 659 Min: 659 Max: 659 Err: 0 (0.00%)
+------------------------------------------------------------------------
+
+Estado: APROBADO en smoke test
+Acciones del Backend Listener confirmadas en el log:
+    - "Starting worker with class: InfluxdbBackendListenerClient"
+    - "Sending last metrics to InfluxDB"
+    - "Destroying" (sin errores)
+
+========================================================================
+6. VERIFICACIÓN EN INFLUXDB CLOUD
+========================================================================
+
+6.1 Buckets y tablas
+------------------------------------------------------------------------
+Bucket     : jmeter
+Tablas     : events, jmeter
+
+6.2 Tabla "events" (anotaciones de ciclo de vida)
+------------------------------------------------------------------------
+Columnas : application | text | time | title
+Registros observados:
+    grupo09-reportes | RF-G9-01 started | 2026-10-05T03:01:53.541Z | ApacheJMeter
+    grupo09-reportes | RF-G9-01 ended   | 2026-10-05T03:01:54.326Z | ApacheJMeter
+
+6.3 Tabla "jmeter" (métricas reales)
+------------------------------------------------------------------------
+Campos disponibles:
+    avg, min, max, count, hits, ok, ko,
+    pct90.0, pct95.0, pct99.0,
+    application, testTitle, transaction, statut
+
+Etiquetas:
+    application = grupo09-reportes
+    transaction = RF-G9-01 - GET /api/v1/reportes/movimientos
+    testTitle   = RF-G9-01
+
+========================================================================
+7. CONSULTAS FLUX UTILIZADAS EN GRAFANA
+========================================================================
+
+7.1 Latencia promedio (avg)
+------------------------------------------------------------------------
+from(bucket: "jmeter")
+  |> range(start: -1h)
+  |> filter(fn: (r) => r._measurement == "jmeter")
+  |> filter(fn: (r) => r._field == "avg")
+  |> filter(fn: (r) => r.application == "grupo09-reportes")
+  |> aggregateWindow(every: 5s, fn: mean, createEmpty: false)
+  |> yield(name: "avg_response_time")
+
+7.2 Percentil 95 (p95)
+------------------------------------------------------------------------
+from(bucket: "jmeter")
+  |> range(start: -1h)
+  |> filter(fn: (r) => r._measurement == "jmeter" and r._field == "pct95.0")
+  |> filter(fn: (r) => r.application == "grupo09-reportes")
+  |> aggregateWindow(every: 10s, fn: mean, createEmpty: false)
+
+7.3 Tasa de errores (ko)
+------------------------------------------------------------------------
+from(bucket: "jmeter")
+  |> range(start: -1h)
+  |> filter(fn: (r) => r._measurement == "jmeter" and r._field == "ko")
+  |> filter(fn: (r) => r.application == "grupo09-reportes")
+  |> aggregateWindow(every: 30s, fn: mean, createEmpty: false)
+
+7.4 Throughput (req/s)
+------------------------------------------------------------------------
+from(bucket: "jmeter")
+  |> range(start: -1h)
+  |> filter(fn: (r) => r._measurement == "jmeter" and r._field == "count")
+  |> filter(fn: (r) => r.application == "grupo09-reportes")
+  |> derivative(unit: 1s, nonNegative: true)
+  |> yield(name: "requests_per_second")
+
+7.5 Pivot tabular (formato tabla)
+------------------------------------------------------------------------
+from(bucket: "jmeter")
+  |> range(start: -1h)
+  |> filter(fn: (r) => r._measurement == "jmeter"
+        and r.application == "grupo09-reportes")
+  |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+  |> keep(columns: ["_time","transaction","avg","max","pct95.0","ko","ok"])
+
+========================================================================
+8. DASHBOARDS Y PANELES EN GRAFANA
+========================================================================
+
+Panel 1: Latencia promedio (avg) — Serie temporal
+Panel 2: Percentil 95 (p95) — Serie temporal + umbral 800 ms
+Panel 3: Tasa de errores — Serie temporal + umbral 1 %
+Panel 4: Throughput (req/s) — Serie temporal
+Panel 5: Muestras totales — Stat / Gauge con umbral 100
+
+Fuente de datos : InfluxDB Cloud (bucket jmeter)
+Rango temporal  : Última 1 hora (alineado con la ejecución de JMeter)
+Refresh         : 10 s
+
+Configuración de umbrales en Grafana:
+- Panel p95     : verde <= 800 ms | rojo > 800 ms
+- Panel errores : verde <= 1 %    | rojo > 1 %
+- Panel muestras: verde >= 100    | rojo < 100
+
+========================================================================
+9. LÍMITES DE ACEPTACIÓN Y RESULTADOS
+========================================================================
+
+Límites definidos para la clase (ejemplo del profesor):
+------------------------------------------------------------------------
+Errores      <= 1 %
+p95          <= 800 ms
+Muestras     >= 100
+------------------------------------------------------------------------
+
+Resultados observados en la ejecución final (smoke test):
+------------------------------------------------------------------------
+Errores       : 0 %        → CUMPLE
+p95           : 659 ms     → CUMPLE
+Muestras      : 1          → NO CUMPLE (requiere >= 100)
+------------------------------------------------------------------------
+
+Observación: para cumplir con el requisito de muestras se debe escalar
+el test a 10 threads x 10 loops = 100 muestras, o equivalente.
+
+========================================================================
+10. RIESGOS IDENTIFICADOS Y MITIGACIÓN
+========================================================================
+
+Riesgo 1: Saturación de la base de datos por carga concurrente
+Mitigación: carga gradual (ramp-up), límite de usuarios y duración.
+Criterio de detención: bloqueos en BD → abortar.
+
+Riesgo 2: Tasa de errores superior al 1 %
+Mitigación: monitoreo en Grafana con alerta automática.
+Criterio de detención: errores > 5 % → detener prueba.
+
+Riesgo 3: Latencia p95 superior a 800 ms
+Mitigación: reducir usuarios o abortar según umbral de Grafana.
+Criterio de detención: p95 > 2000 ms → abortar.
+
+Riesgo 4: Exposición del token de InfluxDB Cloud
+Mitigación: rotar token, externalizar con user.properties o variables
+de entorno, no subir el JMX con el token real al repositorio.
+
+Riesgo 5: Ambiente no controlado
+Mitigación: usar sandbox, datos sintéticos, nunca producción.
+
+========================================================================
+11. EVIDENCIA ADJUNTA
+========================================================================
+
+Capturas de pantalla (carpeta evidencia/grafana/):
+- 01-dashboard-general.png      Vista general del dashboard
+- 02-p95-latencia.png           Panel de percentil 95 con umbral
+- 03-tasa-errores.png           Panel de tasa de errores
+- 04-throughput.png             Panel de req/s
+- 05-muestras.png               Panel de muestras totales
+- 06-influxdb-explorer.png      Consulta SQL/Flux en Data Explorer
+
+Archivos de datos y reportes (carpeta evidencia/):
+- results.jtl                   Datos crudos de JMeter
+- jmeter.log                    Log de la ejecución
+- report.pdf                    Reporte HTML convertido a PDF
+- html/                         Reporte HTML de JMeter (index.html, etc.)
+
+Archivos de contexto (carpeta evidencia/contexto/):
+- limites.txt                   Definición de límites y veredicto
+- ambiente.txt                  Descripción del ambiente de prueba
+- plan-riesgo.txt               Plan de detención y mitigación
+
+========================================================================
+12. VEREDICTO Y CONCLUSIÓN
+========================================================================
+
+Con los límites aplicados (errores <= 1 %, p95 <= 800 ms, muestras >= 100):
+
+- Errores   : 0 %      → CUMPLE
+- p95       : 659 ms   → CUMPLE
+- Muestras  : 1        → NO CUMPLE (pendiente escalar a >= 100)
+
+VEREDICTO FINAL: APROBADO CONDICIONAL
+
+Justificación: el smoke test demuestra que el endpoint responde sin
+errores y con latencia dentro del umbral. Para aprobar la continuidad
+en el pipeline CI/CD, se debe ejecutar una corrida con >= 100 muestras
+y confirmar que p95 y errores se mantienen bajo los límites.
+
+Acción recomendada: ejecutar la prueba escalada y adjuntar la nueva
+evidencia antes del cierre definitivo del issue.
+
+========================================================================
+13. PASOS TERMINADOS
+========================================================================
+
+[ ] Escalar el test a 10 threads x 10 loops (o equivalente >= 100 muestras)
+[ ] Re-ejecutar sin GUI y regenerar JTL, HTML y PDF
+[ ] Validar en Grafana los 3 límites con la nueva corrida
+[ ] Actualizar capturas de evidencia
+[ ] Cerrar el issue con veredicto final APROBADO o RECHAZADO
+
+========================================================================
+14. REFERENCIAS
+========================================================================
+
+- Presentación: "Semana 5 — Archify, cierre de JMeter e inducción a Playwright"
+- Apache JMeter 5.6.3 — Documentación oficial Backend Listener
+- InfluxDB Cloud — API v2 write endpoint
+- Grafana — Dashboards y alertas
+- Repositorio del grupo: [URL del repositorio]
+- Dashboard Grafana: https://daringraspberry537.grafana.net/goto/s5cc4k
+
+========================================================================
+FIN DEL DOCUMENTO
+========================================================================
