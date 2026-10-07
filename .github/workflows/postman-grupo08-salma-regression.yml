@@ -1,0 +1,70 @@
+name: Postman Regression - Grupo 08 Salma
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  postman:
+    name: Postman Newman - Salma
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar Newman
+        run: npm install -g newman
+
+      - name: Crear carpeta de resultados
+        run: mkdir -p newman
+
+      - name: Ejecutar colección Postman
+        run: |
+          newman run "postman/grupo_08_reservas-turnos/TAREA 3 SALMAGIMENEZ/Salma_Gimenez_Reservas.postman_collection.json" \
+            -e "postman/grupo_08_reservas-turnos/TAREA 3 SALMAGIMENEZ/Salma_Gimenez_AIQUAA_Environment.postman_environment.json" \
+            --reporters cli,json \
+            --reporter-json-export newman/results.json
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install reportlab pillow
+
+      - name: Generar informe PDF con skill del profesor
+        run: |
+          python "skills/postman-newman-skill/reporter/newman_report.py" \
+            --results "newman/results.json" \
+            --output "grupos/grupo-08-reservas-turnos/TAREA 4 SALMAGIMENEZ/informe/Informe_Postman_Newman_Salma_Gimenez.pdf" \
+            --author "Salma Gimenez" \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Subir informe Postman
+        uses: actions/upload-artifact@v4
+        with:
+          name: Informe-Postman-Newman-Salma-Gimenez
+          path: grupos/grupo-08-reservas-turnos/TAREA 4 SALMAGIMENEZ/informe/Informe_Postman_Newman_Salma_Gimenez.pdf
+          if-no-files-found: error
+
+      - name: Subir resultado Newman
+        uses: actions/upload-artifact@v4
+        with:
+          name: Resultado-Newman-Salma-Gimenez
+          path: newman/results.json
+          if-no-files-found: error
