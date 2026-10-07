@@ -1,0 +1,12 @@
+{
+  "global": {
+    "scope": "global",
+    "maxErrorRate": 5,
+    "p95Ms": 2500
+  },
+  "operations": {
+    "GET - Resumen de reportes por usuario": { "p95Ms": 2500, "maxErrorRate": 5 },
+    "GET - Roles activos del usuario": { "p95Ms": 2500, "maxErrorRate": 5 },
+    "POST - Asignar rol al usuario": { "p95Ms": 3000, "maxErrorRate": 5 }
+  }
+}

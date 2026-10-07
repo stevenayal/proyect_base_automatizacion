@@ -1,0 +1,204 @@
+name: Grupo 09 (Leila) - JMeter Performance (CI/CD + Grafana + informe PDF)
+
+# Tareas: "Creacion de PR de Plan de Pruebas de JMeter + CSV" y
+#         "CI CD JMeter + Reporteria Grafana con MCP"
+# Corre el plan P_GRUPO_09_LEILA_ROLES_REPORTES en modo headless, captura el
+# dashboard de Grafana del sandbox como evidencia y arma el PDF con
+# aiquaa-performance-mcp-server (MCP recomendado en clase).
+
+on:
+  push:
+    branches: ["grupo-09-leila-entregas"]
+    paths:
+      - "tests/performance/**/*GRUPO_09_LEILA*"
+      - ".github/workflows/jmeter-grupo09-leila-performance.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tests/performance/**/*GRUPO_09_LEILA*"
+      - ".github/workflows/jmeter-grupo09-leila-performance.yml"
+  workflow_dispatch:
+    inputs:
+      threads:
+        description: "Usuarios concurrentes (threads)"
+        required: false
+        default: "2"
+      loops:
+        description: "Iteraciones por thread"
+        required: false
+        default: "3"
+      monitoring_dashboard_url:
+        description: "URL publica del dashboard de Grafana (vacio = sin captura)"
+        required: false
+        default: https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958
+
+permissions:
+  contents: read
+
+concurrency:
+  # Un solo JMeter de Leila a la vez (push y PR comparten el cupo de la API).
+  group: grupo09-leila-jmeter
+  cancel-in-progress: false
+
+env:
+  JMETER_VERSION: 5.6.3
+  RESULTS_DIR: test-results/performance
+  PLAN: tests/performance/plans/P_GRUPO_09_LEILA_ROLES_REPORTES.jmx
+  CSV: tests/performance/data/D_GRUPO_09_LEILA_ROLES.csv
+  THRESHOLDS: tests/performance/thresholds/T_GRUPO_09_LEILA_ROLES_REPORTES.json
+  JTL: test-results/performance/R_GRUPO_09_LEILA_ROLES_REPORTES.jtl
+  PDF: test-results/performance/INFORME_PERF_GRUPO09_LEILA.pdf
+  THREADS: ${{ inputs.threads || '2' }}
+  LOOPS: ${{ inputs.loops || '3' }}
+  DASHBOARD_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.monitoring_dashboard_url || 'https://purplespinach239.grafana.net/public-dashboards/ce95c3fa413048d3a79d3c6fc60de958' }}
+
+jobs:
+  performance:
+    name: JMeter + Grafana + informe PDF
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17 (requerido por JMeter)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Configurar Node.js (MCP de reporteria)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Configurar Python (captura de Grafana)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar Apache JMeter ${{ env.JMETER_VERSION }}
+        run: |
+          curl --fail --location --silent --show-error --retry 3 \
+            "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" -o jmeter.tgz
+          tar -xzf jmeter.tgz
+          "apache-jmeter-${JMETER_VERSION}/bin/jmeter" --version | tail -n 3
+
+      - name: Esperar ventana libre del rate limit (30 req/min compartido)
+        # En un push o PR arrancan juntos los pipelines de Leila y el JMeter
+        # general del curso, todos con la misma api-key (30 req/min): se
+        # escalona el arranque y se espera a que la API informe cupo casi
+        # completo durante dos lecturas seguidas (header x-ratelimit-remaining).
+        env:
+          API_KEY: ${{ secrets.GRUPO09_API_KEY || 'sbx_demo_f581ca21e68a347288c94d71' }}
+        run: |
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then sleep 240; fi
+          OK=0
+          for i in $(seq 1 15); do
+            H=$(curl -s -D - -o /dev/null -H "x-api-key: ${API_KEY}" https://aiquaa-sandbox-api.vercel.app/api/v1/roles)
+            REM=$(echo "$H" | tr -d '\r' | awk -F': ' 'tolower($1)=="x-ratelimit-remaining"{print $2}')
+            RESET=$(echo "$H" | tr -d '\r' | awk -F': ' 'tolower($1)=="x-ratelimit-reset"{print $2}')
+            echo "Intento $i: cupo restante=${REM:-?}"
+            if [ -n "$REM" ] && [ "$REM" -ge 27 ]; then OK=$((OK+1)); [ "$OK" -ge 2 ] && exit 0; sleep 20; continue; fi; OK=0
+            NOW=$(date +%s%3N); WAIT=$(( (${RESET:-$NOW} - NOW) / 1000 + 2 ))
+            [ "$WAIT" -lt 5 ] && WAIT=15; [ "$WAIT" -gt 65 ] && WAIT=65
+            echo "Esperando ${WAIT}s a que se libere la ventana..."; sleep "$WAIT"
+          done
+          echo "::warning::No se libero el cupo del rate limit; se ejecuta igual."
+
+      - name: Ejecutar plan de pruebas (headless)
+        env:
+          API_KEY: ${{ secrets.GRUPO09_API_KEY || 'sbx_demo_f581ca21e68a347288c94d71' }}
+        run: |
+          mkdir -p "${RESULTS_DIR}/dashboard"
+          "apache-jmeter-${JMETER_VERSION}/bin/jmeter" -n \
+            -t "${PLAN}" \
+            -l "${JTL}" \
+            -e -o "${RESULTS_DIR}/dashboard" \
+            -JcsvPath="${CSV}" \
+            -JapiKey="${API_KEY}" \
+            -Jthreads="${THREADS}" \
+            -Jloops="${LOOPS}" \
+            -JthroughputPerMin=10
+
+      - name: Capturar evidencia del dashboard de Grafana
+        # Grafana Cloud gratuito "duerme" si esta inactivo: por eso la espera
+        # larga. Si la captura falla, el PDF se genera igual (sin la imagen).
+        if: ${{ always() && env.DASHBOARD_URL != '' }}
+        continue-on-error: true
+        run: |
+          pip install --quiet selenium
+          mkdir -p "${RESULTS_DIR}/evidence"
+          PKG=$(npm pack aiquaa-performance-mcp-server --pack-destination . --silent)
+          tar -xzf "$PKG" package/dist/monitoring/python/capture_dashboard.py
+          python3 package/dist/monitoring/python/capture_dashboard.py \
+            --url "${DASHBOARD_URL}" \
+            --output "${RESULTS_DIR}/evidence/EVIDENCIA_GRAFANA_GRUPO09_LEILA.png" \
+            --wait-seconds 8 \
+            --timeout-seconds 180
+
+      - name: Generar informe PDF (aiquaa-performance-mcp-server)
+        if: always()
+        run: |
+          EVIDENCE_ARGS=()
+          if [ -f "${RESULTS_DIR}/evidence/EVIDENCIA_GRAFANA_GRUPO09_LEILA.png" ]; then
+            EVIDENCE_ARGS=(--evidence-image "${RESULTS_DIR}/evidence/EVIDENCIA_GRAFANA_GRUPO09_LEILA.png" \
+              --evidence-label "Dashboard Grafana - AIQUAA Sandbox" \
+              --evidence-url "${DASHBOARD_URL}")
+          fi
+          set +e
+          npx -y aiquaa-performance-mcp-server --report \
+            "${JTL}" "${THRESHOLDS}" "${PDF}" \
+            --api-name "AIQUAA Sandbox API - Grupo 09 Reportes y Roles (Leila)" \
+            --test-type carga \
+            --threads "${THREADS}" \
+            --loops "${LOOPS}" \
+            --author "${{ github.triggering_actor }}" \
+            --api-version "${{ github.sha }}" \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            "${EVIDENCE_ARGS[@]}"
+          status=$?
+          set -e
+          if [ ! -f "${PDF}" ]; then
+            echo "::error::No se genero el informe PDF (exit ${status})."
+            exit "${status}"
+          fi
+
+      - name: Resumen de la ejecucion
+        if: always()
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import csv, os
+          jtl = os.environ["JTL"]
+          if not os.path.exists(jtl):
+              print("No se genero el JTL."); raise SystemExit
+          rows = list(csv.DictReader(open(jtl, encoding="utf-8")))
+          print("## Grupo 09 (Leila) - JMeter")
+          print("| Operacion | Muestras | Errores | Promedio (ms) | Max (ms) |")
+          print("|---|---|---|---|---|")
+          for label in sorted({r["label"] for r in rows}):
+              rs = [r for r in rows if r["label"] == label]
+              t = [int(r["elapsed"]) for r in rs]
+              err = sum(r["success"] != "true" for r in rs)
+              print(f"| {label} | {len(rs)} | {err} | {sum(t)//len(t)} | {max(t)} |")
+          PY
+
+      - name: Evaluar umbrales (SLA)
+        # Gate del pipeline: error rate <= 5 % y p95 dentro de lo definido.
+        run: npx -y aiquaa-performance-mcp-server --evaluate "${JTL}" "${THRESHOLDS}"
+
+      - name: Subir informe PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: INFORME_PERF_GRUPO09_LEILA
+          path: ${{ env.PDF }}
+          if-no-files-found: warn
+
+      - name: Subir resultados completos (JTL + dashboard HTML + evidencia)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-grupo09-leila
+          path: ${{ env.RESULTS_DIR }}
+          retention-days: 14
